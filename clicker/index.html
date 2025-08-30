@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Super Clicker Game</title>
   <style>
+    /* Prevent mobile zoom and highlight */
     body {
       margin: 0;
       padding: 0;
@@ -16,6 +17,13 @@
       font-family: 'Arial', sans-serif;
       background: linear-gradient(135deg, #fbc2eb, #a6c1ee);
       overflow: hidden;
+      touch-action: pan-x pan-y; /* prevent double-tap zoom */
+    }
+
+    button, input, textarea {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      outline: none;
     }
 
     h1 {
@@ -165,11 +173,9 @@
       scoreEl.style.transform = 'scale(1.3)';
       setTimeout(() => scoreEl.style.transform = 'scale(1)', 150);
 
-      // Play click sound
       clickSound.currentTime = 0;
       clickSound.play();
 
-      // Spark effect
       const rect = e.target.getBoundingClientRect();
       createSpark(rect.left + rect.width/2, rect.top + rect.height/2);
     });
@@ -182,4 +188,3 @@
 
 </body>
 </html>
- 
