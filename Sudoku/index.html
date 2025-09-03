@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sudoku Classic</title>
+  <style>
+    body {
+      font-family: 'Nunito', Arial, sans-serif;
+      background: linear-gradient(135deg, #f7fafc 55%, #c7e7fc 100%);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .game-title {
+      margin: 2vw 0 1vw 0;
+      font-weight: 800;
+      font-size: 2.2em;
+      color: #2862ea;
+      text-shadow: 1px 2px 0 #fff, 0 0 8px #aac7f6;
+      letter-spacing: .07em;
+    }
+    .sudoku-board {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 0.4vw;
+      background: #eaf2fa;
+      box-shadow: 0 6px 24px #aac7f688, 0 2px 8px #4980e088;
+      border-radius: 16px;
+      padding: 4vw 2vw;
+      max-width: 90vw;
+      min-width: 330px;
+      max-width: 390px;
+      margin-bottom: 4vw;
+    }
+    .cell {
+      aspect-ratio: 1 / 1;
+      min-width: 30px;
+      max-width: 36px;
+      font-size: 1.4em;
+      text-align: center;
+      border: 2px solid #b5caeb;
+      border-radius: 8px;
+      background: #fff;
+      outline: none;
+      box-shadow: 0 1px 4px #98bbe033;
+      transition: border-color .2s, box-shadow .2s, background .15s;
+      caret-color: #2862ea;
+    }
+    .cell:focus,
+    .cell.selected {
+      border-color: #2862ea;
+      background: #e6f2ff;
+      box-shadow: 0 3px 14px #9ac2e066;
+    }
+    .cell.prefill {
+      background: #dde7fc;
+      font-weight: 700;
+      color: #2862ea;
+      border-color: #aac7f6;
+      box-shadow: 0 1px 6px #aac7f655;
+    }
+    .box-highlight {
+      background: #f6fbff !important;
+    }
+    .controls {
+      display: flex;
+      gap: 1.2vw;
+      margin: 1vw 0;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button {
+      background: linear-gradient(90deg, #2862ea 60%, #3bb9fa 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.07em;
+      border: none;
+      border-radius: 7px;
+      padding: 8px 24px;
+      box-shadow: 0 2px 8px #aac7f644;
+      cursor: pointer;
+      transition: box-shadow .18s, background .15s;
+    }
+    button:hover, button:focus {
+      box-shadow: 0 4px 18px #2862ea77;
+      background: linear-gradient(90deg, #3bb9fa 60%, #2862ea 100%);
+    }
+    @media (max-width: 600px) {
+      .game-title {
+         font-size: 1.25em;
+      }
+      .sudoku-board {
+         min-width: 250px; max-width: 98vw; padding: 2vw 1vw;
+      }
+      .cell {
+        font-size: 1em;
+        min-width: 26px;
+        max-width: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-title">Sudoku Classic</div>
+  <div class="sudoku-board" id="sudoku-board"></div>
+  <div class="controls">
+    <button id="solveBtn">Solve</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+  <script>
+    // Simple puzzle, replace with random generator if needed
+    const puzzle = [
+      [5, 3, 0, 0, 7, 0, 0, 0, 0],
+      [6, 0, 0, 1, 9, 5, 0, 0, 0],
+      [0, 9, 8, 0, 0, 0, 0, 6, 0],
+      [8, 0, 0, 0, 6, 0, 0, 0, 3],
+      [4, 0, 0, 8, 0, 3, 0, 0, 1],
+      [7, 0, 0, 0, 2, 0, 0, 0, 6],
+      [0, 6, 0, 0, 0, 0, 2, 8, 0],
+      [0, 0, 0, 4, 1, 9, 0, 0, 5],
+      [0, 0, 0, 0, 8, 0, 0, 7, 9]
+    ];
+    let board = JSON.parse(JSON.stringify(puzzle)); // mutable copy
+
+    function renderBoard(selectedIdx = null) {
+      const boardDiv = document.getElementById('sudoku-board');
+      boardDiv.innerHTML = '';
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'cell';
+          input.maxLength = 1;
+          if (puzzle[r][c] !== 0) {
+            input.classList.add('prefill');
+            input.value = puzzle[r][c];
+            input.readOnly = true;
+          } else {
+            input.value = board[r][c] === 0 ? '' : board[r][c];
+            input.addEventListener('focus', () => highlightRegion(r, c));
+            input.addEventListener('blur', clearHighlights);
+            input.addEventListener('input', () => handleInput(r, c, input));
+          }
+          input.dataset.row = r;
+          input.dataset.col = c;
+          boardDiv.appendChild(input);
+        }
+      }
+    }
+
+    function highlightRegion(row, col) {
+      const cells = document.querySelectorAll('.cell');
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const idx = r * 9 + c;
+          const cell = cells[idx];
+          if (
+            Math.floor(row / 3) === Math.floor(r / 3) &&
+            Math.floor(col / 3) === Math.floor(c / 3)
+          ) {
+            cell.classList.add('box-highlight');
+          }
+        }
+      }
+    }
+    function clearHighlights() {
+      document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('box-highlight'));
+    }
+    
+    function handleInput(row, col, input) {
+      let val = parseInt(input.value);
+      if (Number.isInteger(val) && val > 0 && val <= 9) {
+        board[row][col] = val;
+        input.value = val;
+        input.style.color = "#2862ea";
+        input.style.fontWeight = "700";
+        input.style.background = "#f0f6fa";
+      } else if (input.value === "") {
+        board[row][col] = 0;
+        input.style.color = "";
+        input.style.fontWeight = "";
+        input.style.background = "#fff";
+      } else {
+        input.value = "";
+        board[row][col] = 0;
+      }
+    }
+
+    function solveSudoku(grid) {
+      // Simple backtracking solver
+      for (let row = 0; row < 9; row++) {
+          for (let col = 0; col < 9; col++) {
+              if (grid[row][col] === 0) {
+                  for (let num = 1; num <= 9; num++) {
+                      if (isValid(grid, row, col, num)) {
+                          grid[row][col] = num;
+                          if (solveSudoku(grid)) return true;
+                          grid[row][col] = 0;
+                      }
+                  }
+                  return false;
+              }
+          }
+      }
+      return true;
+    }
+    function isValid(grid, row, col, num) {
+      for (let x = 0; x < 9; x++)
+        if (grid[row][x] === num || grid[x][col] === num) return false;
+      let boxRow = Math.floor(row / 3) * 3;
+      let boxCol = Math.floor(col / 3) * 3;
+      for (let r = 0; r < 3; r++)
+        for (let c = 0; c < 3; c++)
+          if (grid[boxRow + r][boxCol + c] === num) return false;
+      return true;
+    }
+
+    document.getElementById("solveBtn").onclick = function() {
+      let grid = JSON.parse(JSON.stringify(board));
+      solveSudoku(grid);
+      board = grid;
+      renderBoard();
+    };
+    document.getElementById("resetBtn").onclick = function() {
+      board = JSON.parse(JSON.stringify(puzzle));
+      renderBoard();
+    };
+
+    renderBoard();
+  </script>
+</body>
+</html>
