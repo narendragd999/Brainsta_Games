@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <style>
+    body {
+      font-family: 'Nunito', Arial, sans-serif;
+      background: linear-gradient(135deg, #f7fafc 55%, #c7e7fc 100%);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .game-title {
+      font-weight: 800;
+      font-size: 2.2em;
+      margin: 2vw 0 1vw 0;
+      color: #e36d33;
+      text-shadow: 1px 2px 0 #fff, 0 0 8px #ffcda6;
+      letter-spacing: .09em;
+    }
+    .tic-tac-toe-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2vw;
+      background: #fff9f0;
+      box-shadow: 0 8px 32px #ffcda644, 0 2px 8px #c7773688;
+      border-radius: 18px;
+      padding: 5vw 3vw;
+      min-width: 220px;
+      max-width: 340px;
+      margin-bottom: 4vw;
+      width: 100%;
+    }
+    .cell {
+      aspect-ratio: 1 / 1;
+      min-width: 60px;
+      font-size: 2.6em;
+      text-align: center;
+      border-radius: 12px;
+      background: #ffe6cb;
+      outline: none;
+      box-shadow: 0 1px 7px #b9782d33;
+      transition: box-shadow .18s, background .12s, color .12s;
+      cursor: pointer;
+      font-weight: 700;
+      color: #e36d33;
+      border: 3px solid #edc19a;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .cell:hover, .cell.active {
+      background: #ffe0b6;
+      box-shadow: 0 4px 16px #e36d3380;
+      border-color: #e36d33;
+    }
+    .cell.x {
+      color: #2862ea;
+      background: #dde7fc;
+      border-color: #98bbe0;
+    }
+    .cell.o {
+      color: #e36d33;
+      background: #ffe6cb;
+      border-color: #ffcda6;
+    }
+    .winner-highlight {
+      background: #ffe0e0 !important;
+      box-shadow: 0 0 16px #e36d3380 !important;
+      border-color: #ee4c4c !important;
+    }
+    .controls {
+      display: flex;
+      gap: 2vw;
+      margin: 1vw 0;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button {
+      background: linear-gradient(90deg, #e36d33 50%, #2862ea 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.07em;
+      border: none;
+      border-radius: 7px;
+      padding: 10px 24px;
+      box-shadow: 0 2px 8px #ffcda644;
+      cursor: pointer;
+      transition: box-shadow .18s, background .15s;
+    }
+    button:hover, button:focus {
+      box-shadow: 0 4px 18px #e36d3366;
+      background: linear-gradient(90deg, #2862ea 60%, #e36d33 100%);
+    }
+    .status {
+      font-size: 1.3em;
+      font-weight: 800;
+      color: #2862ea;
+      min-height: 2em;
+      margin-bottom: 10px;
+    }
+    @media (max-width: 600px) {
+      .game-title {font-size: 1.35em;}
+      .tic-tac-toe-board {min-width: 150px; max-width: 95vw; padding: 3vw 3vw;}
+      .cell {font-size: 1.6em; min-width: 42px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="game-title">Tic Tac Toe</div>
+  <div class="status" id="gameStatus"></div>
+  <div class="tic-tac-toe-board" id="board"></div>
+  <div class="controls">
+    <button id="resetBtn">Reset</button>
+    <button id="newGameBtn">New Game</button>
+  </div>
+  <script>
+    // Modern responsive Tic Tac Toe with grid & highlights
+    const boardDiv = document.getElementById('board');
+    const statusDiv = document.getElementById('gameStatus');
+    let board = Array(9).fill('');
+    let currentPlayer = 'X';
+    let winner = null;
+
+    function renderBoard() {
+      boardDiv.innerHTML = '';
+      board.forEach((cell, idx) => {
+        const cellDiv = document.createElement('div');
+        cellDiv.className = 'cell' + (cell ? ' ' + cell.toLowerCase() : '');
+        cellDiv.textContent = cell;
+        cellDiv.tabIndex = 0;
+        cellDiv.setAttribute('data-idx', idx);
+        cellDiv.onclick = () => cellClick(idx);
+        if (winner && winner.pattern.includes(idx)) {
+          cellDiv.classList.add('winner-highlight');
+        }
+        boardDiv.appendChild(cellDiv);
+      });
+      updateStatus();
+    }
+    function updateStatus() {
+      if (winner) {
+        statusDiv.textContent = `🎉 ${winner.player} Wins!`;
+      } else if (board.every(cell => cell)) {
+        statusDiv.textContent = `🤝 Draw!`;
+      } else {
+        statusDiv.textContent = `${currentPlayer === 'X' ? "🔷 X" : "🟠 O"}'s turn`;
+      }
+    }
+
+    function cellClick(idx) {
+      if (board[idx] || winner) return;
+      board[idx] = currentPlayer;
+      winner = checkWinner();
+      currentPlayer = winner ? currentPlayer : (currentPlayer === 'X' ? 'O' : 'X');
+      renderBoard();
+    }
+
+    function checkWinner() {
+      const winPatterns = [
+        [0,1,2],[3,4,5],[6,7,8], // rows
+        [0,3,6],[1,4,7],[2,5,8], // cols
+        [0,4,8],[2,4,6] // diags
+      ];
+      for (let pattern of winPatterns) {
+        const [a,b,c] = pattern;
+        if (
+          board[a] &&
+          board[a] === board[b] &&
+          board[a] === board[c]
+        ) {
+          return {player: board[a], pattern};
+        }
+      }
+      return null;
+    }
+
+    function resetGame() {
+      board = Array(9).fill('');
+      currentPlayer = 'X';
+      winner = null;
+      renderBoard();
+    }
+    document.getElementById("resetBtn").onclick = resetGame;
+    document.getElementById("newGameBtn").onclick = resetGame;
+
+    renderBoard();
+  </script>
+</body>
+</html>
