@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>2048 Game - Single Round</title>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Nunito', Arial, sans-serif;
+    background: linear-gradient(135deg, #f7fafc 55%, #c7e7fc 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+  }
+  .game-container {
+    background: #eaf2fa;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px #aac7f688, 0 2px 8px #4980e088;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .game-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #2862ea;
+    text-shadow: 1px 2px 0 #fff, 0 0 8px #aac7f6;
+    letter-spacing: 0.07em;
+    margin-bottom: 1.5rem;
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 12px;
+    background: #b3c5ef;
+    border-radius: 12px;
+    padding: 12px;
+    width: 100%;
+  }
+  .tile {
+    background: #dde7fc;
+    border-radius: 10px;
+    height: 70px;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2862ea;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 2px 8px #aac7f655;
+    user-select: none;
+    transition: background 0.3s, color 0.3s, transform 0.2s;
+  }
+  /* Tile colors for typical 2048 values */
+  .tile-2 { background: #eee4da; color: #776e65; }
+  .tile-4 { background: #ede0c8; color: #776e65; }
+  .tile-8 { background: #f2b179; color: #f9f6f2; }
+  .tile-16 { background: #f59563; color: #f9f6f2; }
+  .tile-32 { background: #f67c5f; color: #f9f6f2; }
+  .tile-64 { background: #f65e3b; color: #f9f6f2; }
+  .tile-128 { background: #edcf72; color: #f9f6f2; font-size: 1.6rem; }
+  .tile-256 { background: #edcc61; color: #f9f6f2; font-size: 1.6rem; }
+  .tile-512 { background: #edc850; color: #f9f6f2; font-size: 1.6rem; }
+  .tile-1024 { background: #edc53f; color: #f9f6f2; font-size: 1.4rem; }
+  .tile-2048 { background: #edc22e; color: #f9f6f2; font-size: 1.4rem; font-weight: 900; }
+  
+  .controls {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+  }
+  button {
+    flex: 1;
+    padding: 0.6rem 0;
+    font-weight: 700;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #2862ea 60%, #3bb9fa 100%);
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #aac7f644;
+    transition: box-shadow 0.2s ease, background 0.2s ease;
+    user-select: none;
+  }
+  button:hover,
+  button:focus {
+    background: linear-gradient(90deg, #3bb9fa 60%, #2862ea 100%);
+    box-shadow: 0 4px 18px #2862ea77;
+    outline: none;
+  }
+  .status {
+    margin-top: 12px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #2862ea;
+    min-height: 1.5rem;
+    user-select: none;
+    text-align: center;
+  }
+
+  @media (max-width: 400px) {
+    .game-container { width: 95vw; padding: 1.5rem; }
+    .tile { height: 60px; font-size: 1.5rem; }
+    .game-title { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="game-container" role="main" aria-label="2048 Game">
+    <div class="game-title">2048 - Single Round</div>
+    <div id="grid" aria-live="polite" aria-relevant="additions"></div>
+    <div class="status" role="status" aria-live="polite"></div>
+    <div class="controls">
+      <button id="resetBtn" aria-label="Start new game">New Game</button>
+    </div>
+  </div>
+
+<script>
+  (function() {
+    const gridSize = 4;
+    let grid = [];
+    let hasMoved = false;
+    let score = 0;
+    let gameOver = false;
+
+    const gridElem = document.getElementById('grid');
+    const statusElem = document.querySelector('.status');
+    const resetBtn = document.getElementById('resetBtn');
+
+    function initGrid() {
+      grid = new Array(gridSize).fill(null).map(() => new Array(gridSize).fill(0));
+      addRandomTile();
+      addRandomTile();
+      score = 0;
+      gameOver = false;
+      updateStatus();
+      renderGrid();
+    }
+
+    function addRandomTile() {
+      let emptyCells = [];
+      for (let r=0; r<gridSize; r++) {
+        for (let c=0; c<gridSize; c++) {
+          if (grid[r][c] === 0) emptyCells.push({r, c});
+        }
+      }
+      if (emptyCells.length === 0) return;
+      let {r, c} = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+    }
+
+    function renderGrid() {
+      gridElem.innerHTML = '';
+      for (let r=0; r<gridSize; r++) {
+        for (let c=0; c<gridSize; c++) {
+          const val = grid[r][c];
+          let tile = document.createElement('div');
+          tile.className = 'tile' + (val ? ' tile-' + val : '');
+          tile.textContent = val === 0 ? '' : val;
+          gridElem.appendChild(tile);
+        }
+      }
+    }
+
+    function updateStatus(text) {
+      if (text) {
+        statusElem.textContent = text;
+      } else if (gameOver) {
+        statusElem.textContent = 'Game Over! Press New Game to restart.';
+      } else {
+        statusElem.textContent = `Score: ${score}`;
+      }
+    }
+
+    function canMove() {
+      for (let r=0; r<gridSize; r++) {
+        for (let c=0; c<gridSize; c++) {
+          if (grid[r][c] === 0) return true;
+          if (c < gridSize-1 && grid[r][c] === grid[r][c+1]) return true;
+          if (r < gridSize-1 && grid[r][c] === grid[r+1][c]) return true;
+        }
+      }
+      return false;
+    }
+
+    // Movement helpers
+    function slide(row) {
+      let arr = row.filter(val => val);
+      for (let i=0; i<arr.length-1; i++) {
+        if (arr[i] === arr[i+1]) {
+          arr[i] *= 2;
+          score += arr[i];
+          arr[i+1] = 0;
+          i++;
+        }
+      }
+      arr = arr.filter(val => val);
+      while(arr.length < gridSize) arr.push(0);
+      return arr;
+    }
+
+    function moveLeft() {
+      hasMoved = false;
+      for (let r=0; r<gridSize; r++) {
+        let original = [...grid[r]];
+        grid[r] = slide(grid[r]);
+        if (original.toString() !== grid[r].toString()) hasMoved = true;
+      }
+    }
+
+    function moveRight() {
+      hasMoved = false;
+      for (let r=0; r<gridSize; r++) {
+        let original = [...grid[r]];
+        grid[r] = slide(grid[r].reverse()).reverse();
+        if (original.toString() !== grid[r].toString()) hasMoved = true;
+      }
+    }
+
+    function transpose(matrix) {
+      return matrix[0].map((_, i) => matrix.map(row => row[i]));
+    }
+
+    function moveUp() {
+      hasMoved = false;
+      grid = transpose(grid);
+      moveLeft();
+      grid = transpose(grid);
+    }
+
+    function moveDown() {
+      hasMoved = false;
+      grid = transpose(grid);
+      moveRight();
+      grid = transpose(grid);
+    }
+
+    // Keyboard and touch handlers
+    function handleInput(e) {
+      if (gameOver) return;
+      switch(e.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          moveUp();
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          moveDown();
+          break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          moveLeft();
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          moveRight();
+          break;
+        default:
+          return;
+      }
+      if (hasMoved) {
+        addRandomTile();
+        renderGrid();
+        if (!canMove()) {
+          gameOver = true;
+          updateStatus();
+        } else {
+          updateStatus();
+        }
+      }
+      e.preventDefault();
+    }
+
+    // Touch Swipe Detection
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const swipeThreshold = 30;
+
+    function handleTouchStart(e) {
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    }
+
+    function handleTouchEnd(e) {
+      if (gameOver) return;
+      const touch = e.changedTouches[0];
+      let diffX = touch.clientX - touchStartX;
+      let diffY = touch.clientY - touchStartY;
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX > swipeThreshold) moveRight();
+        else if (diffX < -swipeThreshold) moveLeft();
+        else return;
+      } else {
+        if (diffY > swipeThreshold) moveDown();
+        else if (diffY < -swipeThreshold) moveUp();
+        else return;
+      }
+      if (hasMoved) {
+        addRandomTile();
+        renderGrid();
+        if (!canMove()) {
+          gameOver = true;
+          updateStatus();
+        } else {
+          updateStatus();
+        }
+      }
+    }
+
+    resetBtn.addEventListener('click', () => {
+      initGrid();
+    });
+
+    document.addEventListener('keydown', handleInput);
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchend', handleTouchEnd);
+
+    // Initialize
+    initGrid();
+  })();
+</script>
+</body>
+</html>
