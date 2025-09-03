@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Memory Card Match</title>
+<title>Memory Card Match - Dynamic Symbols</title>
 <style>
-  /* Reset & Base */
   body, html {
     height: 100%;
     margin: 0;
@@ -150,11 +149,11 @@
 
   <script>
     (() => {
+      const allSymbols = ['🍎','🍇','🍉','🍌','🍓','🍍','🍒','🥝','🍑','🍋','🍐','🥥','🍊','🥭','🍈'];
       const grid = document.querySelector('.memory-grid');
       const status = document.querySelector('.status');
       const resetBtn = document.getElementById('resetBtn');
 
-      const symbols = ['🍎', '🍇', '🍉', '🍌', '🍓', '🍍', '🍒', '🥝'];
       let cardValues = [];
       let flippedCards = [];
       let matchedCount = 0;
@@ -168,7 +167,15 @@
         return array;
       }
 
+      function pickRandomSymbols(count) {
+        const symbolsCopy = [...allSymbols];
+        shuffle(symbolsCopy);
+        return symbolsCopy.slice(0, count);
+      }
+
       function createCards() {
+        const numPairs = 8;
+        const symbols = pickRandomSymbols(numPairs);
         cardValues = [...symbols, ...symbols];
         shuffle(cardValues);
         grid.innerHTML = '';
@@ -221,7 +228,7 @@
           status.textContent = `Great! ${matchedCount / 2} pairs matched.`;
           resetBoard(true);
           if (matchedCount === cardValues.length) {
-            status.textContent = 'Congratulations! You found all matches.';
+            status.textContent = '🎉 Congratulations! You found all matches.';
           }
         } else {
           status.textContent = 'Try again!';
