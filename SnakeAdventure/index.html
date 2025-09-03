@@ -20,7 +20,7 @@
 
     .game-container {
       display: grid;
-      grid-template-rows: auto auto auto;
+      grid-template-rows: auto auto auto auto;
       gap: 20px;
       padding: 20px;
       background: rgba(255, 255, 255, 0.1);
@@ -95,6 +95,31 @@
       visibility: hidden;
     }
 
+    .speed-control {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+    }
+
+    #speedSelect {
+      background: #2a5298;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #speedSelect:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    }
+
     #gameOver {
       display: none;
       position: fixed;
@@ -148,6 +173,11 @@
         height: 60px;
         font-size: clamp(0.9rem, 2vw, 1rem);
       }
+
+      #speedSelect {
+        padding: 8px;
+        font-size: clamp(0.9rem, 2vw, 1rem);
+      }
     }
   </style>
 </head>
@@ -158,6 +188,14 @@
       <span>High Score: <span id="highScore">0</span></span>
     </div>
     <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div class="speed-control">
+      <label for="speedSelect">Speed:</label>
+      <select id="speedSelect">
+        <option value="150">Slow</option>
+        <option value="100" selected>Medium</option>
+        <option value="60">Fast</option>
+      </select>
+    </div>
     <div class="controls">
       <button class="control-btn empty"></button>
       <button class="control-btn" id="upBtn">↑</button>
@@ -188,13 +226,15 @@
     let dy = 0;
     let score = 0;
     let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
-    let gameSpeed = 100;
-    let gameLoop;
-    let isPaused = false;
+    let gameSpeed = parseInt(document.getElementById('speedSelect').value);
+    let gameLoop = null;
+    let isPaused = true;
+    let isGameStarted = false;
     let lastTouchTime = 0;
     let touchThreshold = 200;
 
     document.getElementById('highScore').textContent = highScore;
+    document.getElementById('pauseBtn').textContent = '▶';
 
     function spawnFood() {
       food.x = Math.floor(Math.random() * tileCount);
@@ -285,6 +325,10 @@
 
     function endGame() {
       clearInterval(gameLoop);
+      gameLoop = null;
+      isPaused = true;
+      isGameStarted = false;
+      document.getElementById('pauseBtn').textContent = '▶';
       if (score > highScore) {
         highScore = score;
         localStorage.setItem('highScore', highScore);
@@ -299,13 +343,24 @@
       dx = 0;
       dy = 0;
       score = 0;
-      gameSpeed = 100;
+      gameSpeed = parseInt(document.getElementById('speedSelect').value);
       document.getElementById('score').textContent = score;
       document.getElementById('gameOver').style.display = 'none';
       spawnFood();
       powerUp = null;
-      clearInterval(gameLoop);
-      gameLoop = setInterval(gameLoopFunction, gameSpeed);
+      isPaused = true;
+      isGameStarted = false;
+      document.getElementById('pauseBtn').textContent = '▶';
+      drawGame();
+    }
+
+    function startGame() {
+      if (!isGameStarted) {
+        isGameStarted = true;
+        isPaused = false;
+        gameLoop = setInterval(gameLoopFunction, gameSpeed);
+        document.getElementById('pauseBtn').textContent = '⏸';
+      }
     }
 
     function gameLoopFunction() {
@@ -313,7 +368,20 @@
       drawGame();
     }
 
+    document.getElementById('speedSelect').addEventListener('change', () => {
+      gameSpeed = parseInt(document.getElementById('speedSelect').value);
+      if (isGameStarted && !isPaused) {
+        clearInterval(gameLoop);
+        gameLoop = setInterval(gameLoopFunction, gameSpeed);
+      }
+    });
+
     document.addEventListener('keydown', (e) => {
+      if (!isGameStarted) {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+          startGame();
+        }
+      }
       switch (e.key) {
         case 'ArrowUp':
           if (dy === 0) { dx = 0; dy = -1; }
@@ -328,31 +396,41 @@
           if (dx === 0) { dx = 1; dy = 0; }
           break;
         case ' ':
-          isPaused = !isPaused;
-          document.getElementById('pauseBtn').textContent = isPaused ? '▶' : '⏸';
+          if (isGameStarted) {
+            isPaused = !isPaused;
+            document.getElementById('pauseBtn').textContent = isPaused ? '▶' : '⏸';
+          }
           break;
       }
     });
 
     document.getElementById('upBtn').addEventListener('click', () => {
+      startGame();
       if (dy === 0) { dx = 0; dy = -1; }
     });
 
     document.getElementById('downBtn').addEventListener('click', () => {
+      startGame();
       if (dy === 0) { dx = 0; dy = 1; }
     });
 
     document.getElementById('leftBtn').addEventListener('click', () => {
+      startGame();
       if (dx === 0) { dx = -1; dy = 0; }
     });
 
     document.getElementById('rightBtn').addEventListener('click', () => {
+      startGame();
       if (dx === 0) { dx = 1; dy = 0; }
     });
 
     document.getElementById('pauseBtn').addEventListener('click', () => {
-      isPaused = !isPaused;
-      document.getElementById('pauseBtn').textContent = isPaused ? '▶' : '⏸';
+      if (!isGameStarted) {
+        startGame();
+      } else {
+        isPaused = !isPaused;
+        document.getElementById('pauseBtn').textContent = isPaused ? '▶' : '⏸';
+      }
     });
 
     document.getElementById('restartBtn').addEventListener('click', resetGame);
@@ -368,6 +446,9 @@
     canvas.addEventListener('touchend', (e) => {
       e.preventDefault();
       if (Date.now() - lastTouchTime < touchThreshold) {
+        if (!isGameStarted) {
+          startGame();
+        }
         const touch = e.changedTouches[0];
         const deltaX = touch.clientX - startX;
         const deltaY = touch.clientY - startY;
@@ -382,8 +463,9 @@
       }
     });
 
+    // Initialize game state but don't start the game loop
     spawnFood();
-    gameLoop = setInterval(gameLoopFunction, gameSpeed);
+    drawGame();
   </script>
 </body>
 </html>
