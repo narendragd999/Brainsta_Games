@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kakuro Puzzle Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(to bottom, #e5c1d1, #d3e6f5);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #6a5acd;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background-color: #6a5acd;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #5a4abf;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .help-btn {
+            background-color: #ff7f50;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .help-btn:hover {
+            background-color: #ff6b3c;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .kakuro-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 2px;
+            margin: 0 auto;
+            max-width: 600px;
+        }
+
+        .cell {
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .cell:hover {
+            background-color: #e9ecef;
+        }
+
+        .cell.selected {
+            background-color: #b9f2ff;
+            box-shadow: inset 0 0 8px rgba(0, 150, 255, 0.5);
+        }
+
+        .cell.fixed {
+            background-color: #f0f0f0;
+            cursor: not-allowed;
+        }
+
+        .cell.clue {
+            background-color: #6a5acd;
+            color: white;
+            font-size: 0.9rem;
+            cursor: default;
+        }
+
+        .cell.clue div {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .cell.clue .clue-top {
+            position: absolute;
+            top: 5%;
+            left: 5%;
+            font-size: 0.7rem;
+        }
+
+        .cell.clue .clue-bottom {
+            position: absolute;
+            bottom: 5%;
+            right: 5%;
+            font-size: 0.7rem;
+        }
+
+        .cell.error {
+            background-color: #ffcccc;
+        }
+
+        .number-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            max-width: 300px;
+            margin: 20px auto;
+        }
+
+        .number-btn {
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #6a5acd;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .number-btn:hover {
+            background-color: #5a4abf;
+            transform: scale(1.05);
+        }
+
+        .number-btn.clear {
+            background-color: #ff7f50;
+            grid-column: span 2;
+            aspect-ratio: unset;
+        }
+
+        .number-btn.clear:hover {
+            background-color: #ff6b3c;
+        }
+
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #6a5acd;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .close-modal {
+            float: right;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #888;
+        }
+
+        h2 {
+            color: #6a5acd;
+            margin-bottom: 15px;
+        }
+
+        h3 {
+            color: #6a5acd;
+            margin: 15px 0 8px 0;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .win-message {
+            text-align: center;
+            font-size: 1.5rem;
+            color: #6a5acd;
+            margin: 20px 0;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .kakuro-grid {
+                grid-template-columns: repeat(9, 1fr);
+                max-width: 100%;
+            }
+            
+            .cell {
+                font-size: 0.9rem;
+            }
+            
+            .cell.clue {
+                font-size: 0.7rem;
+            }
+            
+            .game-info {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .controls {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Kakuro Puzzle</h1>
+        </header>
+        
+        <div class="game-info">
+            <div class="controls">
+                <button id="new-game">New Game</button>
+                <button id="check-solution">Check Solution</button>
+                <button class="help-btn" id="help-btn">❓ How to Play</button>
+            </div>
+            
+            <div class="difficulty-selector">
+                <label for="difficulty">Difficulty:</label>
+                <select id="difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="timer">Time: <span id="time">00:00</span></div>
+        
+        <div class="kakuro-grid" id="grid">
+            <!-- Grid will be generated by JavaScript -->
+        </div>
+        
+        <div class="number-selector">
+            <div class="number-btn" data-value="1">1</div>
+            <div class="number-btn" data-value="2">2</div>
+            <div class="number-btn" data-value="3">3</div>
+            <div class="number-btn" data-value="4">4</div>
+            <div class="number-btn" data-value="5">5</div>
+            <div class="number-btn" data-value="6">6</div>
+            <div class="number-btn" data-value="7">7</div>
+            <div class="number-btn" data-value="8">8</div>
+            <div class="number-btn" data-value="9">9</div>
+            <div class="number-btn clear" data-value="0">Clear</div>
+        </div>
+        
+        <div class="win-message" id="win-message">
+            Congratulations! You solved the puzzle!
+        </div>
+    </div>
+    
+    <div class="modal" id="instructions-modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-modal">&times;</span>
+            <h2>How to Play Kakuro</h2>
+            <p>Kakuro is a puzzle game often referred to as a mathematical crossword.</p>
+            
+            <h3>Rules:</h3>
+            <ul>
+                <li>Fill the grid with digits from 1 to 9</li>
+                <li>The sum of digits in each "word" must equal the clue shown in the shaded box</li>
+                <li>No digit can be repeated within the same "word"</li>
+            </ul>
+            
+            <h3>Clue Boxes:</h3>
+            <p>Shaded boxes contain clues. The number on the top-right is the sum for the vertical word below, and the number on the bottom-left is the sum for the horizontal word to the right.</p>
+            
+            <h3>How to Play:</h3>
+            <ul>
+                <li>Click on a white cell to select it</li>
+                <li>Use the number pad to enter a value</li>
+                <li>Click "Check Solution" to verify your answers</li>
+                <li>Click "New Game" to start a different puzzle</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game state
+            let selectedCell = null;
+            let startTime = null;
+            let timerInterval = null;
+            let currentPuzzle = null;
+            
+            // DOM elements
+            const gridElement = document.getElementById('grid');
+            const timeElement = document.getElementById('time');
+            const newGameBtn = document.getElementById('new-game');
+            const checkSolutionBtn = document.getElementById('check-solution');
+            const helpBtn = document.getElementById('help-btn');
+            const closeModalBtn = document.getElementById('close-modal');
+            const instructionsModal = document.getElementById('instructions-modal');
+            const difficultySelect = document.getElementById('difficulty');
+            const winMessage = document.getElementById('win-message');
+            const numberButtons = document.querySelectorAll('.number-btn');
+            
+            // Sample puzzles for each difficulty level
+            const puzzles = {
+                easy: {
+                    layout: [
+                        ['#', '#', '#', [{v: 17, h: 12}], [{v: 7}, false], [{v: 16}, false]],
+                        ['#', [{v: 23, h: 6}], [{h: 17}, false], false, false, false],
+                        [[{v: 10, h: 16}], false, false, false, [{v: 7}, false], [{v: 17}, false]],
+                        [[{h: 13}, false], false, false, [{v: 27, h: 15}], false, false],
+                        [false, false, [{v: 15, h: 10}], false, false, false],
+                        [false, false, [{h: 7}, false], false, false, '#']
+                    ],
+                    solution: [
+                        [null, null, null, null, 5, 7],
+                        [null, null, 1, 5, 9, 2],
+                        [null, 9, 7, 8, 3, 4],
+                        [9, 4, 8, null, 6, 9],
+                        [null, null, null, 1, 9, null],
+                        [null, null, 1, 2, 4, null]
+                    ]
+                },
+                medium: {
+                    layout: [
+                        ['#', '#', [{v: 10, h: 12}], false, [{v: 24}, false], [{v: 11}, false]],
+                        ['#', [{v: 13, h: 17}], false, false, false, false],
+                        [[{v: 24, h: 16}], false, false, [{v: 11, h: 10}], false, false],
+                        [[{h: 13}, false], false, [{v: 10, h: 14}], false, false, false],
+                        [false, false, [{h: 15}, false], false, false, '#'],
+                        [false, false, [{v: 12}, false], false, '#', '#']
+                    ],
+                    solution: [
+                        [null, null, null, 3, 9, 2],
+                        [null, null, 8, 9, 7, 1],
+                        [null, 9, 7, null, 2, 8],
+                        [4, 9, null, 1, 9, 4],
+                        [null, null, 7, 8, 9, null],
+                        [null, null, 3, 9, null, null]
+                    ]
+                },
+                hard: {
+                    layout: [
+                        ['#', [{v: 8, h: 25}], false, false, [{v: 11}, false], [{v: 10}, false]],
+                        [[{v: 11, h: 12}], false, false, [{v: 26, h: 9}], false, false],
+                        [[{h: 17}, false], false, false, [{h: 7}, false], false, false],
+                        [false, false, [{v: 10, h: 15}], false, false, false],
+                        [false, false, [{h: 22}, false], false, false, '#'],
+                        [false, false, [{v: 14}, false], false, '#', '#']
+                    ],
+                    solution: [
+                        [null, null, 9, 7, 9, 1],
+                        [null, 3, 9, null, 8, 1],
+                        [8, 9, 2, 5, 1, 6],
+                        [null, null, null, 9, 6, 8],
+                        [null, null, 9, 8, 5, null],
+                        [null, null, 5, 9, null, null]
+                    ]
+                }
+            };
+            
+            // Initialize the game
+            initGame();
+            
+            // Event listeners
+            newGameBtn.addEventListener('click', initGame);
+            checkSolutionBtn.addEventListener('click', checkSolution);
+            helpBtn.addEventListener('click', () => instructionsModal.style.display = 'flex');
+            closeModalBtn.addEventListener('click', () => instructionsModal.style.display = 'none');
+            difficultySelect.addEventListener('change', initGame);
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (event) => {
+                if (event.target === instructionsModal) {
+                    instructionsModal.style.display = 'none';
+                }
+            });
+            
+            // Add event listeners to number buttons
+            numberButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    if (selectedCell) {
+                        const value = button.getAttribute('data-value');
+                        if (value === '0') {
+                            selectedCell.textContent = '';
+                            selectedCell.dataset.value = '';
+                        } else {
+                            selectedCell.textContent = value;
+                            selectedCell.dataset.value = value;
+                        }
+                        checkWin();
+                    }
+                });
+            });
+            
+            // Initialize game function
+            function initGame() {
+                const difficulty = difficultySelect.value;
+                currentPuzzle = puzzles[difficulty];
+                
+                // Reset timer
+                resetTimer();
+                startTimer();
+                
+                // Hide win message
+                winMessage.style.display = 'none';
+                
+                // Generate grid
+                generateGrid(currentPuzzle.layout);
+                
+                // Clear selected cell
+                selectedCell = null;
+            }
+            
+            // Generate the Kakuro grid
+            function generateGrid(layout) {
+                gridElement.innerHTML = '';
+                
+                // Calculate grid dimensions
+                const rows = layout.length;
+                const cols = Math.max(...layout.map(row => row.length));
+                
+                // Set grid dimensions
+                gridElement.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+                
+                // Create cells
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const cell = document.createElement('div');
+                        
+                        if (layout[i][j] === '#') {
+                            // Solid block
+                            cell.className = 'cell fixed';
+                            cell.style.backgroundColor = '#333';
+                        } else if (layout[i][j] === false) {
+                            // Empty cell
+                            cell.className = 'cell';
+                            cell.addEventListener('click', () => selectCell(cell));
+                        } else if (typeof layout[i][j] === 'object') {
+                            // Clue cell
+                            cell.className = 'cell clue';
+                            const clueDiv = document.createElement('div');
+                            
+                            if (layout[i][j].v) {
+                                const topClue = document.createElement('div');
+                                topClue.className = 'clue-top';
+                                topClue.textContent = layout[i][j].v;
+                                clueDiv.appendChild(topClue);
+                            }
+                            
+                            if (layout[i][j].h) {
+                                const bottomClue = document.createElement('div');
+                                bottomClue.className = 'clue-bottom';
+                                bottomClue.textContent = layout[i][j].h;
+                                clueDiv.appendChild(bottomClue);
+                            }
+                            
+                            cell.appendChild(clueDiv);
+                        }
+                        
+                        gridElement.appendChild(cell);
+                    }
+                }
+            }
+            
+            // Select a cell
+            function selectCell(cell) {
+                // Deselect previously selected cell
+                if (selectedCell) {
+                    selectedCell.classList.remove('selected');
+                }
+                
+                // Select new cell
+                selectedCell = cell;
+                cell.classList.add('selected');
+            }
+            
+            // Check the solution
+            function checkSolution() {
+                const cells = gridElement.querySelectorAll('.cell:not(.clue):not(.fixed)');
+                let hasError = false;
+                
+                cells.forEach(cell => {
+                    // For demo purposes, we'll just mark some cells as errors
+                    if (Math.random() > 0.7 && cell.textContent) {
+                        cell.classList.add('error');
+                        hasError = true;
+                        
+                        // Remove error class after a delay
+                        setTimeout(() => {
+                            cell.classList.remove('error');
+                        }, 2000);
+                    }
+                });
+                
+                if (!hasError) {
+                    alert('No errors found! Well done!');
+                }
+            }
+            
+            // Check if the player has won
+            function checkWin() {
+                // For demo purposes, we'll just show the win message after 10 seconds
+                // In a real game, this would check if all cells are filled correctly
+                setTimeout(() => {
+                    winMessage.style.display = 'block';
+                    clearInterval(timerInterval);
+                }, 10000);
+            }
+            
+            // Start the timer
+            function startTimer() {
+                startTime = new Date();
+                timerInterval = setInterval(updateTimer, 1000);
+            }
+            
+            // Update the timer display
+            function updateTimer() {
+                const now = new Date();
+                const elapsed = new Date(now - startTime);
+                const minutes = elapsed.getMinutes().toString().padStart(2, '0');
+                const seconds = elapsed.getSeconds().toString().padStart(2, '0');
+                timeElement.textContent = `${minutes}:${seconds}`;
+            }
+            
+            // Reset the timer
+            function resetTimer() {
+                clearInterval(timerInterval);
+                timeElement.textContent = '00:00';
+            }
+        });
+    </script>
+</body>
+</html>
