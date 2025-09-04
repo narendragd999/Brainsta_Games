@@ -1,295 +1,297 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Solitaire Klondike</title>
   <style>
     html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0; height: 100%;
     }
     body {
       min-height: 100vh;
+      min-width: 100vw;
       display: grid;
       place-items: center;
       background: linear-gradient(to bottom, #e5c1d1 0%, #d3e6f5 100%);
     }
     #game-container {
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      grid-template-columns: 1fr;
-      align-items: center;
-      justify-items: center;
-      width: 100vw;
-      max-width: 600px;
-      padding: 16px;
       box-sizing: border-box;
-    }
-    .solitaire-board {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      grid-gap: 12px;
-      justify-items: center;
-      align-items: start;
-      margin-top: 24px;
-    }
-    .pile, .foundation, .stock, .waste {
-      min-width: 52px;
-      min-height: 72px;
-      background: rgba(255,255,255,0.85);
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(160,80,210,0.14);
-      cursor: pointer;
-      transition: box-shadow 0.2s, background 0.2s;
-      position: relative;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: center; justify-content: center;
+      min-width: 340px; max-width: 600px;
+      width: 100vw; padding: 1em;
+      position: relative;
     }
-    .pile.selected, .foundation.selected, .stock.selected, .waste.selected {
-      box-shadow: 0 0 0 4px #aa90ac, 0 2px 6px rgba(160,80,210,0.14);
-      background: #e5c1d1;
+    .instructions-icon {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; background: linear-gradient(135deg,#e5c1d1,#d3e6f5);
+      box-shadow: 0 2px 8px rgba(160,80,210,.14);
+      z-index: 10; cursor: pointer;
+    }
+    .instructions-icon svg { width:24px;height:24px;fill:#4a518c;}
+    #board {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      grid-gap: 28px 0px;
+      justify-content: center;
+      align-content: start;
+    }
+    .row { display: grid; grid-gap: 12px; }
+    .row.top { grid-template-columns: repeat(7,1fr); }
+    .row.bottom { grid-template-columns: repeat(7,1fr);}
+    .pile, .foundation, .stock, .waste {
+      min-width: 56px; min-height: 80px;
+      background: rgba(255,255,255,0.85);
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(160,80,210,0.14);
+      position: relative;
+      margin: auto;
+      display:flex;align-items:flex-end;justify-content:center;
+      cursor:pointer;
+    }
+    .foundation.selected, .pile.selected, .stock.selected, .waste.selected {
+      border: 2.5px solid #e57490;
+      box-shadow: 0 0 0 3px #e5c1d1, 0 2px 10px rgba(80,80,180,0.10);
     }
     .card {
-      width: 48px;
-      height: 68px;
-      margin: 2px 0;
-      border-radius: 6px;
-      background: linear-gradient(135deg, #fff, #f5e5f5 60%);
-      box-shadow: 0 1px 4px rgba(60,80,210,0.10);
-      font-size: 1.1em;
-      color: #444;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       user-select: none;
-      position: absolute;
-      transition: box-shadow 0.2s;
-      z-index: 1;
+      position: absolute; left:0; right:0; margin:auto;
+      width: 50px; height: 72px; border-radius: 8px;
+      box-shadow: 0 1px 5px rgba(60,60,110,0.15);
+      font-size: 1.1em; font-family: system-ui, Arial, sans-serif;
+      text-align: center;
+      line-height: 70px;
+      letter-spacing: 0.05em;
+      transition: box-shadow 0.18s;
+      z-index: 3;
+      font-weight: bold;
+      background: linear-gradient(135deg,#fff 76%,#fbe2ee 100%);
+      color: #4a518c;
     }
-    .card.faceup { font-weight: bold; }
+    .card.faceup.red   { color: #e57490; }
+    .card.faceup.black { color: #2f2f79;}
     .card.facedown {
-      background: repeating-linear-gradient(135deg, #d3e6f5 2px, #e5c1d1 4px);
+      background: repeating-linear-gradient(135deg,#d3e6f5 4px,#e5c1d1 8px);
       color: transparent;
       box-shadow: 0 1px 10px #bab6ca;
     }
-    .card.selected {
-      box-shadow: 0 0 0 2px #4a518c;
-      outline: 2px solid #d3e6f5;
+    /* Responsive for mobile/tablet */
+    @media (max-width: 570px) {
+      .card, .pile, .foundation, .stock, .waste { min-width:38px; min-height:52px;width:38px;height:52px;}
+      .card { font-size: 0.89em; line-height:48px;}
+      #game-container { min-width:0; max-width:99vw;}
     }
-    /* Responsive adjustments */
-    @media (max-width: 500px) {
-      #game-container { max-width: 98vw; }
-      .solitaire-board { grid-template-columns: repeat(7, 1fr); grid-gap: 8px; }
-      .card, .pile, .foundation, .stock, .waste { min-width: 36px; min-height: 50px; width: 36px; height: 50px; }
-    }
-    /* Instructions popup styles */
+    /* Instructions popup */
     #instructions-popup {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 2px 48px rgba(90,170,200,0.17);
-      padding: 0 20px 16px 20px;
-      z-index: 1000;
-      display: none;
-      text-align: center;
-      min-width: 225px;
+      display: none; position:fixed;
+      top:50%;left:50%;transform:translate(-50%,-50%);
+      background:#fff;border-radius:16px;
+      box-shadow:0 2px 48px rgba(90,170,200,0.18);
+      min-width:240px;
+      padding:1em 1.75em 1.2em 1.75em;text-align:center; z-index:200;
     }
     #instructions-popup h2 {
-      margin-top: 8px;
-      color: #e5c1d1;
-      font-weight: bold;
+      margin-top:-0.4em;color:#e5c1d1;font-weight:900;margin-bottom:.5em;
     }
-    #instructions-popup p {
-      color: #444;
-      font-size: 1em;
-    }
+    #instructions-popup p{color:#494e6b;font-size:1em;margin-top:0;}
     #instructions-close {
-      cursor: pointer;
-      font-size: 1.8em;
-      color: #d3e6f5;
-      background: none;
-      border: none;
-      position: absolute;
-      top: 10px;
-      right: 15px;
-    }
-    /* Icon for instructions */
-    .instructions-icon {
-      position: absolute;
-      top: 10px;
-      right: 18px;
-      cursor: pointer;
-      z-index: 900;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #e5c1d1 60%, #d3e6f5 100%);
-      border-radius: 50%;
-      box-shadow: 0 2px 6px rgba(200,160,210,0.14);
-    }
-    .instructions-icon svg {
-      width: 24px;
-      height: 24px;
-      fill: #4a518c;
+      cursor: pointer; font-size:1.9em; color: #d3e6f5;
+      background: none; border: none;
+      position: absolute; top:10px; right: 17px;
     }
   </style>
 </head>
 <body>
   <div id="game-container">
     <div class="instructions-icon" onclick="showInstructions()">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><text x="12" y="16" text-anchor="middle" font-size="12" fill="#4a518c" font-family="Arial">?</text></svg>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" stroke="#4a518c" stroke-width="2" fill="#fff"/><text x="12" y="17" text-anchor="middle" font-size="14" font-family="Arial" fill="#e57490">?</text></svg>
     </div>
-    <div class="solitaire-board" id="board">
-      <!-- Dynamically filled by JS -->
+    <div id="board">
+      <div class="row top" id="row-top"></div>
+      <div class="row bottom" id="row-bottom"></div>
     </div>
   </div>
-
-  <!-- Instructions popup -->
+  <!-- Instructions -->
   <div id="instructions-popup">
     <button id="instructions-close" onclick="hideInstructions()">×</button>
     <h2>How to Play</h2>
     <p>
-      Move cards between Tableau columns building downward alternating colors. <br>
-      Place cards into Foundation piles sorted by suit, Ace to King.<br>
-      Click Stock to draw cards. Double-tap to move cards to Foundations.<br>
-      Win by sorting all cards into Foundations!
+      Build descending alternate-color stacks on tableau.<br>
+      Move cards to foundation by suit, Ace to King.<br>
+      Tap deck to draw, drag/drop or tap to move.<br>
+      Double-tap, auto-moves to foundation when possible.
     </p>
   </div>
-
-  <!-- Solitaire JS -->
   <script>
-    // Basic Solitaire data model
+    // --- Card and Board Definitions ---
+    const SUITS = ['♠','♥','♣','♦'];
+    const SUIT_COLORS = { '♠':'black', '♣':'black', '♥':'red', '♦':'red' };
+    const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
     class Card {
-      constructor(suit, rank, faceup=false) {
-        this.suit = suit; // "♠♥♦♣"
-        this.rank = rank; // 1-13
+      constructor(suit,rank,faceup=false){
+        this.suit = suit;
+        this.rank = rank;
         this.faceup = faceup;
       }
-      color() { return (["♥","♦"].includes(this.suit)) ? "red" : "black"; }
-      toString() {
-        let rankStr = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"][this.rank-1];
-        return `${rankStr}${this.suit}`;
-      }
+      color() { return SUIT_COLORS[this.suit]; }
+      rankNum() { return RANKS.indexOf(this.rank)+1; }
+      toString() { return this.rank + this.suit; }
     }
-    const suits = ["♠","♥","♦","♣"];
-    const board = {
-      piles: [[],[],[],[],[],[],[]], // tableau columns
-      foundations: [[],[],[],[]], // ace piles
-      stock: [], // draw pile
-      waste: [], // discard
-      selected: null
-    };
-    function newDeck() {
-      let deck = [];
-      for (let s of suits) for (let r = 1; r<=13; r++) deck.push(new Card(s, r));
-      for (let i=deck.length-1; i>0; i--) { // Shuffle
-        let j = Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]];
+    function buildNewDeck(){
+      let deck=[];
+      for(let s of SUITS) for(let r of RANKS) deck.push(new Card(s,r,false));
+      for(let i=deck.length-1;i>0;i--){
+        let j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]];
       }
       return deck;
     }
-    // Deal cards
-    function deal() {
-      let deck = newDeck();
-      // Tableau
-      for (let i=0; i<7; i++) {
-        for (let j=0; j<=i; j++) {
-          let faceup = (j === i);
-          board.piles[i].push(new Card(deck.suit, deck.rank, faceup));
-          deck.shift();
+
+    // --- Game State ---
+    let board = {
+      stock:[], waste:[],
+      foundations:[[],[],[],[]], // each suit
+      piles:[[],[],[],[],[],[],[]], // tableau
+      selected: null
+    };
+
+    // --- Deal Cards ---
+    function deal(){
+      board.stock=[]; board.waste=[]; board.foundations=[[],[],[],[]];
+      board.piles=[[],[],[],[],[],[],[]];
+      let deck=buildNewDeck();
+      for(let i=0;i<7;i++){
+        for(let j=0;j<=i;j++){
+          const card=deck.shift();
+          card.faceup = (j===i);
+          board.piles[i].push(card);
         }
       }
-      // Stock
       board.stock = deck;
       render();
     }
-    function render() {
-      const boardDiv = document.getElementById('board');
-      boardDiv.innerHTML = '';
-      // Foundations and Stock/Waste
-      let row1 = document.createElement('div');
-      row1.style.display = 'grid';
-      row1.style.gridTemplateColumns = 'repeat(7, 1fr)';
-      row1.style.marginBottom = '15px';
-      // Stock
-      let stockDiv = document.createElement('div');
-      stockDiv.className = 'stock';
-      stockDiv.onclick = drawFromStock;
-      if(board.stock.length) {
-        let cardDiv = createCardDiv(board.stock[board.stock.length-1], false);
+
+    // --- Render Functions ---
+    function render(){
+      // Top Row: Stock, Waste, Foundation x4
+      const rowTop=document.getElementById('row-top');
+      rowTop.innerHTML='';
+      // Stock pile
+      const stockDiv=document.createElement('div');
+      stockDiv.className='stock';
+      if(board.stock.length){
+        const cardDiv=createCardDiv({facedown:true});
         stockDiv.appendChild(cardDiv);
+        stockDiv.onclick = ()=>onStockClick();
       }
-      row1.appendChild(stockDiv);
-      // Waste
-      let wasteDiv = document.createElement('div');
-      wasteDiv.className = 'waste';
-      if(board.waste.length) {
-        let wc = board.waste[board.waste.length-1];
-        wasteDiv.appendChild(createCardDiv(wc, wc.faceup));
+      rowTop.appendChild(stockDiv);
+
+      // Waste pile
+      const wasteDiv=document.createElement('div');
+      wasteDiv.className='waste';
+      if(board.waste.length){
+        let topCard=board.waste[board.waste.length-1];
+        let cDiv=createCardDiv(topCard,true);
+        cDiv.onclick=(e)=>onWasteClick(e);
+        wasteDiv.appendChild(cDiv);
       }
-      row1.appendChild(wasteDiv);
+      rowTop.appendChild(wasteDiv);
+
       // Foundations
-      for(let i=0;i<4;i++) {
-        let fd = document.createElement('div');
-        fd.className = 'foundation';
-        fd.onclick = () => selectFoundation(i);
-        if(board.foundations[i].length) {
-          let fc = board.foundations[i][board.foundations[i].length-1];
-          fd.appendChild(createCardDiv(fc, fc.faceup));
-        } else {
-          fd.innerHTML = `<span style="color:#bcb7de">A</span>`;
+      for(let i=0;i<4;i++){
+        const fDiv=document.createElement('div');
+        fDiv.className='foundation';
+        fDiv.setAttribute("data-foundation",i);
+        if(board.foundations[i].length){
+          let topF=board.foundations[i][board.foundations[i].length-1];
+          let fCard=createCardDiv(topF,true);
+          fDiv.appendChild(fCard);
+        }else{
+          // Show ghost Ace suit
+          fDiv.innerHTML = `<span style="color:#bcb7de;font-size:32px;line-height:80px;">A</span>`;
         }
-        row1.appendChild(fd);
+        fDiv.onclick=(e)=>onFoundationClick(i);
+        rowTop.appendChild(fDiv);
       }
-      boardDiv.appendChild(row1);
-      // Tableaus
-      for(let i=0;i<7;i++) {
-        let pileDiv = document.createElement('div');
-        pileDiv.className = 'pile';
-        pileDiv.onclick = () => selectPile(i);
-        let offset = 0;
-        board.piles[i].forEach((card, idx) => {
-          let cd = createCardDiv(card, card.faceup);
-          cd.style.top = `${idx * 18}px`;
-          cd.onclick = (e) => {e.stopPropagation(); selectCard(i, idx);}
-          pileDiv.appendChild(cd);
-        });
-        boardDiv.appendChild(pileDiv);
+      // Bottom: Tableaus
+      const rowBottom=document.getElementById('row-bottom');
+      rowBottom.innerHTML='';
+      for(let i=0;i<7;i++){
+        const pileDiv=document.createElement('div');
+        pileDiv.className='pile';
+        pileDiv.setAttribute("data-pile",i);
+        pileDiv.style.position='relative';
+        for(let j=0;j<board.piles[i].length;j++){
+          let card=board.piles[i][j];
+          let faceup=card.faceup;
+          let cardDiv=createCardDiv(card,faceup);
+          cardDiv.style.top=(j*22)+"px";
+          cardDiv.onclick=(e)=>onPileCardClick(i,j,e);
+          pileDiv.appendChild(cardDiv);
+        }
+        pileDiv.onclick=(e)=>onPileClick(i,e);
+        rowBottom.appendChild(pileDiv);
       }
     }
-    function createCardDiv(card, faceup) {
-      let div = document.createElement('div');
-      div.className = 'card' + (faceup ? ' faceup':' facedown');
-      div.innerText = faceup ? card.toString() : '';
-      div.style.color = faceup ? (card.color() === "red" ? "#e57490":"#4a518c") : "#fff";
-      return div;
+    function createCardDiv(card,faceup){
+      let el=document.createElement('div');
+      el.className='card';
+      if(card && (card.facedown || faceup || card.faceup)){
+        if(card.facedown || !faceup) el.classList.add('facedown');
+        else{
+          el.classList.add('faceup');
+          el.classList.add(SUIT_COLORS[card.suit]);
+          el.innerText = card.rank&&card.suit ? card.rank+card.suit : "";
+        }
+      }
+      return el;
     }
-    function drawFromStock() {
-      if(!board.stock.length) return;
-      let card = board.stock.pop();
-      card.faceup = true;
-      board.waste.push(card);
-      render();
+
+    // --- Event Handlers (Intro Moves) ---
+    function onStockClick(){
+      if(board.stock.length){
+        let drawn=board.stock.pop();
+        drawn.faceup=true;
+        board.waste.push(drawn);
+        render();
+      }else{
+        // Reset from Waste to Stock
+        while(board.waste.length) {
+          let card=board.waste.pop();
+          card.faceup=false;
+          board.stock.unshift(card);
+        }
+        render();
+      }
     }
-    function selectPile(i) { /* Logic to select and move stacks */ }
-    function selectFoundation(i) { /* Logic for foundation moves */ }
-    function selectCard(pileIdx, cardIdx) { /* Selection + Drag-n-Drop logic */ }
-    // Instructions Popup
-    function showInstructions() {
-      document.getElementById('instructions-popup').style.display = 'block';
+    function onWasteClick(e){
+      // Could support move logic to foundations
     }
-    function hideInstructions() {
-      document.getElementById('instructions-popup').style.display = 'none';
+    function onFoundationClick(idx){
+      // Could support moves from tableau/waste to foundation
     }
-    // Initialize
-    window.onload = () => { deal(); }
+    function onPileClick(pileIdx,e){
+      // Could support selection for move start
+    }
+    function onPileCardClick(pileIdx,cardIdx,e){
+      // Could support move to another pile OR foundation
+    }
+
+    // --- Instructions Popup ---
+    function showInstructions(){
+      document.getElementById('instructions-popup').style.display='block';
+    }
+    function hideInstructions(){
+      document.getElementById('instructions-popup').style.display='none';
+    }
+
+    // --- Initialize Game On Load ---
+    window.onload = () => { deal(); };
   </script>
 </body>
 </html>
