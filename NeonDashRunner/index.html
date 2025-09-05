@@ -5,96 +5,96 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Neon Dash Runner — HTML5</title>
 <style>
-:root{
-  --top-grad: #e5c1d1;
-  --bot-grad: #d3e6f5;
-  --accent: #ff4da6;
-  --accent-2: #2b88ff;
-  --hud-bg: rgba(255,255,255,0.92);
-  --shadow: 0 8px 20px rgba(0,0,0,0.16);
-  --radius: 14px;
-  --safe-area: env(safe-area-inset-bottom, 12px);
-}
-html,body{
-  height:100%;margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
-  background:linear-gradient(180deg,var(--top-grad)0%,var(--bot-grad)100%);
-  display:grid;place-items:center;
-}
-.game-shell{
-  width:min(880px,98vw);
-  height:min(720px,94vh);
-  display:grid;
-  grid-template-rows:auto 1fr auto;
-  gap:12px;padding:20px;
-  justify-items:center;align-items:center;
-  background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05));
-  border-radius:20px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.14);
-}
-header.hud{
-  width:100%;display:grid;
-  grid-template-columns:1fr auto auto;
-  gap:12px;align-items:center;
-}
-.title{font-weight:700;font-size:1.18rem;color:#222;letter-spacing:.4px;}
-.score-pill,.distance-pill{
-  background:var(--hud-bg);padding:8px 14px;border-radius:999px;
-  box-shadow:0 6px 12px rgba(0,0,0,0.12);
-  display:flex;gap:8px;align-items:center;font-weight:700;
-}
-.info-btn{
-  width:36px;height:36px;border-radius:9px;display:grid;place-items:center;
-  background:linear-gradient(180deg,var(--accent),var(--accent-2));
-  color:#fff;font-weight:800;box-shadow:0 6px 14px rgba(0,0,0,0.16);border:none;cursor:pointer;
-  transition:transform .1s;
-}
-.info-btn:active{transform:scale(.98);}
-.play-area{
-  width:100%;height:100%;display:grid;place-items:center;align-items:center;
-}
-canvas#gameCanvas{
-  width:100%;height:auto;max-height:calc(100% - 18px);border-radius:12px;
-  background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.02));
-  display:block;
-}
-.controls{
-  width:100%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:center;justify-items:center;
-}
-.ctl-btn{
-  width:100%;max-width:220px;height:60px;border-radius:12px;
-  background:var(--hud-bg);display:flex;gap:10px;align-items:center;justify-content:center;
-  font-weight:800;box-shadow:var(--shadow);border:none;cursor:pointer;user-select:none;
-  transition:transform .09s, box-shadow .09s;
-}
-.ctl-btn:active{transform:translateY(2px);}
-.ctl-btn .label{font-size:15px;color:#111;}
-.ctl-btn .kbd{font-size:13px;opacity:.55;margin-left:7px;}
-.ctl-btn.active{
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));
-  color:white;box-shadow:0 10px 26px rgba(0,0,0,0.14);
-}
-.ctl-btn:hover{transform:translateY(-4px);}
-@media(max-width:540px){
-  .controls{grid-template-columns:1fr 1fr;}
-  .ctl-btn{height:68px;border-radius:14px;}
-}
-.modal-backdrop{
-  position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(rgba(0,0,0,0.28),rgba(0,0,0,0.33));z-index:10;
-}
-.modal{
-  min-width:250px;width:min(480px,92%);background:white;border-radius:14px;padding:16px;
-  box-shadow:0 22px 66px rgba(0,0,0,0.27);color:#111;
-}
-.modal h3{margin:0 0 8px 0;font-size:1.1rem;}
-.modal p{margin:5px 0;font-size:0.98rem;opacity:0.95;}
-.modal .close{
-  margin-top:10px;padding:7px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:700;
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;
-}
-.icon{
-  display:inline-grid;place-items:center;width:34px;height:34px;border-radius:8px;
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white;font-weight:900;
-}
-.spacer{height:var(--safe-area);width:100%;}
+  :root{
+    --top-grad: #e5c1d1;
+    --bot-grad: #d3e6f5;
+    --accent: #ff4da6;
+    --accent-2: #2b88ff;
+    --hud-bg: rgba(255,255,255,0.90);
+    --shadow: 0 8px 20px rgba(0,0,0,0.17);
+    --radius: 14px;
+    --safe-area: env(safe-area-inset-bottom, 12px);
+  }
+  html,body{
+    height:100%;margin:0;
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+    background: linear-gradient(180deg, var(--top-grad) 0%, var(--bot-grad) 100%);
+    display: grid; place-items: center;
+  }
+  .game-shell{
+    width:min(880px, 97vw); height:min(720px, 93vh); display:grid;
+    grid-template-rows: auto 1fr auto; gap:12px; padding:20px;
+    box-sizing:border-box; align-items:center; justify-items:center;
+    background:linear-gradient(180deg,rgba(255,255,255,0.13),rgba(255,255,255,0.06));
+    border-radius:20px;box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,0.17); position:relative;
+  }
+  header.hud{
+    width:100%; display:grid;
+    grid-template-columns:1fr auto auto; gap:12px; align-items:center;
+  }
+  .title{font-weight:700;font-size:1.18rem;color:#222;letter-spacing:0.5px;}
+  .score-pill{
+    background:var(--hud-bg);
+    padding:8px 14px; border-radius:999px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.10);
+    display:flex; gap:8px; align-items:center; font-weight:700;
+  }
+  .info-btn{
+    width:36px; height:36px; border-radius:9px; display:grid; place-items:center;
+    background:linear-gradient(180deg,var(--accent),var(--accent-2)); color:white;
+    font-weight:800; box-shadow: 0 6px 14px rgba(0,0,0,0.18); border:none; cursor:pointer;
+    transition:transform .12s;
+  }
+  .info-btn:active{transform:scale(.98);}
+  .play-area{width:100%; height:100%; display:grid; place-items:center; align-items:center;}
+  canvas#gameCanvas{
+    width:100%; height:auto; max-height:calc(100% - 16px); border-radius:12px;
+    background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.02)); display:block;
+  }
+  .controls{
+    width:100%; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;
+    align-items:center; justify-items:center;
+  }
+  .ctl-btn{
+    width:100%; max-width:220px; height:60px; border-radius:12px;
+    background:var(--hud-bg); display:flex; gap:10px; align-items:center; justify-content:center;
+    font-weight:800; box-shadow:var(--shadow); border:none; cursor:pointer; user-select:none;
+    transition:transform .09s, box-shadow .09s;
+  }
+  .ctl-btn:active{transform:translateY(2px);}
+  .ctl-btn .label{font-size:15px;color:#111;}
+  .ctl-btn .kbd{font-size:13px;opacity:.55;margin-left:7px;}
+  .ctl-btn.active{
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    color:white;box-shadow:0 8px 22px rgba(0,0,0,0.13);
+  }
+  .ctl-btn:hover{transform:translateY(-4px);}
+  @media(max-width:540px){
+    .controls{grid-template-columns:1fr 1fr;}
+    .ctl-btn{height:68px;border-radius:14px;}
+  }
+  .modal-backdrop{
+    position:absolute; inset:0; display:none; place-items:center;
+    background: linear-gradient(rgba(0,0,0,0.29),rgba(0,0,0,0.30)); z-index:10;
+  }
+  .modal{
+    min-width:250px; width:min(480px,92%);
+    background:white; border-radius:14px; padding:16px;
+    box-shadow:0 24px 72px rgba(0,0,0,0.27); color:#111;
+  }
+  .modal h3{margin:0 0 8px 0;font-size:1.09rem;}
+  .modal p{margin:5px 0;font-size:0.98rem;opacity:0.95;}
+  .modal .close{
+    margin-top:10px; padding:8px 12px; border-radius:10px; border:none; cursor:pointer;
+    font-weight:700; background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff;
+  }
+  .icon{
+    display:inline-grid; place-items:center; width:34px; height:34px;
+    border-radius:8px; background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    color:white; font-weight:900;
+  }
+  .spacer{height:var(--safe-area);width:100%;}
 </style>
 </head>
 <body>
@@ -121,16 +121,16 @@ canvas#gameCanvas{
       </button>
     </footer>
     <div class="spacer"></div>
-    <!-- modal instructions -->
     <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
       <div class="modal" role="document">
         <h3><span class="icon">?</span> How to play</h3>
-        <p><strong>Objective:</strong> Run as far as possible, dodge obstacles, and collect neon orbs for points.</p>
+        <p><strong>Objective:</strong> Run as far as possible, dodge obstacles and collect neon orbs for points.</p>
         <p><strong>Controls:</strong>
           <ul>
-            <li>Swipe left / tap <em>Left</em> — move left lane.</li>
-            <li>Swipe right / tap <em>Right</em> — move right lane.</li>
+            <li>Swipe left / tap <em>Left</em> button — move left lane.</li>
+            <li>Swipe right / tap <em>Right</em> button — move right lane.</li>
             <li>Tap <em>Jump</em> or swipe up — jump over obstacles.</li>
+            <li><strong>Tilt your device left/right</strong> to switch lanes (mobile accelerometer).</li>
             <li>Collect orbs for points. Avoid collisions.</li>
           </ul>
         </p>
@@ -140,7 +140,8 @@ canvas#gameCanvas{
     </div>
   </div>
 <script>
-/* Neon Dash Runner — Improved Endless Runner */
+// Neon Dash Runner with Accelerometer control
+
 const settings = {
   lanes: 3,
   laneGap: 135,
@@ -158,13 +159,14 @@ const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const modal = document.getElementById('modalBackdrop');
 
+// Responsive canvas scaling
 function resizeCanvas() {
   const container = document.querySelector('.play-area');
-  let w = container.clientWidth - 8, h = container.clientHeight - 8;
+  let w = container.clientWidth-8, h = container.clientHeight-8;
   let tw = w, th = tw/settings.canvasAspect;
   if (th > h) { th = h; tw = th*settings.canvasAspect; }
-  canvas.style.width = tw+'px';
-  canvas.style.height = th+'px';
+  canvas.style.width = tw + 'px';
+  canvas.style.height = th + 'px';
   let DPR = Math.max(1, window.devicePixelRatio||1);
   canvas.width = Math.round(720 * DPR);
   canvas.height = Math.round(420 * DPR);
@@ -173,26 +175,23 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Lane helper
 function laneX(i){
   let c = 720/2;
   let total = settings.laneGap * (settings.lanes-1);
   return c-total/2 + i*settings.laneGap;
 }
-// Player state
 const VWidth = 720, VHeight = 420;
 let player = { lane:1, x:laneX(1), y:VHeight-90, vy:0, width:50, height:72, grounded:true, invuln:0 };
 
-// Game state
 let obstacles=[], orbs=[], score=0, distance=0, speedMultiplier=1.0;
 let elapsed=0, lastTime=performance.now(), running=true, lastSpawn=0, lastOrbSpawn=0, flashTimer=0;
 
-// Responsive scoring and game events
 function resetGame() {
   obstacles=[]; orbs=[];
   score=0; distance=0; speedMultiplier=1.0;
   settings.spawnInterval=820; settings.baseSpeed=310;
-  player.lane=1; player.x=laneX(1); player.y=VHeight-90; player.grounded=true; player.vy=0; player.invuln=0;
+  player.lane=1; player.x=laneX(player.lane); player.y=VHeight-90;
+  player.grounded=true; player.vy=0; player.invuln=0;
 }
 
 // Modal controls
@@ -202,7 +201,7 @@ infoBtn.onclick=()=> modal.style.display='grid';
 closeModal.onclick=()=> modal.style.display='none';
 modal.onclick=(e)=>{if(e.target===modal)modal.style.display='none';};
 
-// Main input controls
+// Button controls
 document.getElementById('leftBtn').onclick = moveLeft;
 document.getElementById('rightBtn').onclick = moveRight;
 document.getElementById('jumpBtn').onclick = doJump;
@@ -214,11 +213,9 @@ window.addEventListener('keydown', (e)=>{
   if(e.key==='p'){running=!running;}
 });
 
-// Touch support for mobile
+// Touch and mouse input
 let touchStart=null;
-canvas.addEventListener('touchstart', e=>{
-  const t=e.changedTouches;touchStart={x:t.clientX,y:t.clientY,t:performance.now()};
-},{passive:true});
+canvas.addEventListener('touchstart', e=>{const t=e.changedTouches;touchStart={x:t.clientX,y:t.clientY,t:performance.now()};},{passive:true});
 canvas.addEventListener('touchend', e=>{
   if(!touchStart)return;
   const t=e.changedTouches;
@@ -230,18 +227,45 @@ canvas.addEventListener('touchend', e=>{
   touchStart=null;
 },{passive:true});
 
-// Mouse input for desktop
 canvas.addEventListener('mousedown', e=>touchStart={x:e.clientX,y:e.clientY,t:performance.now()});
 canvas.addEventListener('mouseup', e=>{
   if(!touchStart)return;
-  let dx=e.clientX-touchStart.x,dy=e.clientY-touchStart.y;
+  let dx=e.clientX-touchStart.x, dy=e.clientY-touchStart.y;
   let absX=Math.abs(dx),absY=Math.abs(dy),threshold=22;
   if(absX>absY&&absX>threshold){dx>0?moveRight():moveLeft();}
   else if(absY>absX&&absY>threshold){dy<0?doJump():null;}
   else{doJump();}touchStart=null;
 });
 
-// Control flash animation
+// Accelerometer controls (Tilt detection with permission prompt for iOS)
+// Call this on startup or when user presses any button/taps the screen
+function enableAccelerometerControl() {
+  function handleMotion(event){
+    const tiltX = event.accelerationIncludingGravity.x || 0;
+    // Use throttling so not too sensitive
+    if (enableAccelerometerControl.lastMove === undefined) enableAccelerometerControl.lastMove = 0;
+    let now = performance.now();
+    if (tiltX < -4 && (now-enableAccelerometerControl.lastMove > 300)) {
+      moveLeft(); enableAccelerometerControl.lastMove = now;
+    }
+    if (tiltX > 4 && (now-enableAccelerometerControl.lastMove > 300)) {
+      moveRight(); enableAccelerometerControl.lastMove = now;
+    }
+  }
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission().then(res=>{
+      if(res==="granted")window.addEventListener('devicemotion',handleMotion);
+    }).catch(()=>{}); // fallback: just do nothing
+  } else {
+    window.addEventListener('devicemotion', handleMotion);
+  }
+}
+// Run on load and on first interaction (max compatibility)
+document.body.addEventListener("touchstart", enableAccelerometerControl, {once:true});
+document.body.addEventListener("mousedown", enableAccelerometerControl, {once:true});
+window.addEventListener("load", enableAccelerometerControl, {once:true});
+
+// Control flash
 function flashControl(id){
   const el=document.getElementById(id);
   if(!el)return;
@@ -255,12 +279,10 @@ function moveRight(){
   if(player.lane<settings.lanes-1){player.lane++;player.x=laneX(player.lane);flashControl('rightBtn');}
 }
 function doJump(){
-  if(player.grounded){
-    player.vy=settings.jumpVel;player.grounded=false;flashControl('jumpBtn');
-  }
+  if(player.grounded){player.vy=settings.jumpVel;player.grounded=false;flashControl('jumpBtn');}
 }
 
-// Obstacle and orb management
+// Spawning
 function spawnObstacle(){
   let lane=Math.floor(Math.random()*settings.lanes);
   obstacles.push({lane,x:laneX(lane),y:-settings.obstacleHeight-16,w:settings.obstacleWidth,h:settings.obstacleHeight,type:Math.random()<0.13?'tall':'low'});
@@ -270,7 +292,6 @@ function spawnOrb(){
   orbs.push({lane,x:laneX(lane),y:-16,r:settings.orbRadius});
 }
 
-// Collision detection
 function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
   return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by;
 }
@@ -281,22 +302,18 @@ function circleRectOverlap(cx,cy,cr,rx,ry,rw,rh){
   return (dx*dx+dy*dy)<(cr*cr);
 }
 
-// Main game logic and rendering
 function update(dt){
   if(!running)return;
   elapsed+=dt;lastSpawn+=dt*1000;lastOrbSpawn+=dt*1000;
   let speed=settings.baseSpeed*speedMultiplier;
   if(lastSpawn>settings.spawnInterval){spawnObstacle();lastSpawn=0;}
   if(lastOrbSpawn>settings.spawnInterval*0.77){if(Math.random()<0.65)spawnOrb();lastOrbSpawn=0;}
-  // Move obstacles and orbs
   for(let i=obstacles.length-1;i>=0;i--)if((obstacles[i].y+=speed*dt)>VHeight+120)obstacles.splice(i,1);
   for(let i=orbs.length-1;i>=0;i--)if((orbs[i].y+=speed*dt)>VHeight+60)orbs.splice(i,1);
 
-  // Player jump and settle
   if(!player.grounded){player.vy+=settings.gravity*dt;player.y+=player.vy*dt;if(player.y>=VHeight-90){player.y=VHeight-90;player.vy=0;player.grounded=true;}}
   if(player.invuln>0)player.invuln=Math.max(0,player.invuln-dt);
 
-  // Collisions
   const pRect={x:player.x-player.width/2,y:player.y-player.height/2,w:player.width,h:player.height};
   for(let o of obstacles){
     const oRect={x:o.x-o.w/2,y:o.y-o.h/2,w:o.w,h:o.h};
@@ -315,7 +332,6 @@ function update(dt){
   distance+=speed*dt;score+=Math.floor((speed*dt)/410);score=Math.max(0,Math.floor(score));
 }
 
-// Visual effect on collision
 function flashScreen(){flashTimer=0.15;}
 function drawPlayer(){
   const px=player.x-player.width/2,py=player.y-player.height/2;
@@ -377,7 +393,6 @@ function render(){
   if(flashTimer>0){ctx.fillStyle='rgba(255,66,66,'+Math.min(0.34,flashTimer)+')';ctx.fillRect(0,0,VWidth,VHeight);}
 }
 
-// Stable game loop with animation frame and timer
 function frame(now){
   const dt = Math.min(0.048,(now-lastTime)/1000);
   if(running){update(dt);flashTimer=Math.max(0,flashTimer-dt);speedMultiplier+=(1-speedMultiplier)*(.42*dt);}
@@ -388,7 +403,6 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 
-// Difficulty scaling over time
 setInterval(()=>{
   if(settings.spawnInterval>420)settings.spawnInterval*=0.985;
   settings.baseSpeed+=5.8;
@@ -397,7 +411,7 @@ setInterval(()=>{
 document.addEventListener('visibilitychange',()=>{running=!document.hidden;});
 canvas.addEventListener('dblclick',resetGame);
 
-// Hint for controls on load
+// Hint to show controls on load
 (function showHint(){
   const left=document.getElementById('leftBtn'),right=document.getElementById('rightBtn'),jump=document.getElementById('jumpBtn');
   left.classList.add('active');right.classList.add('active');jump.classList.add('active');
