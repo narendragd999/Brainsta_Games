@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Pixel Puzzle Saga — Nonogram</title>
+<style>
+  :root{
+    --top-grad: #e5c1d1;
+    --bot-grad: #d3e6f5;
+    --accent: #ff4da6;
+    --accent-2: #2b88ff;
+    --card-bg: rgba(255,255,255,0.92);
+    --muted: #6b6b6b;
+    --radius: 14px;
+    --shadow: 0 18px 50px rgba(18,35,58,0.12);
+    --safe-area: env(safe-area-inset-bottom, 12px);
+    --cell-size: 36px; /* will be adapted in CSS for responsiveness */
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: linear-gradient(180deg, var(--top-grad) 0%, var(--bot-grad) 100%);
+    -webkit-font-smoothing:antialiased;
+    display:grid;
+    place-items:center;
+  }
+
+  /* Container centered both directions */
+  .shell{
+    width:min(1040px, 96vw);
+    max-height:96vh;
+    height:auto;
+    display:grid;
+    grid-template-columns: 1fr;
+    justify-items:center;
+    align-items:center;
+    padding:20px;
+    box-sizing:border-box;
+  }
+
+  /* Card: main UI */
+  .card{
+    width:100%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.92));
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+    gap:12px;
+  }
+
+  /* Header HUD */
+  .hud{
+    display:grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap:10px;
+    align-items:center;
+    padding:12px 16px;
+  }
+  .brand{
+    display:flex;gap:12px;align-items:center;
+  }
+  .logo{
+    width:48px;height:48px;border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:white;display:grid;place-items:center;font-weight:800;box-shadow:0 8px 24px rgba(43,136,255,0.12);
+    font-size:18px;
+  }
+  .title{font-weight:800;font-size:1.05rem}
+  .controls{display:flex;gap:8px;align-items:center}
+  select,input[type=range]{padding:8px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);background:white}
+  button.small{
+    border: none; padding:8px 10px; border-radius:10px; font-weight:700; cursor:pointer;
+    background: linear-gradient(90deg,var(--accent),var(--accent-2)); color:white; box-shadow:0 8px 18px rgba(0,0,0,0.12);
+  }
+  button.ghost{
+    background:var(--card-bg); border:1px solid rgba(0,0,0,0.06); color:#121212; padding:8px 10px; border-radius:10px; cursor:pointer;
+  }
+
+  /* Main area holds the clues + grid using CSS Grid layout */
+  .main{
+    display:grid;
+    grid-template-columns: auto 1fr; /* clues left, grid right */
+    gap:12px;
+    padding:12px;
+    align-items:start;
+  }
+
+  /* left column holds column clues in a compact stacked grid */
+  .col-clues{
+    display:grid;
+    grid-auto-rows: var(--cell-size);
+    gap:2px;
+    align-content:end;
+    padding-top: 6px;
+  }
+
+  /* right column: rows of clues + game grid */
+  .rows-and-grid{
+    display:grid;
+    grid-template-columns: auto 1fr;
+    gap:8px;
+    align-items:start;
+  }
+  .row-clues{
+    display:grid;
+    gap:4px;
+    align-items:center;
+    justify-items:end;
+  }
+
+  /* The puzzle grid element */
+  .grid-wrap{
+    overflow:auto;
+    border-radius:10px;
+    padding:8px;
+    background: linear-gradient(180deg, rgba(250,250,250,0.6), rgba(245,245,255,0.4));
+    box-shadow: inset 0 -6px 12px rgba(0,0,0,0.02);
+  }
+
+  .puzzle-grid{
+    display:grid;
+    gap:4px;
+    touch-action: manipulation; /* for mobile to reduce gesture interference */
+    user-select:none;
+  }
+
+  /* each cell */
+  .cell{
+    width:var(--cell-size);
+    height:var(--cell-size);
+    display:grid;
+    place-items:center;
+    border-radius:8px;
+    background: linear-gradient(180deg, white, #fbfbff);
+    box-shadow: 0 8px 18px rgba(14,30,60,0.04);
+    font-weight:800;
+    font-size:14px;
+    color:transparent; /* content via pseudo-state */
+    cursor:pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cell:hover{ transform: translateY(-4px); transition: transform .12s ease; box-shadow: 0 18px 30px rgba(18,35,58,0.08); }
+  .cell.filled{ background: linear-gradient(135deg,var(--accent),var(--accent-2)); color:white; }
+  .cell.marked{ background: linear-gradient(180deg,#fff,#f7f7fb); color:#c33; }
+  .cell.correct{ outline: 3px solid rgba(43,136,255,0.18); } /* highlight part of a region when selected */
+
+  /* clues style */
+  .clue{
+    font-size:13px; color:var(--muted); padding:4px 6px; border-radius:6px; background:rgba(255,255,255,0.8);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.04);
+  }
+  .clue.big{ font-weight:800; color:#111; background:transparent; box-shadow:none; }
+
+  /* footer */
+  .footer{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:12px 16px; border-top: 1px solid rgba(0,0,0,0.03);
+  }
+  .muted{ color:var(--muted); font-size:13px; }
+
+  /* modal / instructions */
+  .modal-backdrop{
+    position:fixed; inset:0; display:none; place-items:center; z-index:80;
+    background: linear-gradient(rgba(6,10,24,0.36), rgba(6,10,24,0.36));
+  }
+  .modal{
+    width:min(640px,92%); background:white; padding:18px; border-radius:12px;
+    box-shadow: 0 28px 80px rgba(2,8,23,0.28);
+  }
+  .modal h3{ margin:0 0 8px 0; }
+  .hint{ font-size:14px; color:var(--muted); margin-top:6px; }
+
+  /* responsive: smaller cells on narrow screens */
+  @media (max-width:720px){
+    :root { --cell-size: 40px; } /* keep large targets on phones */
+    .main{ grid-template-columns: 1fr; }
+    .col-clues{ order: -1; width:100%; display:flex; justify-content:center; gap:6px; padding-bottom:6px; }
+    .rows-and-grid{ grid-template-columns: 1fr; }
+    .row-clues{ display:flex; justify-content:flex-start; gap:8px; margin-bottom:6px; }
+    .hud{ grid-template-columns: 1fr auto; gap:8px; }
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card" role="application" aria-label="Pixel Puzzle Saga — Nonogram">
+      <div class="hud">
+        <div class="brand">
+          <div class="logo">PPS</div>
+          <div>
+            <div class="title">Pixel Puzzle Saga</div>
+            <div class="muted" style="font-size:12px">Original nonogram puzzles — commercial-friendly</div>
+          </div>
+        </div>
+
+        <!-- dynamic options -->
+        <div class="controls" role="group" aria-label="Puzzle options">
+          <label class="muted" style="font-weight:700; font-size:13px;">Size:
+            <select id="sizeSelect" aria-label="Grid size">
+              <option value="5">5 × 5</option>
+              <option value="10" selected>10 × 10</option>
+              <option value="15">15 × 15</option>
+            </select>
+          </label>
+
+          <label class="muted" style="font-weight:700; font-size:13px;">Difficulty:
+            <select id="difficultySelect" aria-label="Difficulty">
+              <option value="easy">Easy (sparse)</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard (dense)</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- action buttons -->
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="generateBtn" class="small" title="Generate new puzzle">Generate</button>
+          <button id="hintBtn" class="ghost" title="Show a hint">Hint</button>
+          <button id="solutionBtn" class="ghost" title="Reveal/Hide solution">Reveal</button>
+          <button id="infoBtn" class="ghost" aria-label="How to play">❔</button>
+        </div>
+      </div>
+
+      <!-- main area: clues + grid -->
+      <div class="main">
+        <div id="colClues" class="col-clues" aria-hidden="true"></div>
+
+        <div class="rows-and-grid">
+          <div id="rowClues" class="row-clues" aria-hidden="true"></div>
+
+          <div class="grid-wrap" id="gridWrap" role="region" aria-label="Puzzle grid">
+            <div id="puzzle" class="puzzle-grid" tabindex="0" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div>
+          <span class="muted">Mode:</span>
+          <label style="margin-left:10px"><input id="markToggle" type="checkbox" /> Mark (X)</label>
+          <button id="clearBtn" class="ghost" style="margin-left:8px">Clear</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center">
+          <div class="muted" id="statusText">Ready</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal instructions -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Instructions">
+      <h3>How to play — Pixel Puzzle Saga</h3>
+      <p>Fill cells so that groups of filled cells match the numbers at the start of each row and top of each column.</p>
+      <ul>
+        <li><strong>Tap</strong> a cell to toggle "filled".</li>
+        <li><strong>Mark mode:</strong> check "Mark (X)" or long-press a cell to place an X (definitely empty).</li>
+        <li>Use <em>Generate</em> to create a new puzzle; pick size and difficulty first.</li>
+        <li>Hint will reveal one correct filled cell temporarily; Reveal toggles the solution.</li>
+        <li>Cells and clues highlight on selection to help you reason visually.</li>
+      </ul>
+      <p class="hint">Tip: large touch targets and a mobile-first UI make this great inside mobile WebViews.</p>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+        <button class="small" id="modalClose">Got it</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Pixel Puzzle Saga — single-file Nonogram engine (client-side)
+   Features:
+   - dynamic puzzle generation (random symmetric patterns) of sizes 5/10/15
+   - computes row/column clues from the solution
+   - interactive grid: tap to fill, long-press to mark X, hint, reveal solution
+   - mobile-friendly large cells, CSS Grid layout
+*/
+
+const state = {
+  size: 10,
+  difficulty: 'medium',
+  solution: [],       // 2D boolean solution grid
+  player: [],         // 2D cell states: 0=empty, 1=filled, 2=marked X
+  showSolution: false,
+  hintCooldown: false
+};
+
+const el = {
+  puzzle: document.getElementById('puzzle'),
+  colClues: document.getElementById('colClues'),
+  rowClues: document.getElementById('rowClues'),
+  sizeSelect: document.getElementById('sizeSelect'),
+  difficultySelect: document.getElementById('difficultySelect'),
+  generateBtn: document.getElementById('generateBtn'),
+  clearBtn: document.getElementById('clearBtn'),
+  hintBtn: document.getElementById('hintBtn'),
+  solutionBtn: document.getElementById('solutionBtn'),
+  infoBtn: document.getElementById('infoBtn'),
+  modal: document.getElementById('modal'),
+  modalClose: document.getElementById('modalClose'),
+  markToggle: document.getElementById('markToggle'),
+  statusText: document.getElementById('statusText'),
+  gridWrap: document.getElementById('gridWrap')
+};
+
+/* Utility: create 2D arrays */
+function create2D(n, v=false){
+  return Array.from({length:n}, ()=> Array.from({length:n}, ()=> v));
+}
+
+/* Generate a random symmetric pattern. Not guaranteed uniquely solvable but good puzzles for play.
+   Difficulty adjusts fill density:
+   - easy: ~18% fill
+   - medium: ~30% fill
+   - hard: ~45% fill
+*/
+function generateSolution(n, difficulty){
+  const fillRates = { easy: 0.18, medium: 0.30, hard: 0.44 };
+  const p = fillRates[difficulty] || 0.30;
+  const sol = create2D(n, false);
+
+  // We'll enforce 2-way symmetry (mirror horizontally) to make pleasant patterns:
+  for(let r=0;r<n;r++){
+    for(let c=0;c<Math.ceil(n/2);c++){
+      sol[r][c] = Math.random() < p;
+      sol[r][n-1-c] = sol[r][c];
+    }
+  }
+  // Optionally add vertical symmetry as well randomly for variety:
+  if(Math.random() < 0.35){
+    for(let r=0;r<Math.ceil(n/2);r++)
+      for(let c=0;c<n;c++)
+        sol[n-1-r][c] = sol[r][c];
+  }
+  return sol;
+}
+
+/* Compute clues (array of arrays) from boolean solution */
+function computeClues(sol){
+  const n = sol.length;
+  const rowClues = sol.map(row => {
+    const groups = [];
+    let run = 0;
+    for(let c=0;c<n;c++){
+      if(row[c]) run++; else if(run){ groups.push(run); run=0; }
+    }
+    if(run) groups.push(run);
+    return groups.length ? groups : [0];
+  });
+
+  const colClues = [];
+  for(let c=0;c<n;c++){
+    const groups=[];
+    let run=0;
+    for(let r=0;r<n;r++){
+      if(sol[r][c]) run++; else if(run){ groups.push(run); run=0; }
+    }
+    if(run) groups.push(run);
+    colClues.push(groups.length ? groups : [0]);
+  }
+  return { rowClues, colClues };
+}
+
+/* Apply size/difficulty from UI and create new puzzle */
+function newPuzzle(){
+  const n = parseInt(el.sizeSelect.value,10);
+  const difficulty = el.difficultySelect.value;
+  state.size = n;
+  state.difficulty = difficulty;
+  state.solution = generateSolution(n, difficulty);
+  state.player = create2D(n, 0); // all empty
+  state.showSolution = false;
+  el.solutionBtn.textContent = 'Reveal';
+  renderPuzzle();
+  el.statusText.textContent = `New ${n}×${n} puzzle (${difficulty})`;
+}
+
+/* Render clues and grid */
+function renderPuzzle(){
+  const n = state.size;
+  const { rowClues, colClues } = computeClues(state.solution);
+  // Column clues container: we build a grid of stacks (top aligned)
+  el.colClues.innerHTML = '';
+  // find max height of column clue stacks to align them
+  const maxColHeight = Math.max(...colClues.map(c=>c.length));
+  // Create a grid of columns where each column is vertical stack
+  const colContainer = document.createElement('div');
+  colContainer.style.display = 'grid';
+  colContainer.style.gridAutoFlow = 'column';
+  colContainer.style.gridGap = '6px';
+  colContainer.style.justifyContent = 'center';
+  colContainer.style.alignItems = 'end'; // vertical bottom align so numbers stick to bottom
+  for(let c=0;c<n;c++){
+    const stack = document.createElement('div');
+    stack.style.display='grid';
+    stack.style.gridAutoRows = 'var(--cell-size)';
+    stack.style.alignContent = 'end';
+    stack.style.justifyItems = 'center';
+    const groups = colClues[c];
+    // add blanks for top padding so counts align to bottom
+    const blanks = maxColHeight - groups.length;
+    for(let b=0;b<blanks;b++){
+      const s = document.createElement('div'); s.className='clue'; s.style.opacity='0'; s.innerText=' ';
+      stack.appendChild(s);
+    }
+    for(const g of groups){
+      const s=document.createElement('div'); s.className='clue'; s.innerText=g;
+      stack.appendChild(s);
+    }
+    colContainer.appendChild(stack);
+  }
+  el.colClues.appendChild(colContainer);
+
+  // Row clues
+  el.rowClues.innerHTML = '';
+  const rowContainer = document.createElement('div');
+  rowContainer.style.display='grid';
+  rowContainer.style.rowGap='6px';
+  for(let r=0;r<n;r++){
+    const wrapper = document.createElement('div');
+    wrapper.style.display='flex';
+    wrapper.style.justifyContent='flex-end';
+    wrapper.style.gap='6px';
+    for(const g of rowClues[r]){
+      const s=document.createElement('div'); s.className='clue big'; s.innerText=g; wrapper.appendChild(s);
+    }
+    el.rowClues.appendChild(wrapper);
+  }
+
+  // Grid itself
+  el.puzzle.innerHTML = '';
+  el.puzzle.style.gridTemplateColumns = `repeat(${n}, var(--cell-size))`;
+  el.puzzle.style.width = `calc(${n} * var(--cell-size) + ${Math.max(0, (n-1)*4)}px)`;
+  // create cells
+  for(let r=0;r<n;r++){
+    for(let c=0;c<n;c++){
+      const idx = r*n + c;
+      const cell = document.createElement('button');
+      cell.className = 'cell';
+      cell.dataset.r = r; cell.dataset.c = c;
+      cell.setAttribute('aria-label', `Row ${r+1} Column ${c+1}`);
+      // initial visuals
+      updateCellVisual(cell, r, c);
+      // interactions
+      attachCellEvents(cell);
+      el.puzzle.appendChild(cell);
+    }
+  }
+}
+
+/* Update cell element classes based on player state and solution */
+function updateCellVisual(cell, r, c){
+  const s = state.player[r][c];
+  cell.classList.remove('filled','marked','correct');
+  cell.textContent = '';
+  if(state.showSolution){
+    // show solution overlay but keep player's marks visible
+    if(state.solution[r][c]){ cell.classList.add('filled'); cell.textContent=''; }
+    else if(s===2){ cell.classList.add('marked'); cell.textContent='✕'; }
+  } else {
+    if(s===1){ cell.classList.add('filled'); }
+    else if(s===2){ cell.classList.add('marked'); cell.textContent='✕'; }
+  }
+}
+
+/* Attach pointer/touch events for tap & long-press for each cell */
+function attachCellEvents(cell){
+  let pressTimer = null;
+  const longPressMs = 450;
+  const r = parseInt(cell.dataset.r,10), c = parseInt(cell.dataset.c,10);
+
+  function commitShortTap(){
+    if(el.markToggle.checked){
+      // in mark-mode, toggle mark X
+      state.player[r][c] = (state.player[r][c] === 2) ? 0 : 2;
+    } else {
+      // normal fill toggle
+      state.player[r][c] = (state.player[r][c] === 1) ? 0 : 1;
+    }
+    updateCellVisual(cell, r, c);
+    checkWinCondition();
+  }
+
+  function commitLongPress(){
+    // long press toggles mark X (alternate to explicit mark mode)
+    state.player[r][c] = (state.player[r][c] === 2) ? 0 : 2;
+    updateCellVisual(cell, r, c);
+    checkWinCondition();
+  }
+
+  // pointer events for cross-platform behavior
+  cell.addEventListener('pointerdown', (ev)=>{
+    ev.preventDefault();
+    pressTimer = setTimeout(()=> { commitLongPress(); pressTimer = null; }, longPressMs);
+  });
+  cell.addEventListener('pointerup', (ev)=>{
+    ev.preventDefault();
+    if(pressTimer){
+      clearTimeout(pressTimer); pressTimer = null;
+      commitShortTap();
+    }
+  });
+  cell.addEventListener('pointercancel', ()=>{
+    if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; }
+  });
+
+  // keyboard accessibility: space toggles fill, X toggles mark
+  cell.addEventListener('keydown', (e)=>{
+    if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); commitShortTap(); }
+    if(e.key.toLowerCase() === 'x'){ e.preventDefault(); commitLongPress(); }
+  });
+
+  // hover/selection highlight for puzzle reasoning (small UX nicety)
+  cell.addEventListener('mouseenter', () => {
+    highlightRowCol(r, c, true);
+  });
+  cell.addEventListener('mouseleave', () => {
+    highlightRowCol(r, c, false);
+  });
+}
+
+/* Highlight row and column cells and clues for visual reasoning */
+function highlightRowCol(r, c, on){
+  // highlight grid cells
+  const n = state.size;
+  const all = el.puzzle.querySelectorAll('.cell');
+  all.forEach(cell => {
+    const rr = parseInt(cell.dataset.r,10), cc = parseInt(cell.dataset.c,10);
+    if(on && (rr===r || cc===c)) cell.classList.add('correct'); else cell.classList.remove('correct');
+  });
+}
+
+/* Controls: Clear, Reveal, Hint */
+el.clearBtn.addEventListener('click', ()=>{
+  state.player = create2D(state.size, 0);
+  state.showSolution = false;
+  el.solutionBtn.textContent = 'Reveal';
+  // refresh visuals
+  document.querySelectorAll('.cell').forEach(cell=>{
+    const r = parseInt(cell.dataset.r,10), c = parseInt(cell.dataset.c,10);
+    updateCellVisual(cell, r, c);
+  });
+  el.statusText.textContent = 'Cleared';
+});
+
+el.generateBtn.addEventListener('click', newPuzzle);
+el.sizeSelect.addEventListener('change', newPuzzle);
+el.difficultySelect.addEventListener('change', newPuzzle);
+
+/* Reveal/hide solution toggle */
+el.solutionBtn.addEventListener('click', ()=>{
+  state.showSolution = !state.showSolution;
+  el.solutionBtn.textContent = state.showSolution ? 'Hide' : 'Reveal';
+  document.querySelectorAll('.cell').forEach(cell=>{
+    const r = parseInt(cell.dataset.r,10), c = parseInt(cell.dataset.c,10);
+    updateCellVisual(cell, r, c);
+  });
+  el.statusText.textContent = state.showSolution ? 'Solution shown' : 'Solution hidden';
+});
+
+/* Hint: reveal one correct filled cell (temporarily) */
+el.hintBtn.addEventListener('click', ()=>{
+  if(state.hintCooldown){ el.statusText.textContent = 'Hint cooling...'; return; }
+  // find an unsolved cell that should be filled but player hasn't filled
+  const candidates = [];
+  for(let r=0;r<state.size;r++){
+    for(let c=0;c<state.size;c++){
+      if(state.solution[r][c] && state.player[r][c] !== 1){
+        candidates.push([r,c]);
+      }
+    }
+  }
+  if(!candidates.length){ el.statusText.textContent = 'No hints available'; return; }
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  const [hr,hc] = pick;
+  // temporarily flash that cell
+  const btn = el.puzzle.querySelector(`.cell[data-r="${hr}"][data-c="${hc}"]`);
+  btn.classList.add('filled');
+  state.hintCooldown = true;
+  el.statusText.textContent = 'Hint revealed';
+  setTimeout(()=>{ updateCellVisual(btn, hr, hc); state.hintCooldown=false; el.statusText.textContent = 'Ready'; }, 900);
+});
+
+/* Check win condition: player's filled cells match solution exactly (X marks ignored, but wrong fills fail) */
+function checkWinCondition(){
+  const n = state.size;
+  for(let r=0;r<n;r++){
+    for(let c=0;c<n;c++){
+      const p = state.player[r][c] === 1; // player filled
+      const sol = state.solution[r][c];
+      if(p !== sol) return; // mismatch (either missing or wrong)
+    }
+  }
+  // all match
+  el.statusText.textContent = 'Solved! 🎉';
+  // provide small celebration visual: highlight border
+  el.gridWrap.style.boxShadow = '0 0 0 6px rgba(43,136,255,0.12), var(--shadow)';
+  setTimeout(()=>{ el.gridWrap.style.boxShadow = ''; }, 2200);
+}
+
+/* Initial setup */
+newPuzzle();
+
+/* Modal instructions open/close */
+el.infoBtn.addEventListener('click', ()=> { el.modal.style.display = 'grid'; });
+el.modalClose.addEventListener('click', ()=> { el.modal.style.display = 'none'; });
+el.modal.addEventListener('click', (e)=> { if(e.target === el.modal) el.modal.style.display='none'; });
+
+/* Accessibility: keyboard focus outlines */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === '?'){ el.modal.style.display = 'grid'; }
+});
+
+/* Helpful: make grid scrollable to center on smaller screens */
+function centerGridView(){
+  // ensure the gridWrap scroll centers content
+  const wrap = el.gridWrap;
+  wrap.scrollLeft = (wrap.scrollWidth - wrap.clientWidth)/2;
+  wrap.scrollTop = (wrap.scrollHeight - wrap.clientHeight)/2;
+}
+window.addEventListener('resize', centerGridView);
+setTimeout(centerGridView, 120);
+
+/* Export / embed notes (developer friendly)
+   - To change initial color theme, edit CSS :root variables.
+   - To seed a specific puzzle, replace generateSolution() with a loaded matrix.
+   - For commercial releases include your own puzzles or a backend generator if you need guaranteed unique solutions.
+*/
+
+</script>
+</body>
+</html>

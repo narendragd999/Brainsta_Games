@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dash Nom Adventure</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(to bottom, #e5c1d1 0%, #d3e6f5 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    #game-container {
+      display: grid;
+      place-items: center;
+      width: 100vw;
+      height: 100vh;
+    }
+    canvas {
+      box-shadow: 0 10px 32px rgba(0,0,0,0.22);
+      border-radius: 24px;
+      background: transparent;
+      display: block;
+      margin: auto;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 32px;
+      justify-items: center;
+      margin-top: 24px;
+    }
+    .btn {
+      background: #fff;
+      border: 0;
+      border-radius: 12px;
+      padding: 16px 32px;
+      box-shadow: 0 2px 8px rgba(100, 100, 255, 0.12);
+      font-size: 1.3rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: box-shadow 0.2s, background 0.2s;
+      outline: none;
+      touch-action: manipulation;
+    }
+    .btn:active, .btn:hover {
+      box-shadow: 0 4px 24px #e5c1d1;
+      background: #d3e6f5;
+      color: #222;
+    }
+    /* Instruction popup */
+    #popup {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 32px 24px;
+      border-radius: 18px;
+      box-shadow: 0 4px 32px #e5c1d1;
+      z-index: 9999;
+      text-align: center;
+    }
+    #popup img {
+      width: 48px; margin-bottom: 16px;
+    }
+    #close-popup {
+      background: #e5c1d1;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 7px 15px;
+      margin-top: 18px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .inst-btn {
+      background: none;
+      border: none;
+      position: absolute;
+      top: 24px; right: 24px;
+      cursor: pointer;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+    }
+    .inst-btn img {
+      width: 42px; height: 42px;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <button class="inst-btn" onclick="showPopup()">
+      <img src="https://cdn-icons-png.flaticon.com/512/1828/1828919.png" alt="Instructions" />
+    </button>
+    <canvas id="gameCanvas" width="450" height="800"></canvas>
+    <div class="controls">
+      <button class="btn" id="left">⇦ Left</button>
+      <button class="btn" id="right">⇨ Right</button>
+    </div>
+  </div>
+  <div id="popup">
+    <img src="https://cdn-icons-png.flaticon.com/512/5168/5168363.png" alt="Info"/>
+    <h2>How to Play</h2>
+    <p>Swipe or tap <b>Left</b> and <b>Right</b> to dodge obstacles and collect coins.<br>
+       Survive as long as you can to earn a high score!</p>
+    <button id="close-popup" onclick="closePopup()">Close</button>
+  </div>
+  <script>
+    function showPopup() {
+      document.getElementById('popup').style.display = 'block';
+    }
+    function closePopup() {
+      document.getElementById('popup').style.display = 'none';
+    }
+    // Simple Game Engine
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let playerX = 225, playerY = 700, laneWidth = 100, lanes = [125, 225, 325];
+    let playerLane = 1, score = 0, running = true;
+    let obstacles = [];
+    let coins = [];
+    function drawPlayer() {
+      ctx.save();
+      ctx.shadowColor = "#e5c1d1";
+      ctx.shadowBlur = 12;
+      ctx.drawImage(playerImg, lanes[playerLane] - 32, playerY, 64, 64);
+      ctx.restore();
+    }
+    function drawObstacles() {
+      obstacles.forEach(ob => {
+        ctx.fillStyle = "#e55";
+        ctx.beginPath();
+        ctx.arc(lanes[ob.lane], ob.y, 30, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#d3e6f5";
+        ctx.lineWidth = 5;
+        ctx.stroke();
+      });
+    }
+    function drawCoins() {
+      coins.forEach(cn => {
+        ctx.drawImage(coinImg, lanes[cn.lane] - 16, cn.y - 16, 32, 32);
+      });
+    }
+    function drawScore() {
+      ctx.font = "bold 2rem 'Segoe UI'";
+      ctx.fillStyle = "#222";
+      ctx.fillText("Score: " + score, 24, 60);
+    }
+    function resetObstacles() {
+      if (Math.random() < 0.04) {
+        obstacles.push({ lane: Math.floor(Math.random() * 3), y: -80 });
+      }
+      obstacles.forEach(ob => ob.y += 8);
+      obstacles = obstacles.filter(ob => ob.y < 850);
+    }
+    function resetCoins() {
+      if (Math.random() < 0.03) {
+        coins.push({ lane: Math.floor(Math.random() * 3), y: -80 });
+      }
+      coins.forEach(cn => cn.y += 8);
+      coins = coins.filter(cn => cn.y < 850);
+    }
+    function checkCollisions() {
+      obstacles.forEach(ob => {
+        if (ob.lane === playerLane && Math.abs(ob.y - playerY) < 48) {
+          running = false;
+        }
+      });
+      coins.forEach((cn, idx) => {
+        if (cn.lane === playerLane && Math.abs(cn.y - playerY) < 40) {
+          score++;
+          coins.splice(idx, 1);
+        }
+      });
+    }
+    function loop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlayer();
+      drawObstacles();
+      drawCoins();
+      drawScore();
+      resetObstacles();
+      resetCoins();
+      checkCollisions();
+      if (running) {
+        requestAnimationFrame(loop);
+      } else {
+        ctx.font = "bold 3rem 'Segoe UI'";
+        ctx.fillStyle = "#e55";
+        ctx.textAlign = "center";
+        ctx.fillText("Game Over!", canvas.width/2, canvas.height/2 - 52);
+        ctx.font = "bold 1.7rem 'Segoe UI'";
+        ctx.fillText("Tap to restart", canvas.width/2, canvas.height/2 + 20);
+        canvas.onclick = () => document.location.reload();
+      }
+    }
+    document.getElementById('left').addEventListener('touchstart', () => { if (playerLane > 0) playerLane--; }, false);
+    document.getElementById('right').addEventListener('touchstart', () => { if (playerLane < 2) playerLane++; }, false);
+    document.getElementById('left').addEventListener('click', () => { if (playerLane > 0) playerLane--; });
+    document.getElementById('right').addEventListener('click', () => { if (playerLane < 2) playerLane++; });
+    // Images
+    const playerImg = new window.Image();
+    playerImg.src = "https://cdn-icons-png.flaticon.com/512/10011/10011523.png"; // Use custom avatar if you want
+    const coinImg = new window.Image();
+    coinImg.src = "https://cdn-icons-png.flaticon.com/512/138/138292.png";
+    playerImg.onload = coinImg.onload = () => loop();
+  </script>
+</body>
+</html>
