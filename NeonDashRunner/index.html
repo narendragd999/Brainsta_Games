@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Neon Dash Runner — HTML5</title>
+<style>
+:root{
+  --top-grad: #e5c1d1;
+  --bot-grad: #d3e6f5;
+  --accent: #ff4da6;
+  --accent-2: #2b88ff;
+  --hud-bg: rgba(255,255,255,0.92);
+  --shadow: 0 8px 20px rgba(0,0,0,0.16);
+  --radius: 14px;
+  --safe-area: env(safe-area-inset-bottom, 12px);
+}
+html,body{
+  height:100%;margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+  background:linear-gradient(180deg,var(--top-grad)0%,var(--bot-grad)100%);
+  display:grid;place-items:center;
+}
+.game-shell{
+  width:min(880px,98vw);
+  height:min(720px,94vh);
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  gap:12px;padding:20px;
+  justify-items:center;align-items:center;
+  background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05));
+  border-radius:20px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.14);
+}
+header.hud{
+  width:100%;display:grid;
+  grid-template-columns:1fr auto auto;
+  gap:12px;align-items:center;
+}
+.title{font-weight:700;font-size:1.18rem;color:#222;letter-spacing:.4px;}
+.score-pill,.distance-pill{
+  background:var(--hud-bg);padding:8px 14px;border-radius:999px;
+  box-shadow:0 6px 12px rgba(0,0,0,0.12);
+  display:flex;gap:8px;align-items:center;font-weight:700;
+}
+.info-btn{
+  width:36px;height:36px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(180deg,var(--accent),var(--accent-2));
+  color:#fff;font-weight:800;box-shadow:0 6px 14px rgba(0,0,0,0.16);border:none;cursor:pointer;
+  transition:transform .1s;
+}
+.info-btn:active{transform:scale(.98);}
+.play-area{
+  width:100%;height:100%;display:grid;place-items:center;align-items:center;
+}
+canvas#gameCanvas{
+  width:100%;height:auto;max-height:calc(100% - 18px);border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.02));
+  display:block;
+}
+.controls{
+  width:100%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:center;justify-items:center;
+}
+.ctl-btn{
+  width:100%;max-width:220px;height:60px;border-radius:12px;
+  background:var(--hud-bg);display:flex;gap:10px;align-items:center;justify-content:center;
+  font-weight:800;box-shadow:var(--shadow);border:none;cursor:pointer;user-select:none;
+  transition:transform .09s, box-shadow .09s;
+}
+.ctl-btn:active{transform:translateY(2px);}
+.ctl-btn .label{font-size:15px;color:#111;}
+.ctl-btn .kbd{font-size:13px;opacity:.55;margin-left:7px;}
+.ctl-btn.active{
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  color:white;box-shadow:0 10px 26px rgba(0,0,0,0.14);
+}
+.ctl-btn:hover{transform:translateY(-4px);}
+@media(max-width:540px){
+  .controls{grid-template-columns:1fr 1fr;}
+  .ctl-btn{height:68px;border-radius:14px;}
+}
+.modal-backdrop{
+  position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(rgba(0,0,0,0.28),rgba(0,0,0,0.33));z-index:10;
+}
+.modal{
+  min-width:250px;width:min(480px,92%);background:white;border-radius:14px;padding:16px;
+  box-shadow:0 22px 66px rgba(0,0,0,0.27);color:#111;
+}
+.modal h3{margin:0 0 8px 0;font-size:1.1rem;}
+.modal p{margin:5px 0;font-size:0.98rem;opacity:0.95;}
+.modal .close{
+  margin-top:10px;padding:7px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:700;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;
+}
+.icon{
+  display:inline-grid;place-items:center;width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white;font-weight:900;
+}
+.spacer{height:var(--safe-area);width:100%;}
+</style>
+</head>
+<body>
+  <div class="game-shell" id="shell">
+    <header class="hud">
+      <div class="title">Neon Dash Runner</div>
+      <div class="score-pill" id="scorePanel">
+        <div class="icon">★</div><div id="score">0</div>
+      </div>
+      <button class="info-btn" id="infoBtn" aria-label="Instructions">i</button>
+    </header>
+    <main class="play-area">
+      <canvas id="gameCanvas" width="720" height="420"></canvas>
+    </main>
+    <footer class="controls" role="toolbar" aria-label="Game controls">
+      <button class="ctl-btn" id="leftBtn" aria-label="Move left">
+        <div class="label">Left</div><div class="kbd">◀</div>
+      </button>
+      <button class="ctl-btn" id="jumpBtn" aria-label="Jump">
+        <div class="label">Jump</div><div class="kbd">↑ / Tap</div>
+      </button>
+      <button class="ctl-btn" id="rightBtn" aria-label="Move right">
+        <div class="label">Right</div><div class="kbd">▶</div>
+      </button>
+    </footer>
+    <div class="spacer"></div>
+    <!-- modal instructions -->
+    <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
+      <div class="modal" role="document">
+        <h3><span class="icon">?</span> How to play</h3>
+        <p><strong>Objective:</strong> Run as far as possible, dodge obstacles, and collect neon orbs for points.</p>
+        <p><strong>Controls:</strong>
+          <ul>
+            <li>Swipe left / tap <em>Left</em> — move left lane.</li>
+            <li>Swipe right / tap <em>Right</em> — move right lane.</li>
+            <li>Tap <em>Jump</em> or swipe up — jump over obstacles.</li>
+            <li>Collect orbs for points. Avoid collisions.</li>
+          </ul>
+        </p>
+        <p><strong>Tips:</strong> Consecutive orbs increase speed. Jump timing is essential!</p>
+        <button class="close" id="closeModal">Got it</button>
+      </div>
+    </div>
+  </div>
+<script>
+/* Neon Dash Runner — Improved Endless Runner */
+const settings = {
+  lanes: 3,
+  laneGap: 135,
+  baseSpeed: 310,
+  spawnInterval: 820,
+  obstacleWidth: 60,
+  obstacleHeight: 60,
+  orbRadius: 12,
+  gravity: 1500,
+  jumpVel: -640,
+  canvasAspect: 720/420,
+};
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const modal = document.getElementById('modalBackdrop');
+
+function resizeCanvas() {
+  const container = document.querySelector('.play-area');
+  let w = container.clientWidth - 8, h = container.clientHeight - 8;
+  let tw = w, th = tw/settings.canvasAspect;
+  if (th > h) { th = h; tw = th*settings.canvasAspect; }
+  canvas.style.width = tw+'px';
+  canvas.style.height = th+'px';
+  let DPR = Math.max(1, window.devicePixelRatio||1);
+  canvas.width = Math.round(720 * DPR);
+  canvas.height = Math.round(420 * DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Lane helper
+function laneX(i){
+  let c = 720/2;
+  let total = settings.laneGap * (settings.lanes-1);
+  return c-total/2 + i*settings.laneGap;
+}
+// Player state
+const VWidth = 720, VHeight = 420;
+let player = { lane:1, x:laneX(1), y:VHeight-90, vy:0, width:50, height:72, grounded:true, invuln:0 };
+
+// Game state
+let obstacles=[], orbs=[], score=0, distance=0, speedMultiplier=1.0;
+let elapsed=0, lastTime=performance.now(), running=true, lastSpawn=0, lastOrbSpawn=0, flashTimer=0;
+
+// Responsive scoring and game events
+function resetGame() {
+  obstacles=[]; orbs=[];
+  score=0; distance=0; speedMultiplier=1.0;
+  settings.spawnInterval=820; settings.baseSpeed=310;
+  player.lane=1; player.x=laneX(1); player.y=VHeight-90; player.grounded=true; player.vy=0; player.invuln=0;
+}
+
+// Modal controls
+const infoBtn = document.getElementById('infoBtn');
+const closeModal = document.getElementById('closeModal');
+infoBtn.onclick=()=> modal.style.display='grid';
+closeModal.onclick=()=> modal.style.display='none';
+modal.onclick=(e)=>{if(e.target===modal)modal.style.display='none';};
+
+// Main input controls
+document.getElementById('leftBtn').onclick = moveLeft;
+document.getElementById('rightBtn').onclick = moveRight;
+document.getElementById('jumpBtn').onclick = doJump;
+
+window.addEventListener('keydown', (e)=>{
+  if(e.code==='ArrowLeft'||e.key==='a'){moveLeft();}
+  if(e.code==='ArrowRight'||e.key==='d'){moveRight();}
+  if(e.code==='ArrowUp'||e.key==='w'||e.code==='Space'){doJump();}
+  if(e.key==='p'){running=!running;}
+});
+
+// Touch support for mobile
+let touchStart=null;
+canvas.addEventListener('touchstart', e=>{
+  const t=e.changedTouches;touchStart={x:t.clientX,y:t.clientY,t:performance.now()};
+},{passive:true});
+canvas.addEventListener('touchend', e=>{
+  if(!touchStart)return;
+  const t=e.changedTouches;
+  let dx=t.clientX-touchStart.x, dy=t.clientY-touchStart.y;
+  let absX=Math.abs(dx),absY=Math.abs(dy), threshold=30;
+  if(absX>absY&&absX>threshold){dx>0?moveRight():moveLeft();}
+  else if(absY>absX&&absY>threshold){dy<0?doJump():null;}
+  else{doJump();}
+  touchStart=null;
+},{passive:true});
+
+// Mouse input for desktop
+canvas.addEventListener('mousedown', e=>touchStart={x:e.clientX,y:e.clientY,t:performance.now()});
+canvas.addEventListener('mouseup', e=>{
+  if(!touchStart)return;
+  let dx=e.clientX-touchStart.x,dy=e.clientY-touchStart.y;
+  let absX=Math.abs(dx),absY=Math.abs(dy),threshold=22;
+  if(absX>absY&&absX>threshold){dx>0?moveRight():moveLeft();}
+  else if(absY>absX&&absY>threshold){dy<0?doJump():null;}
+  else{doJump();}touchStart=null;
+});
+
+// Control flash animation
+function flashControl(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.classList.add('active');
+  setTimeout(()=>el.classList.remove('active'),120);
+}
+function moveLeft(){
+  if(player.lane>0){player.lane--;player.x=laneX(player.lane);flashControl('leftBtn');}
+}
+function moveRight(){
+  if(player.lane<settings.lanes-1){player.lane++;player.x=laneX(player.lane);flashControl('rightBtn');}
+}
+function doJump(){
+  if(player.grounded){
+    player.vy=settings.jumpVel;player.grounded=false;flashControl('jumpBtn');
+  }
+}
+
+// Obstacle and orb management
+function spawnObstacle(){
+  let lane=Math.floor(Math.random()*settings.lanes);
+  obstacles.push({lane,x:laneX(lane),y:-settings.obstacleHeight-16,w:settings.obstacleWidth,h:settings.obstacleHeight,type:Math.random()<0.13?'tall':'low'});
+}
+function spawnOrb(){
+  let lane=Math.floor(Math.random()*settings.lanes);
+  orbs.push({lane,x:laneX(lane),y:-16,r:settings.orbRadius});
+}
+
+// Collision detection
+function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
+  return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by;
+}
+function circleRectOverlap(cx,cy,cr,rx,ry,rw,rh){
+  let nx=Math.max(rx,Math.min(cx,rx+rw));
+  let ny=Math.max(ry,Math.min(cy,ry+rh));
+  let dx=cx-nx,dy=cy-ny;
+  return (dx*dx+dy*dy)<(cr*cr);
+}
+
+// Main game logic and rendering
+function update(dt){
+  if(!running)return;
+  elapsed+=dt;lastSpawn+=dt*1000;lastOrbSpawn+=dt*1000;
+  let speed=settings.baseSpeed*speedMultiplier;
+  if(lastSpawn>settings.spawnInterval){spawnObstacle();lastSpawn=0;}
+  if(lastOrbSpawn>settings.spawnInterval*0.77){if(Math.random()<0.65)spawnOrb();lastOrbSpawn=0;}
+  // Move obstacles and orbs
+  for(let i=obstacles.length-1;i>=0;i--)if((obstacles[i].y+=speed*dt)>VHeight+120)obstacles.splice(i,1);
+  for(let i=orbs.length-1;i>=0;i--)if((orbs[i].y+=speed*dt)>VHeight+60)orbs.splice(i,1);
+
+  // Player jump and settle
+  if(!player.grounded){player.vy+=settings.gravity*dt;player.y+=player.vy*dt;if(player.y>=VHeight-90){player.y=VHeight-90;player.vy=0;player.grounded=true;}}
+  if(player.invuln>0)player.invuln=Math.max(0,player.invuln-dt);
+
+  // Collisions
+  const pRect={x:player.x-player.width/2,y:player.y-player.height/2,w:player.width,h:player.height};
+  for(let o of obstacles){
+    const oRect={x:o.x-o.w/2,y:o.y-o.h/2,w:o.w,h:o.h};
+    if(rectsOverlap(pRect.x,pRect.y,pRect.w,pRect.h,oRect.x,oRect.y,oRect.w,oRect.h)){
+      if(player.invuln<=0){
+        player.invuln=0.85;score=Math.max(0,score-14);speedMultiplier=Math.max(0.64,speedMultiplier-0.12);flashScreen();
+      }
+    }
+  }
+  for(let i=orbs.length-1;i>=0;i--){
+    let o=orbs[i];
+    if(circleRectOverlap(o.x,o.y,o.r,pRect.x,pRect.y,pRect.w,pRect.h)){
+      score+=5;speedMultiplier=Math.min(1.57,speedMultiplier+0.044);orbs.splice(i,1);
+    }
+  }
+  distance+=speed*dt;score+=Math.floor((speed*dt)/410);score=Math.max(0,Math.floor(score));
+}
+
+// Visual effect on collision
+function flashScreen(){flashTimer=0.15;}
+function drawPlayer(){
+  const px=player.x-player.width/2,py=player.y-player.height/2;
+  ctx.save();
+  ctx.beginPath();ctx.ellipse(player.x,player.y+player.height/1.8,player.width/2,8,0,0,Math.PI*2);
+  ctx.fillStyle='rgba(0,0,0,0.23)';ctx.fill();
+  const grad=ctx.createLinearGradient(px,py,px+player.width,py+player.height);
+  grad.addColorStop(0,'#ff80c8');grad.addColorStop(1,'#6bb7ff');
+  ctx.fillStyle=grad;roundRect(ctx,px,py,player.width,player.height,10,true,false);
+  ctx.fillStyle='rgba(255,255,255,0.82)';ctx.fillRect(px+9,py+13,player.width-18,10);
+  ctx.restore();
+}
+function drawBackground(){
+  const g=ctx.createLinearGradient(0,0,0,VHeight);
+  g.addColorStop(0,'rgba(255,255,255,0.017)');g.addColorStop(1,'rgba(0,0,0,0.016)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,VWidth,VHeight);
+  ctx.fillStyle='rgba(255, 90, 160, 0.021)';ctx.fillRect(40,40,160,120);
+  ctx.fillStyle='rgba(40, 130, 255, 0.018)';ctx.fillRect(VWidth-240,28,180,140);
+}
+function drawLanes(){
+  const top=34,bottom=VHeight-34;
+  ctx.beginPath();ctx.fillStyle='rgba(12,12,12,0.045)';roundRect(ctx,30,top,VWidth-60,bottom-top,18,true,false);
+  for(let i=0;i<settings.lanes;i++){
+    let x=laneX(i);
+    ctx.beginPath();ctx.fillStyle='rgba(255,255,255,0.018)';ctx.arc(x,bottom-18,34,0,Math.PI*2);ctx.fill();
+  }
+  ctx.strokeStyle='rgba(0,0,0,0.02)';
+  for(let i=0;i<6;i++){
+    let y=top+(bottom-top)*(i/6);
+    ctx.beginPath();ctx.moveTo(36,y);ctx.lineTo(VWidth-36,y);ctx.stroke();
+  }
+}
+function roundRect(ctx,x,y,w,h,r,fill,stroke){
+  if(typeof r==='number')r={tl:r,tr:r,br:r,bl:r};
+  ctx.beginPath();ctx.moveTo(x+r.tl,y);ctx.lineTo(x+w-r.tr,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r.tr);ctx.lineTo(x+w,y+h-r.br);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r.br,y+h);ctx.lineTo(x+r.bl,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r.bl);ctx.lineTo(x,y+r.tl);
+  ctx.quadraticCurveTo(x,y,x+r.tl,y);ctx.closePath();
+  if(fill)ctx.fill();if(stroke)ctx.stroke();
+}
+function render(){
+  ctx.clearRect(0,0,VWidth,VHeight);
+  drawBackground();
+  drawLanes();
+  for(let o of orbs){
+    ctx.beginPath();ctx.fillStyle='#ffd46b';ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.fillStyle='rgba(255,212,107,0.13)';ctx.arc(o.x,o.y,o.r+12,0,Math.PI*2);ctx.fill();
+  }
+  for(let o of obstacles){
+    let ox=o.x-o.w/2,oy=o.y-o.h/2;
+    ctx.fillStyle=o.type==='tall'?'#6b4cff':'#ff6b9a';roundRect(ctx,ox,oy,o.w,o.h,10,true,false);
+    ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(ox+6,oy+6,o.w-12,o.h/4);
+    ctx.fillStyle='rgba(0,0,0,0.09)';ctx.fillRect(ox,oy+o.h-9,o.w,8);
+  }
+  drawPlayer();
+  ctx.fillStyle='rgba(0,0,0,0.33)';ctx.fillRect(14,12,170,32);
+  ctx.fillStyle='white';ctx.font='600 15px system-ui';ctx.fillText('DIST: '+Math.floor(distance/10)+'m',23,32);
+  if(flashTimer>0){ctx.fillStyle='rgba(255,66,66,'+Math.min(0.34,flashTimer)+')';ctx.fillRect(0,0,VWidth,VHeight);}
+}
+
+// Stable game loop with animation frame and timer
+function frame(now){
+  const dt = Math.min(0.048,(now-lastTime)/1000);
+  if(running){update(dt);flashTimer=Math.max(0,flashTimer-dt);speedMultiplier+=(1-speedMultiplier)*(.42*dt);}
+  render();
+  scoreEl.textContent=score;
+  lastTime=now;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// Difficulty scaling over time
+setInterval(()=>{
+  if(settings.spawnInterval>420)settings.spawnInterval*=0.985;
+  settings.baseSpeed+=5.8;
+},5900);
+
+document.addEventListener('visibilitychange',()=>{running=!document.hidden;});
+canvas.addEventListener('dblclick',resetGame);
+
+// Hint for controls on load
+(function showHint(){
+  const left=document.getElementById('leftBtn'),right=document.getElementById('rightBtn'),jump=document.getElementById('jumpBtn');
+  left.classList.add('active');right.classList.add('active');jump.classList.add('active');
+  setTimeout(()=>{left.classList.remove('active');right.classList.remove('active');jump.classList.remove('active');},870);
+})();
+</script>
+</body>
+</html>
