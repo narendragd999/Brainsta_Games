@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fruit Swipe - Swipe to Cut Fruits</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to bottom, #e5c1d1 0%, #d3e6f5 100%);
+      display: grid;
+      place-items: center;
+      user-select: none;
+      overflow: hidden;
+    }
+    #app {
+      position: relative;
+      width: min(480px, 95vw);
+      height: min(720px, 95vh);
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 14px 32px rgba(211, 230, 245, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #title {
+      font-weight: 900;
+      font-size: 2rem;
+      color: #422;
+      margin: 20px 0 6px 0;
+      user-select: none;
+    }
+    #score {
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: #422;
+      margin-bottom: 12px;
+      user-select: none;
+      letter-spacing: 1px;
+    }
+    #gameArea {
+      position: relative;
+      flex-grow: 1;
+      width: 100%;
+      background: #f8faff;
+      border-radius: 0 0 24px 24px;
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      user-select: none;
+      touch-action: none;
+    }
+    #info-button {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 48px;
+      height: 48px;
+      user-select: none;
+      touch-action: manipulation;
+      z-index: 1001;
+    }
+    #info-button img {
+      width: 100%;
+      height: 100%;
+    }
+    #instructions-popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 28px;
+      border-radius: 20px;
+      width: 320px;
+      box-shadow: 0 10px 40px rgba(211,230,245,0.9);
+      text-align: center;
+      z-index: 1002;
+      user-select: none;
+    }
+    #instructions-popup img {
+      width: 46px;
+      margin-bottom: 12px;
+    }
+    #close-instructions {
+      margin-top: 20px;
+      background: #e5c1d1;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 6px 16px #d3e6f5;
+      transition: background-color 0.3s ease;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    #close-instructions:hover {
+      background-color: #d3e6f5;
+      color: #222;
+    }
+  </style>
+</head>
+<body>
+  <button id="info-button" aria-label="Instructions" onclick="openInstructions()">
+    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828919.png" alt="Instructions Icon" />
+  </button>
+  <div id="instructions-popup" role="dialog" aria-modal="true" aria-labelledby="instructions-title">
+    <img src="https://cdn-icons-png.flaticon.com/512/5168/5168363.png" alt="Game Info Icon" />
+    <h2 id="instructions-title">How to Play Fruit Swipe</h2>
+    <p>Swipe your finger or mouse quickly across the fruits to cut them.<br>
+       Avoid hitting bombs!<br>
+       Cut as many fruits as you can to earn a high score.</p>
+    <button id="close-instructions" onclick="closeInstructions()">Close</button>
+  </div>
+  <div id="app">
+    <h1 id="title">Fruit Swipe</h1>
+    <div id="score" aria-live="polite" aria-atomic="true" aria-relevant="text">Score: 0</div>
+    <div id="gameArea">
+      <canvas id="gameCanvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let fruits = [];
+    let score = 0;
+    let slicePath = [];
+    const maxSlicePathLength = 10;
+    const fruitImages = {};
+    const bombImage = new Image();
+
+    // Load fruit images
+    const fruitUrls = {
+      apple: 'https://cdn-icons-png.flaticon.com/512/415/415733.png',
+      banana: 'https://cdn-icons-png.flaticon.com/512/415/415759.png',
+      orange: 'https://cdn-icons-png.flaticon.com/512/415/415734.png',
+      watermelon: 'https://cdn-icons-png.flaticon.com/512/415/415731.png',
+      bomb: 'https://cdn-icons-png.flaticon.com/512/833/833524.png'
+    };
+
+    for (const [key, url] of Object.entries(fruitUrls)) {
+      let img = new Image();
+      img.src = url;
+      fruitImages[key] = img;
+    }
+    bombImage.src = fruitUrls.bomb;
+
+    class Fruit {
+      constructor(type, x, y, vx, vy, rotation) {
+        this.type = type;
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.rotation = rotation;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.1;
+        this.radius = 40;
+        this.sliced = false;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.15; // gravity
+        this.rotation += this.rotationSpeed;
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        const img = this.type === 'bomb' ? bombImage : fruitImages[this.type];
+        if(img.complete) {
+          ctx.drawImage(img, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
+        } else {
+          ctx.fillStyle = '#ddd';
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius, 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+      isInside(x, y) {
+        let dx = this.x - x;
+        let dy = this.y - y;
+        return Math.sqrt(dx*dx + dy*dy) < this.radius;
+      }
+    }
+
+    function resize() {
+      width = canvas.width = canvas.clientWidth;
+      height = canvas.height = canvas.clientHeight;
+    }
+
+    function spawnFruit() {
+      const types = ['apple', 'banana', 'orange', 'watermelon', 'bomb'];
+      const weights = [30, 25, 25, 15, 5]; // bomb less frequent
+      let choice = weightedRandom(types, weights);
+      let x = Math.random() * (width - 80) + 40;
+      let y = height + 50;
+      let vx = (Math.random() - 0.5) * 3;
+      let vy = -(Math.random() * 10 + 15);
+      let rotation = Math.random() * Math.PI * 2;
+      fruits.push(new Fruit(choice, x, y, vx, vy, rotation));
+    }
+
+    function weightedRandom(items, weights) {
+      let total = weights.reduce((a,b) => a+b, 0);
+      let rand = Math.random() * total;
+      for (let i=0; i<items.length; i++) {
+        if (rand < weights[i]) return items[i];
+        rand -= weights[i];
+      }
+      return items[items.length - 1];
+    }
+
+    function drawSlice() {
+      if (slicePath.length < 2) return;
+      ctx.strokeStyle = 'rgba(229,193,209, 0.8)';
+      ctx.lineWidth = 6;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.shadowColor = "#e5c1d1";
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(slicePath[0].x, slicePath[0].y);
+      for(let i=1; i < slicePath.length; i++) {
+        ctx.lineTo(slicePath[i].x, slicePath[i].y);
+      }
+      ctx.stroke();
+    }
+
+    function detectSlice() {
+      for (const fruit of fruits) {
+        if (fruit.sliced) continue;
+        for (let i=0; i<slicePath.length; i++) {
+          if (fruit.isInside(slicePath[i].x, slicePath[i].y)) {
+            fruit.sliced = true;
+            if (fruit.type === 'bomb') {
+              playSound(explodeSound);
+              alert('💥 Boom! You hit a bomb! Game Over.');
+              resetGame();
+              return;
+            } else {
+              playSound(sliceSound);
+              score++;
+              updateScore();
+            }
+            break;
+          }
+        }
+      }
+      fruits = fruits.filter(fruit => !fruit.sliced || fruit.y < height + 100);
+    }
+
+    function updateScore() {
+      document.getElementById('score').textContent = `Score: ${score}`;
+    }
+
+    function update() {
+      ctx.clearRect(0, 0, width, height);
+
+      for (const fruit of fruits) {
+        fruit.update();
+        fruit.draw(ctx);
+      }
+
+      drawSlice();
+      detectSlice();
+
+      // Remove fruits fallen below screen
+      fruits = fruits.filter(fruit => fruit.y < height + 80);
+
+      // Spawn new fruits regularly
+      if (Math.random() < 0.03) spawnFruit();
+
+      requestAnimationFrame(update);
+    }
+
+    // Swipe tracking
+    function pointerDown(e) {
+      slicePath = [{x:e.clientX - canvas.getBoundingClientRect().left, y:e.clientY - canvas.getBoundingClientRect().top}];
+    }
+
+    function pointerMove(e) {
+      if (slicePath.length === 0) return;
+      slicePath.push({x:e.clientX - canvas.getBoundingClientRect().left, y:e.clientY - canvas.getBoundingClientRect().top});
+      while (slicePath.length > maxSlicePathLength) slicePath.shift();
+    }
+
+    function pointerUp(e) {
+      slicePath = [];
+    }
+
+    // Sound 
+    const sliceSound = new Audio('https://actions.google.com/sounds/v1/cartoon/knife_slice.ogg');
+    const explodeSound = new Audio('https://actions.google.com/sounds/v1/explosions/explosion.ogg');
+
+    function playSound(sound) {
+      if (sound) {
+        sound.currentTime = 0;
+        sound.play().catch(() => {});
+      }
+    }
+
+    // Reset game
+    function resetGame() {
+      score = 0;
+      updateScore();
+      fruits = [];
+    }
+
+    // Instructions popup
+    const infoButton = document.getElementById('info-button');
+    const instructionsPopup = document.getElementById('instructions-popup');
+    function openInstructions() {
+      instructionsPopup.style.display = 'block';
+    }
+    function closeInstructions() {
+      instructionsPopup.style.display = 'none';
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Pointer event listeners
+    canvas.addEventListener('pointerdown', pointerDown);
+    canvas.addEventListener('pointermove', pointerMove);
+    canvas.addEventListener('pointerup', pointerUp);
+    canvas.addEventListener('pointerleave', pointerUp);
+
+    // Start game loop
+    resetGame();
+    update();
+  </script>
+</body>
+</html>

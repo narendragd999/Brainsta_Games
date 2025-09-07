@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HexaFuse - Tile Merge Puzzle</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to bottom, #e5c1d1 0%, #d3e6f5 100%);
+      display: grid;
+      place-items: center;
+      user-select: none;
+    }
+    #app {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 20px;
+      width: min(480px, 95vw);
+      height: min(640px, 95vh);
+      background: white;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 14px 32px rgba(211, 230, 245, 0.7);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    #title {
+      font-weight: 900;
+      font-size: 1.9rem;
+      color: #422;
+      text-align: center;
+      user-select: none;
+    }
+    #score {
+      font-weight: 700;
+      font-size: 1.2rem;
+      text-align: center;
+      color: #422;
+      user-select: none;
+      margin-top: -12px;
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+    }
+    #board {
+      display: grid;
+      grid-gap: 12px;
+      background: #f8faff;
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: inset 0 0 24px #e5c1d1;
+      user-select: none;
+      touch-action: manipulation;
+      flex-grow: 1;
+    }
+    .tile {
+      aspect-ratio: 1 / 1;
+      background: #e5c1d1;
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 900;
+      font-size: 1.8rem;
+      color: #435;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(211, 230, 245, 0.7);
+      transition: box-shadow 0.25s ease, background-color 0.25s ease, transform 0.3s ease;
+      user-select: none;
+      touch-action: manipulation;
+      position: relative;
+    }
+    /* Tile colors for different values */
+    .tile[data-value="2"] { background: #f0ccd5; color: #83295e; }
+    .tile[data-value="4"] { background: #deb6c9; color: #6d2051; }
+    .tile[data-value="8"] { background: #c795b4; color: #5b1a42; }
+    .tile[data-value="16"] { background: #a76a90; color: #481435; }
+    .tile[data-value="32"] { background: #855675; color: #3a102a; }
+    .tile[data-value="64"] { background: #5e3a58; color: #291e16; }
+    .tile[data-value="128"] { background: #3d2a3d; color: #1f130d; }
+    .tile[data-value="256"] { background: #341f31; color: #150a05; }
+    .tile[data-value="512"] { background: #2a1626; color: #0c0502; }
+    .tile[data-value="1024"] { background: #201020; color: #070201; }
+
+    .tile:hover, .tile.selected {
+      box-shadow: 0 0 36px #d3e6f5;
+      background-color: #d3e6f5 !important;
+      color: #222 !important;
+      transform: scale(1.08);
+      z-index: 1;
+    }
+    .tile.merged {
+      animation: pop 0.4s ease forwards;
+    }
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.35); }
+      100% { transform: scale(1); }
+    }
+    #controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 6px;
+      user-select: none;
+      flex-wrap: wrap;
+    }
+    button, select {
+      padding: 10px 20px;
+      font-size: 1.1rem;
+      border-radius: 16px;
+      border: none;
+      background: #e5c1d1;
+      color: #422;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 6px 16px #d3e6f5;
+      transition: background-color 0.3s ease;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    button:hover, select:hover {
+      background-color: #d3e6f5;
+      color: #222;
+    }
+    #info-button {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 48px;
+      height: 48px;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    #info-button img {
+      width: 100%;
+      height: 100%;
+    }
+    #instructions-popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 28px;
+      border-radius: 20px;
+      width: 320px;
+      box-shadow: 0 10px 40px rgba(211,230,245,0.9);
+      text-align: center;
+      z-index: 10000;
+      user-select: none;
+    }
+    #instructions-popup img {
+      width: 46px;
+      margin-bottom: 12px;
+    }
+    #close-instructions {
+      margin-top: 20px;
+      background: #e5c1d1;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 6px 16px #d3e6f5;
+      transition: background-color 0.3s ease;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    #close-instructions:hover {
+      background-color: #d3e6f5;
+      color: #222;
+    }
+  </style>
+</head>
+<body>
+  <button id="info-button" aria-label="Instructions" onclick="openInstructions()">
+    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828919.png" alt="Instructions Icon" />
+  </button>
+  <div id="instructions-popup" role="dialog" aria-modal="true" aria-labelledby="instructions-title">
+    <img src="https://cdn-icons-png.flaticon.com/512/5168/5168363.png" alt="Game Info Icon" />
+    <h2 id="instructions-title">How to Play HexaFuse</h2>
+    <p>Tap two adjacent tiles (including diagonals) with the same number to merge them.<br />
+       Merging creates a tile with a higher number.<br />
+       Keep merging to reach higher numbers and score big!<br />
+       Your score increases with every merge.</p>
+    <button id="close-instructions" onclick="closeInstructions()">Close</button>
+  </div>
+  <div id="app" role="main" aria-label="HexaFuse Tile Merge Puzzle Game">
+    <h1 id="title">HexaFuse</h1>
+    <div id="score" aria-live="polite" aria-atomic="true" aria-relevant="text">Score: 0</div>
+    <div id="board" aria-label="Game Board" tabindex="0"></div>
+    <div id="controls">
+      <label for="gridSizeSelect">Grid Size:</label>
+      <select id="gridSizeSelect" aria-describedby="gridSizeDesc" aria-label="Select grid size">
+        <option value="4">4x4</option>
+        <option value="5" selected>5x5</option>
+        <option value="6">6x6</option>
+      </select>
+      <button id="reset-btn">New Game</button>
+    </div>
+  </div>
+
+  <script>
+    const boardEl = document.getElementById('board');
+    const resetBtn = document.getElementById('reset-btn');
+    const infoButton = document.getElementById('info-button');
+    const instructionsPopup = document.getElementById('instructions-popup');
+    const gridSizeSelect = document.getElementById('gridSizeSelect');
+    const scoreEl = document.getElementById('score');
+
+    let size = parseInt(gridSizeSelect.value); // default grid size
+    let board = [];
+    let selected = null;
+    let score = 0;
+
+    // Sound effects
+    const mergeSound = new Audio('https://actions.google.com/sounds/v1/cartoon/pop.ogg');
+    const errorSound = new Audio('https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_hit.ogg');
+
+    function initBoard() {
+      board = [];
+      for (let i = 0; i < size * size; i++) {
+        board.push(2 ** (Math.floor(Math.random() * 3) + 1)); // Tiles: 2,4,8 starter
+      }
+      selected = null;
+      score = 0;
+      updateScore();
+    }
+
+    function renderBoard() {
+      boardEl.innerHTML = '';
+      boardEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      board.forEach((val, idx) => {
+        const tile = document.createElement('div');
+        tile.classList.add('tile');
+        tile.textContent = val;
+        tile.dataset.value = val;
+        tile.setAttribute('data-idx', idx);
+        if (selected === idx) tile.classList.add('selected');
+        tile.addEventListener('click', () => onTileClick(idx));
+        boardEl.appendChild(tile);
+      });
+    }
+
+    function getAdjacentIndices(idx) {
+      let neighbors = [];
+      const row = Math.floor(idx / size);
+      const col = idx % size;
+
+      // Adjacent: left, right, up, down, and diagonals
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const r = row + dr;
+          const c = col + dc;
+          if (r >= 0 && r < size && c >= 0 && c < size) {
+            neighbors.push(r * size + c);
+          }
+        }
+      }
+      return neighbors;
+    }
+
+    function onTileClick(idx) {
+      if (selected === null) {
+        selected = idx;
+      } else if (selected === idx) {
+        selected = null;
+      } else {
+        // Check if adjacent and same number
+        const neighbors = getAdjacentIndices(selected);
+        if (neighbors.includes(idx) && board[selected] === board[idx]) {
+          mergeTiles(selected, idx);
+          selected = null;
+        } else {
+          selected = idx;
+          playErrorSound();
+        }
+      }
+      renderBoard();
+    }
+
+    function mergeTiles(i1, i2) {
+      const mergedValue = board[i1] * 2;
+      board[i1] = mergedValue;
+      board[i2] = 2 ** (Math.floor(Math.random() * 2) + 1); // New random tile 2 or 4
+      score += mergedValue;
+      updateScore();
+
+      // Highlight merged tiles
+      const tile1 = boardEl.querySelector(`[data-idx='${i1}']`);
+      const tile2 = boardEl.querySelector(`[data-idx='${i2}']`);
+      if (tile1) tile1.classList.add('merged');
+      if (tile2) tile2.classList.add('merged');
+      playMergeSound();
+
+      setTimeout(() => {
+        if (tile1) tile1.classList.remove('merged');
+        if (tile2) tile2.classList.remove('merged');
+      }, 600);
+    }
+
+    function updateScore() {
+      scoreEl.textContent = `Score: ${score}`;
+    }
+
+    function openInstructions() {
+      instructionsPopup.style.display = 'block';
+    }
+    function closeInstructions() {
+      instructionsPopup.style.display = 'none';
+    }
+
+    function playMergeSound() {
+      mergeSound.currentTime = 0;
+      mergeSound.play().catch(() => {});
+    }
+    function playErrorSound() {
+      errorSound.currentTime = 0;
+      errorSound.play().catch(() => {});
+    }
+
+    resetBtn.addEventListener('click', () => {
+      size = parseInt(gridSizeSelect.value);
+      initBoard();
+      renderBoard();
+    });
+
+    gridSizeSelect.addEventListener('change', () => {
+      size = parseInt(gridSizeSelect.value);
+      initBoard();
+      renderBoard();
+    });
+
+    // Initialize
+    initBoard();
+    renderBoard();
+  </script>
+</body>
+</html>

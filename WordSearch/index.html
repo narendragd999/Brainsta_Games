@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GridFind Challenge</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body {
+  margin: 0; padding: 0;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; background: #f0eef7;
+  font-family: "Segoe UI", sans-serif;
+}
+.wrapper { max-width: 600px; width: 95vw; }
+h1 { text-align: center; color: #542b5f; margin: 0.5em 0; }
+.controls { display: flex; justify-content: space-between; margin-bottom: 0.8em; }
+.controls button {
+  padding: 0.5em 1em; border: none; border-radius: 0.5em;
+  background: #865ea7; color: white; font-weight: bold; cursor: pointer;
+}
+.controls button:hover { background: #5f3c80; }
+.score { text-align: center; font-weight: bold; color: #333; margin-bottom: 0.5em; }
+.grid {
+  display: grid; gap: 0.3em;
+  width: 100%; max-width: 500px; aspect-ratio: 1/1;
+  margin: 0 auto 1em auto;
+}
+.cell {
+  display: flex; align-items: center; justify-content: center;
+  background: #e9e5f0; font-weight: bold; font-size: 1.3em;
+  border-radius: 0.3em; user-select: none; cursor: pointer;
+}
+.cell.selected { background: #ffe6a3; }
+.words {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5em;
+}
+.word {
+  padding: 0.4em 0.8em; border-radius: 0.6em; cursor: pointer;
+  background: #ddd; font-weight: 600; user-select: none;
+}
+.word.found { opacity: 0.7; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <h1>GridFind Challenge</h1>
+  <div class="controls">
+    <button id="reveal">Reveal All</button>
+    <button id="reset">Reset</button>
+  </div>
+  <div class="score" id="score">Score: 0</div>
+  <div class="grid" id="grid"></div>
+  <div class="words" id="words"></div>
+</div>
+
+<script>
+const GRID_SIZE = 12;
+const API_URL = "https://random-word-api.herokuapp.com/word?number=20";
+const DIRECTIONS = [
+  {x:1,y:0},{x:0,y:1},{x:1,y:1},{x:-1,y:0},
+  {x:0,y:-1},{x:-1,y:-1},{x:1,y:-1},{x:-1,y:1}
+];
+
+let grid = [];
+let words = [];
+let placedWords = [];
+let foundWords = [];
+let colors = {};
+let score = 0;
+
+const gridEl = document.getElementById("grid");
+const wordsEl = document.getElementById("words");
+const scoreEl = document.getElementById("score");
+
+// Utility
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+function randColor(){ return `hsl(${Math.floor(Math.random()*360)},70%,70%)`; }
+
+function createEmptyGrid(){ return Array.from({length:GRID_SIZE},()=>Array(GRID_SIZE).fill("")); }
+function canPlace(word,r,c,dx,dy){
+  for(let i=0;i<word.length;i++){
+    let nr=r+i*dy,nc=c+i*dx;
+    if(nr<0||nc<0||nr>=GRID_SIZE||nc>=GRID_SIZE) return false;
+    if(grid[nr][nc]!=="" && grid[nr][nc]!==word[i]) return false;
+  }
+  return true;
+}
+function placeWord(word){
+  for(let tries=0;tries<300;tries++){
+    const dir=DIRECTIONS[Math.floor(Math.random()*DIRECTIONS.length)];
+    const r=Math.floor(Math.random()*GRID_SIZE);
+    const c=Math.floor(Math.random()*GRID_SIZE);
+    if(canPlace(word,r,c,dir.x,dir.y)){
+      for(let i=0;i<word.length;i++){
+        grid[r+i*dir.y][c+i*dir.x]=word[i];
+      }
+      return true;
+    }
+  }
+  return false;
+}
+function fillGrid(){
+  const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  for(let r=0;r<GRID_SIZE;r++){
+    for(let c=0;c<GRID_SIZE;c++){
+      if(!grid[r][c]) grid[r][c]=letters[Math.floor(Math.random()*letters.length)];
+    }
+  }
+}
+function renderGrid(){
+  gridEl.innerHTML="";
+  gridEl.style.gridTemplateColumns=`repeat(${GRID_SIZE},1fr)`;
+  grid.forEach((row,r)=>{
+    row.forEach((ch,c)=>{
+      const d=document.createElement("div");
+      d.className="cell";
+      d.textContent=ch;
+      d.dataset.r=r; d.dataset.c=c;
+      gridEl.appendChild(d);
+    });
+  });
+}
+function renderWords(){
+  wordsEl.innerHTML="";
+  words.forEach(w=>{
+    const d=document.createElement("div");
+    d.className="word";
+    d.textContent=w;
+    d.style.background=colors[w];
+    if(foundWords.includes(w)) d.classList.add("found");
+    d.onclick=()=>highlightWord(w);
+    wordsEl.appendChild(d);
+  });
+}
+function updateScore(){ scoreEl.textContent="Score: "+score; }
+
+// Highlight given word
+function highlightWord(word){
+  const color=colors[word];
+  [...gridEl.children].forEach(c=>{
+    c.style.background="#e9e5f0";
+  });
+  if(placedWords[word]){
+    placedWords[word].forEach(({r,c})=>{
+      const idx=r*GRID_SIZE+c;
+      gridEl.children[idx].style.background=color;
+    });
+  }
+}
+
+// Game init
+async function initGame(){
+  grid=createEmptyGrid();
+  foundWords=[]; score=0; updateScore();
+  placedWords={}; colors={};
+  const res=await fetch(API_URL);
+  const data=await res.json();
+  words=data.map(w=>w.toUpperCase()).filter(w=>w.length>=4&&w.length<=8).slice(0,8);
+  // assign colors
+  words.forEach(w=>colors[w]=randColor());
+  // place words
+  for(const w of words){
+    if(placeWord(w)){
+      placedWords[w]=[];
+      for(let r=0;r<GRID_SIZE;r++){
+        for(let c=0;c<GRID_SIZE;c++){
+          if(grid[r][c]===w[0]){
+            // not tracking direction now
+          }
+        }
+      }
+    }
+  }
+  // store positions of each word for reveal
+  for(const w of words){
+    placedWords[w]=[];
+    // scan grid for letters of w in all directions
+    for(const dir of DIRECTIONS){
+      for(let r=0;r<GRID_SIZE;r++){
+        for(let c=0;c<GRID_SIZE;c++){
+          let coords=[];
+          for(let i=0;i<w.length;i++){
+            let nr=r+i*dir.y,nc=c+i*dir.x;
+            if(nr<0||nc<0||nr>=GRID_SIZE||nc>=GRID_SIZE) break;
+            if(grid[nr][nc]!==w[i]) break;
+            coords.push({r:nr,c:nc});
+            if(i===w.length-1) placedWords[w]=coords;
+          }
+        }
+      }
+    }
+  }
+  fillGrid();
+  renderGrid();
+  renderWords();
+}
+
+// Reveal all
+document.getElementById("reveal").onclick=()=>{
+  words.forEach(w=>highlightWord(w));
+};
+// Reset
+document.getElementById("reset").onclick=()=>initGame();
+
+initGame();
+</script>
+</body>
+</html>
