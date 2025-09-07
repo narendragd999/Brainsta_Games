@@ -4,24 +4,43 @@
   --snake:#10b981;
   --food:#f59e0b;
   --panel:#0b1220aa;
-  --glass:#ffffff11;
+  --glass:#ffffff22;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#e6eef6;background:var(--bg)}
-#game-container{max-width:900px;margin:12px auto;padding:12px;position:relative}
+#game-container{max-width:900px;margin:12px auto;padding:12px;position:relative;display:flex;flex-direction:column;align-items:center}
 canvas{width:100%;height:auto;border-radius:12px;background:linear-gradient(180deg,#08101a 0%, #071226 100%);display:block;box-shadow:0 8px 30px #0008}
-#ui{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
-#score{background:var(--panel);padding:8px 12px;border-radius:10px}
-#controls{display:flex;flex-direction:column;gap:6px;align-items:center}
-#controls .row{display:flex;gap:6px}
-.dir, .action{padding:10px 12px;border-radius:8px;border:0;background:var(--glass);backdrop-filter: blur(4px);color:inherit;font-weight:600}
-#actions{display:flex;gap:8px;align-items:center}
-#actions label{display:flex;gap:6px;align-items:center}
+#score{background:var(--panel);padding:10px 16px;border-radius:12px;font-size:1.2rem;margin:10px 0}
+#controls{display:grid;grid-template-areas:
+  ". up ."
+  "left pause right"
+  ". down .";
+  gap:12px;
+  margin-top:16px;
+  justify-items:center;
+}
+#btn-up{grid-area:up}
+#btn-down{grid-area:down}
+#btn-left{grid-area:left}
+#btn-right{grid-area:right}
+#btn-pause{grid-area:pause}
+.dir, .action{
+  min-width:60px;
+  min-height:60px;
+  font-size:1.4rem;
+  border-radius:16px;
+  border:0;
+  background:var(--glass);
+  backdrop-filter: blur(6px);
+  color:inherit;
+  font-weight:600;
+}
+#actions{display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap;justify-content:center}
+#actions label{display:flex;gap:6px;align-items:center;font-size:0.9rem}
 #overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0008;border-radius:12px}
 #overlay.hidden{display:none}
 #overlay-inner{background:var(--panel);padding:20px;border-radius:12px;text-align:center}
-#overlay button{margin-top:12px;padding:10px 16px;border-radius:8px;border:0}
+#overlay button{margin-top:12px;padding:12px 18px;border-radius:10px;border:0;font-size:1rem}
 @media (max-width:520px){
-  #controls{transform:scale(0.95)}
-  .dir{padding:12px 14px}
+  .dir, .action{min-width:70px;min-height:70px;font-size:1.6rem}
 }
