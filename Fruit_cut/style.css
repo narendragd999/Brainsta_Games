@@ -1,0 +1,13 @@
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#game-wrap{height:100%;width:100%}
+body{font-family:Arial,Helvetica,sans-serif;background:linear-gradient(#0e1622,#06101a);display:flex;align-items:center;justify-content:center}
+#game{display:block;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.7);background:url('assets/bg.jpg') center/cover no-repeat;touch-action:none}
+#hud{position:fixed;left:16px;top:12px;z-index:60;color:#fff;display:flex;align-items:center;gap:10px}
+#score,#lives{font-size:18px;padding:8px 12px;background:rgba(0,0,0,0.35);border-radius:8px}
+#startBtn{padding:8px 12px;border-radius:8px;border:none;background:#ffb03b;color:#111;font-weight:bold;cursor:pointer}
+#logo{position:fixed;right:12px;top:8px;width:220px;opacity:0.95;z-index:60}
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:70}
+#splash img{max-width:86%;height:auto;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.6)}
+#gameover .panel{background:rgba(10,14,22,0.95);padding:28px;border-radius:12px;color:#fff;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.7)}
+#retry{margin-top:12px;padding:8px 14px;border-radius:8px;border:none;background:#4ad57a;color:#042;font-weight:bold;cursor:pointer}
