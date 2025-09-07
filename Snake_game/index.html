@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Touch Snake Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game"></canvas>
+    <div id="ui">
+      <div id="score">Score: 0</div>
+      <div id="controls">
+        <button id="btn-up" class="dir">▲</button>
+        <div class="row">
+          <button id="btn-left" class="dir">◀</button>
+          <button id="btn-pause" class="action">Pause</button>
+          <button id="btn-right" class="dir">▶</button>
+        </div>
+        <button id="btn-down" class="dir">▼</button>
+      </div>
+      <div id="actions">
+        <button id="btn-restart" class="action">Restart</button>
+        <label>Speed
+          <input id="speed" type="range" min="4" max="16" value="8">
+        </label>
+      </div>
+    </div>
+    <div id="overlay" class="hidden">
+      <div id="overlay-inner">
+        <h1 id="overlay-title">Game Over</h1>
+        <p id="overlay-score">Score: 0</p>
+        <button id="overlay-restart">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
