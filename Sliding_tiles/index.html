@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shandar Puzzle</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Shandar Puzzle</h1>
+      <p class="sub">Slide the tiles to reassemble the image — touch-friendly & responsive</p>
+    </header>
+
+    <main>
+      <div id="board-wrap">
+        <canvas id="board"></canvas>
+        <div id="overlay" class="hidden">
+          <div id="win-card">
+            <h2>Well Done!</h2>
+            <p id="win-moves">Moves: 0</p>
+            <button id="win-restart">Play Again</button>
+          </div>
+        </div>
+      </div>
+
+      <aside id="controls">
+        <div class="stat">Moves: <span id="moves">0</span></div>
+        <div class="stat">Time: <span id="time">00:00</span></div>
+        <label class="row">Size
+          <select id="size-select">
+            <option value="3">3 x 3</option>
+            <option value="4" selected>4 x 4</option>
+            <option value="5">5 x 5</option>
+          </select>
+        </label>
+        <label class="row">Theme
+          <select id="theme-select">
+            <option value="gradient" selected>Ocean Gradient</option>
+            <option value="sunset">Sunset Glow</option>
+            <option value="forest">Forest Mist</option>
+            <option value="image">Use Image (drag & drop)</option>
+          </select>
+        </label>
+        <div class="row">
+          <button id="shuffle">Shuffle</button>
+          <button id="restart">Restart</button>
+        </div>
+        <p class="hint">Tip: Swipe tiles or tap an adjacent tile to move it.</p>
+        <input type="file" id="img-upload" accept="image/*" style="display:none" />
+      </aside>
+    </main>
+
+    <footer>
+      <small>Created for your app — drop into WebView or open in browser.</small>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
