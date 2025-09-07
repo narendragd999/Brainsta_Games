@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Shandar Match-3</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Shandar Match‑3</h1>
+      <div id="hud">
+        <div id="score">Score: 0</div>
+        <div id="moves">Moves: ∞</div>
+      </div>
+    </header>
+
+    <main>
+      <div id="board-wrap">
+        <canvas id="board" width="600" height="600" touch-action="none"></canvas>
+        <div id="overlay" class="hidden">
+          <div id="overlay-inner">
+            <h2 id="overlay-title">Great!</h2>
+            <p id="overlay-sub">Combo!</p>
+            <button id="overlay-play">Play Again</button>
+          </div>
+        </div>
+      </div>
+      <aside id="controls">
+        <label>Size
+          <select id="size-select">
+            <option value="6">6 x 6</option>
+            <option value="7" selected>7 x 7</option>
+            <option value="8">8 x 8</option>
+          </select>
+        </label>
+        <label>Theme
+          <select id="theme-select">
+            <option value="vibrant" selected>Vibrant</option>
+            <option value="pastel">Pastel</option>
+            <option value="neon">Neon</option>
+          </select>
+        </label>
+        <div class="row">
+          <button id="shuffle">Shuffle</button>
+          <button id="restart">Restart</button>
+        </div>
+        <p class="hint">Tap a tile, then tap adjacent tile to swap. Matches of 3+ clear and cascade. No zoom — board fits your screen.</p>
+      </aside>
+    </main>
+
+    <footer>
+      <small>Drop into WebView or mobile browser. Uses WebAudio for satisfying pop sounds.</small>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
