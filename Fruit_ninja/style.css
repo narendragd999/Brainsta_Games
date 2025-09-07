@@ -1,0 +1,27 @@
+:root{
+  --bg: linear-gradient(180deg,#071428,#031523);
+  --panel: rgba(255,255,255,0.04);
+  --accent: #ff6b6b;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:#eaf7ff;-webkit-user-select:none;user-select:none;overflow:hidden}
+#app{max-width:980px;margin:8px auto;padding:12px}
+header{display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:1.2rem}
+#hud{display:flex;gap:12px}
+#score,#lives{background:var(--panel);padding:8px 12px;border-radius:10px;font-weight:700}
+
+main{display:flex;justify-content:center;align-items:center;margin-top:12px;gap:12px}
+#game-wrap{position:relative;width:100%;max-width:900px;height:76vh;min-height:520px;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#042235,#021623);box-shadow:0 18px 50px #0008}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+#controls{position:absolute;top:12px;left:12px;display:flex;gap:8px;align-items:center;background:rgba(0,0,0,0.15);padding:8px;border-radius:10px}
+button,select{padding:8px 10px;border-radius:8px;border:0;background:rgba(255,255,255,0.04);color:inherit}
+#overlay{position:absolute;inset:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#00000055,#00000088);border-radius:12px}
+#overlay.hidden{display:none}
+.card{background:linear-gradient(180deg,#081426,#061223);padding:18px;border-radius:12px;text-align:center;box-shadow:0 10px 30px #0009}
+.card button{margin-top:12px;padding:10px 12px;border-radius:8px;border:0;background:var(--accent);color:#042;cursor:pointer}
+
+@media(max-width:860px){
+  #game-wrap{height:72vh;min-height:420px}
+  header{padding:0 8px}
+}
