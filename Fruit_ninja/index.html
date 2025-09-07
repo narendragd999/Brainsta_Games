@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Shandar Fruit Slice</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Shandar Fruit Slice</h1>
+      <div id="hud">
+        <div id="score">Score: 0</div>
+        <div id="lives">Lives: 3</div>
+      </div>
+    </header>
+
+    <main>
+      <div id="game-wrap">
+        <canvas id="game"></canvas>
+        <div id="controls">
+          <button id="btn-start">Start</button>
+          <button id="btn-pause">Pause</button>
+          <label>Difficulty
+            <select id="difficulty">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+        </div>
+        <div id="overlay" class="hidden">
+          <div class="card">
+            <h2 id="overlay-title">Game Over</h2>
+            <p id="overlay-score">Score: 0</p>
+            <button id="btn-restart">Play Again</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer><small>Touch to swipe and slice fruits. No external assets. Works in mobile WebView.</small></footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
