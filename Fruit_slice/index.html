@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Fruit Slice - Server Ready</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game-wrap">
+  <canvas id="game" aria-label="Fruit Slice game canvas"></canvas>
+  <div id="hud">
+    <div id="score">Score: <span id="scorev">0</span></div>
+    <button id="startBtn" aria-label="Start Game">Start</button>
+  </div>
+  <img id="logo" src="assets/logo.png" alt="logo">
+  <div id="splash" class="overlay"><img src="assets/splash.png" alt="splash"></div>
+  <div id="gameover" class="overlay" style="display:none">
+    <div class="panel"><h1>Game Over</h1><p>Your Score: <span id="finalscore">0</span></p><button id="retry">Retry</button></div>
+  </div>
+</div>
+
+<audio id="snd-slice" preload="auto" src="assets/slice_juicy.wav"></audio>
+<audio id="snd-pop" preload="auto" src="assets/slice_pop.wav"></audio>
+<audio id="snd-explosion" preload="auto" src="assets/explosion.wav"></audio>
+
+<script src="main.js"></script>
+</body>
+</html>
