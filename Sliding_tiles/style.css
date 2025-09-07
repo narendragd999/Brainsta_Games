@@ -1,0 +1,48 @@
+:root{
+  --bg:#071023;
+  --card:#081627;
+  --accent:#10b981;
+  --glass:#ffffff15;
+  --muted:#9fb0c8;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#041021 0%, #071226 100%);color:#e6f2fb}
+#app{max-width:1000px;margin:14px auto;padding:14px}
+header{display:flex;flex-direction:column;gap:6px;text-align:center}
+h1{margin:0;font-size:1.6rem;letter-spacing:0.4px}
+.sub{margin:0;color:var(--muted);font-size:0.95rem}
+
+main{display:grid;grid-template-columns:1fr 320px;gap:18px;margin-top:14px;align-items:start}
+#board-wrap{background:linear-gradient(180deg,#061425,#052034);padding:18px;border-radius:var(--radius);box-shadow:0 12px 40px #0008;position:relative;display:flex;justify-content:center;align-items:center}
+canvas{display:block;border-radius:10px;max-width:100%;height:auto;touch-action:none}
+#overlay{position:absolute;inset:18px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#00000055,#00000066);border-radius:12px}
+#overlay.hidden{display:none}
+#win-card{background:linear-gradient(180deg,#0b1220,#081223);padding:18px;border-radius:12px;text-align:center;box-shadow:0 8px 30px #0009}
+#win-card h2{margin:0 0 6px 0}
+#win-card button{margin-top:8px;padding:8px 12px;border-radius:10px;border:0;background:var(--accent);color:#042;cursor:pointer}
+
+#controls{padding:14px;background:linear-gradient(180deg,#071426,#061224);border-radius:var(--radius);box-shadow:0 8px 30px #0008;display:flex;flex-direction:column;gap:12px}
+.stat{font-weight:700}
+.row{display:flex;gap:8px;align-items:center}
+select, button{padding:10px 12px;border-radius:10px;border:0;background:var(--glass);color:inherit}
+button{cursor:pointer}
+.hint{color:var(--muted);font-size:0.9rem;margin-top:8px}
+
+footer{margin-top:10px;text-align:center;color:var(--muted);font-size:0.85rem}
+
+.tile{
+  border-radius:8px;
+  box-shadow: 0 6px 18px #0005;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;
+}
+
+/* themes for fallback when not using an uploaded image */
+.theme-gradient{background:linear-gradient(135deg,#0ea5a4,#06b6d4)}
+.theme-sunset{background:linear-gradient(135deg,#ff7a59,#ffb86b)}
+.theme-forest{background:linear-gradient(135deg,#10b981,#2dd4bf)}
+@media (max-width:860px){
+  main{grid-template-columns:1fr;align-items:center}
+  #controls{width:100%}
+}
