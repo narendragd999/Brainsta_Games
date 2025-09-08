@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Mystic GridSaga — Nonogram</title>
+<style>
+:root{
+  --top-grad:#e5c1d1;
+  --bot-grad:#d3e6f5;
+  --cell-size:40px;
+  --gap:4px;
+}
+body{
+  margin:0; height:100vh; display:flex; justify-content:center; align-items:center;
+  background:linear-gradient(to bottom,var(--top-grad),var(--bot-grad));
+  font-family:Arial,sans-serif;
+}
+.game-container{display:flex;flex-direction:column;align-items:center;text-align:center;}
+h1{margin-bottom:0.5em;}
+.controls{margin:10px;}
+.grid-wrapper{display:flex;flex-direction:row;align-items:flex-start;}
+.clues{display:flex;flex-direction:column;}
+.clues-column{display:grid;grid-auto-flow:column;gap:var(--gap);}
+.clues-row{display:flex;gap:2px;justify-content:flex-end;margin-bottom:var(--gap);}
+.grid{
+  display:grid; gap:var(--gap); background:#4442; padding:5px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);
+}
+.cell{
+  width:var(--cell-size); height:var(--cell-size); background:white; border-radius:6px;
+  display:flex; justify-content:center; align-items:center; font-weight:bold; cursor:pointer;
+  box-shadow:0 2px 5px rgba(0,0,0,0.15); user-select:none; touch-action: manipulation;
+}
+.cell.filled{background:#333; color:white;}
+.cell:hover{transform:scale(1.05); box-shadow:0 3px 8px rgba(0,0,0,0.3);}
+select,button{padding:6px 12px;border-radius:6px;font-size:16px;margin:0 4px;cursor:pointer;}
+button{background:#444;color:#fff;}
+.instruction-icon{margin-left:8px; cursor:pointer; font-size:18px; background:#fff3; padding:2px 6px; border-radius:50%;}
+.popup{position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center;}
+.popup-content{background:white; padding:20px; border-radius:12px; max-width:320px; text-align:left; box-shadow:0 5px 15px rgba(0,0,0,0.4);}
+.popup-content h2{margin-top:0;}
+.popup-content button{margin-top:10px; background:#444; color:#fff; border:none; padding:6px 12px; border-radius:6px;}
+@media(max-width:420px){:root{--cell-size:36px;}}
+</style>
+</head>
+<body>
+<div class="game-container">
+  <h1>Mystic GridSaga</h1>
+  <div class="controls">
+    <label>Size:
+      <select id="sizeSelect">
+        <option value="5" selected>5x5</option>
+        <option value="10">10x10</option>
+      </select>
+    </label>
+    <button id="newGameBtn">New Game</button>
+    <span class="instruction-icon" onclick="openInstructions()">❔</span>
+  </div>
+  <div class="grid-wrapper">
+    <div class="clues" id="cluesLeft"></div>
+    <div>
+      <div class="clues-column" id="cluesTop"></div>
+      <div id="grid" class="grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Instructions Popup -->
+<div id="instructionsPopup" class="popup">
+  <div class="popup-content">
+    <h2>How to Play</h2>
+    <p>Tap cells to fill or clear them. Match the hidden pattern to solve the puzzle. Numbers on rows/columns indicate groups of consecutive filled cells in that line.</p>
+    <button onclick="closeInstructions()">Close</button>
+  </div>
+</div>
+
+<!-- Result Popup -->
+<div id="resultPopup" class="popup">
+  <div class="popup-content">
+    <h2>Congratulations!</h2>
+    <p>You completed the puzzle!</p>
+    <button onclick="closeResult()">Close</button>
+  </div>
+</div>
+
+<script>
+const gridEl = document.getElementById('grid');
+const sizeSelect = document.getElementById('sizeSelect');
+const newGameBtn = document.getElementById('newGameBtn');
+const cluesTopEl = document.getElementById('cluesTop');
+const cluesLeftEl = document.getElementById('cluesLeft');
+
+let solution=[], player=[], size=5;
+
+function randGrid(n){
+  const grid = Array.from({length:n},()=>Array.from({length:n},()=>Math.random()>0.65?1:0));
+  return grid;
+}
+
+function calcClues(grid){
+  const n=grid.length;
+  const rows=[], cols=[];
+  for(let r=0;r<n;r++){
+    const run=[]; let count=0;
+    for(let c=0;c<n;c++){
+      if(grid[r][c]) count++; else { if(count) run.push(count); count=0;}
+    }
+    if(count) run.push(count); rows.push(run.length?run:[0]);
+  }
+  for(let c=0;c<n;c++){
+    const run=[]; let count=0;
+    for(let r=0;r<n;r++){
+      if(grid[r][c]) count++; else { if(count) run.push(count); count=0;}
+    }
+    if(count) run.push(count); cols.push(run.length?run:[0]);
+  }
+  return {rows,cols};
+}
+
+function renderClues(clues){
+  cluesTopEl.innerHTML=''; cluesLeftEl.innerHTML='';
+  clues.cols.forEach(col=>{
+    const colDiv=document.createElement('div');
+    colDiv.style.display='flex'; colDiv.style.flexDirection='column-reverse'; colDiv.style.alignItems='center'; colDiv.style.height='var(--cell-size)';
+    col.forEach(v=>{
+      const span=document.createElement('div'); span.textContent=v; span.style.fontSize='0.8rem'; span.style.margin='1px'; colDiv.appendChild(span);
+    });
+    cluesTopEl.appendChild(colDiv);
+  });
+  clues.rows.forEach(row=>{
+    const rowDiv=document.createElement('div'); rowDiv.className='clues-row';
+    row.forEach(v=>{
+      const span=document.createElement('div'); span.textContent=v; span.style.fontSize='0.8rem';
+      rowDiv.appendChild(span);
+    });
+    cluesLeftEl.appendChild(rowDiv);
+  });
+}
+
+function createGrid(n){
+  size=n; gridEl.innerHTML=''; solution=randGrid(n); player=Array.from({length:n},()=>Array(n).fill(0));
+  const clues=calcClues(solution); renderClues(clues);
+  gridEl.style.gridTemplateColumns=`repeat(${n}, var(--cell-size))`;
+  gridEl.style.gridTemplateRows=`repeat(${n}, var(--cell-size))`;
+  for(let r=0;r<n;r++){
+    for(let c=0;c<n;c++){
+      const cell=document.createElement('div'); cell.className='cell'; cell.dataset.row=r; cell.dataset.col=c;
+      cell.addEventListener('click',()=>toggleCell(r,c,cell));
+      gridEl.appendChild(cell);
+    }
+  }
+}
+
+function toggleCell(r,c,cell){
+  player[r][c]=player[r][c]?0:1;
+  cell.classList.toggle('filled');
+  checkWin();
+}
+
+function checkWin(){
+  for(let r=0;r<size;r++) for(let c=0;c<size;c++) if(player[r][c]!==solution[r][c]) return;
+  openResult();
+}
+
+newGameBtn.addEventListener('click',()=>{ createGrid(parseInt(sizeSelect.value)); });
+
+function openInstructions(){ document.getElementById('instructionsPopup').style.display='flex'; }
+function closeInstructions(){ document.getElementById('instructionsPopup').style.display='none'; }
+function openResult(){ document.getElementById('resultPopup').style.display='flex'; }
+function closeResult(){ document.getElementById('resultPopup').style.display='none'; }
+
+window.addEventListener('load',()=>{ createGrid(5); });
+</script>
+</body>
+</html>
