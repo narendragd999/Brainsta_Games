@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chess vs Robot</title>
+<style>
+  html, body {
+    margin: 0; height: 100%;
+    font-family: 'Nunito', Arial, sans-serif;
+    background: linear-gradient(135deg, #f7fafc 55%, #c7e7fc 100%);
+    display: flex; justify-content: center; align-items: center;
+    user-select: none;
+  }
+  .game-container {
+    background: #eaf2fa;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px #aac7f688, 0 4px 12px #4980e088;
+    width: 360px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .game-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .game-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #2862ea;
+    text-shadow: 1px 2px 0 #fff, 0 0 8px #aac7f6;
+    letter-spacing: 0.07em;
+    user-select: none;
+    flex-grow: 1;
+    text-align: center;
+  }
+  .info-icon {
+    position: absolute;
+    right: 0;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    fill: #2862ea;
+    user-select: none;
+    transition: fill 0.2s ease;
+  }
+  .info-icon:hover {
+    fill: #3bb9fa;
+  }
+  #chessboard {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    width: 320px;
+    height: 320px;
+    border-radius: 12px;
+    box-shadow: inset 0 0 12px #aac7f620;
+    user-select: none;
+  }
+  .square {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.25s ease;
+  }
+  .light {
+    background-color: #f0d9b5;
+  }
+  .dark {
+    background-color: #b58863;
+  }
+  .selected {
+    outline: 3px solid #2862ea;
+    outline-offset: -2px;
+  }
+  .highlight-move {
+    background-color: #9ecbff !important;
+  }
+  .controls {
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  button {
+    font-weight: 700;
+    padding: 0.6rem 2rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #2862ea 60%, #3bb9fa 100%);
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #aac7f644;
+    transition: box-shadow 0.2s ease, background 0.2s ease;
+    user-select: none;
+  }
+  button:hover, button:focus {
+    background: linear-gradient(90deg, #3bb9fa 60%, #2862ea 100%);
+    box-shadow: 0 4px 18px #2862ea77;
+    outline: none;
+  }
+  .status {
+    margin-top: 1rem;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #2862ea;
+    min-height: 1.5rem;
+    text-align: center;
+  }
+  /* Popup Instructions */
+  .popup-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .popup-bg.active {
+    display: flex;
+  }
+  .popup-content {
+    background: white;
+    border-radius: 14px;
+    padding: 1.5rem 2rem;
+    max-width: 350px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    font-size: 1rem;
+    line-height: 1.4;
+    color: #2862ea;
+    position: relative;
+  }
+  .popup-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #2862ea;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .popup-close:hover {
+    color: #3bb9fa;
+  }
+  @media (max-width: 400px) {
+    #chessboard {
+      width: 90vw;
+      height: 90vw;
+      grid-template-columns: repeat(8, 1fr);
+      font-size: calc(90vw / 8 * 0.6);
+    }
+    .square {
+      width: 100%;
+      height: 100%;
+      font-size: inherit;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="game-container" role="main" aria-label="Chess game against robot">
+    <div class="game-header">
+      <div class="game-title">Chess vs Robot</div>
+      <svg class="info-icon" tabindex="0" role="button" aria-label="Show game instructions" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" stroke="none" fill="#2862ea"></circle>
+        <text x="12" y="17" font-size="14" text-anchor="middle" fill="white" font-weight="bold" font-family="Arial">i</text>
+      </svg>
+    </div>
+    <div id="chessboard" aria-live="polite"></div>
+    <div class="status" aria-live="polite" aria-atomic="true"></div>
+    <div class="controls">
+      <button id="resetBtn" aria-label="Restart game">New Game</button>
+    </div>
+  </div>
+
+  <!-- Popup Instructions -->
+  <div class="popup-bg" id="popupBg" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="popupTitle" tabindex="-1">
+    <div class="popup-content">
+      <h2 id="popupTitle">How to Play</h2>
+      <button class="popup-close" aria-label="Close instructions">&times;</button>
+      <p>
+        Play as White pieces and make moves by tapping/clicking a piece and then a highlighted move.<br>
+        The robot will respond with its move.<br>
+        The goal is to checkmate the robot’s King.<br>
+        Moves highlighted in blue are legal.<br>
+        Tap a piece to see its valid moves.<br>
+        Tap the board to deselect.<br>
+        Good luck!
+      </p>
+    </div>
+  </div>
+
+<script>
+  (() => {
+    const boardElem = document.getElementById('chessboard');
+    const statusElem = document.querySelector('.status');
+    const resetBtn = document.getElementById('resetBtn');
+    const infoIcon = document.querySelector('.info-icon');
+    const popupBg = document.getElementById('popupBg');
+    const closeBtn = popupBg.querySelector('.popup-close');
+
+    // Unicode chess symbols for white and black pieces
+    const PIECES = {
+      'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔',
+      'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚'
+    };
+
+    // Initial starting board (FEN simplified)
+    const startingBoard = [
+      ['r','n','b','q','k','b','n','r'],
+      ['p','p','p','p','p','p','p','p'],
+      ['','','','','','','',''],
+      ['','','','','','','',''],
+      ['','','','','','','',''],
+      ['','','','','','','',''],
+      ['P','P','P','P','P','P','P','P'],
+      ['R','N','B','Q','K','B','N','R']
+    ];
+
+    let board = [];
+    let selectedSquare = null;
+    let possibleMoves = [];
+    let playerTurn = 'white'; // Player is white, robot is black
+    let gameActive = true;
+
+    // Initialize or reset board
+    function initGame() {
+      board = startingBoard.map(row => row.slice());
+      selectedSquare = null;
+      possibleMoves = [];
+      playerTurn = 'white';
+      gameActive = true;
+      updateStatus('Your turn (White)');
+      renderBoard();
+    }
+
+    // Utility to render chess board grid with pieces
+    function renderBoard() {
+      boardElem.innerHTML = '';
+      for(let r=0; r<8; r++) {
+        for(let c=0; c<8; c++) {
+          const squareColor = (r+c) % 2 === 0 ? 'light' : 'dark';
+          let square = document.createElement('div');
+          square.classList.add('square', squareColor);
+          square.setAttribute('data-row', r);
+          square.setAttribute('data-col', c);
+
+          let pieceChar = board[r][c];
+          if(pieceChar) {
+            let pieceSpan = document.createElement('span');
+            pieceSpan.textContent = PIECES[pieceChar];
+            square.appendChild(pieceSpan);
+          }
+
+          if(selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
+            square.classList.add('selected');
+          } else if(possibleMoves.find(m => m.r === r && m.c === c)) {
+            square.classList.add('highlight-move');
+          }
+
+          square.addEventListener('click', () => onSquareClick(r, c));
+
+          boardElem.appendChild(square);
+        }
+      }
+    }
+
+    // Square click handler
+    function onSquareClick(r, c) {
+      if(!gameActive || playerTurn !== 'white') return;
+
+      if(selectedSquare) { // Moving selected piece
+        if(possibleMoves.find(m => m.r === r && m.c === c)) {
+          makeMove(selectedSquare, {r,c});
+          selectedSquare = null;
+          possibleMoves = [];
+          renderBoard();
+          playerTurn = 'black';
+          updateStatus('Robot is thinking...');
+          setTimeout(robotMove, 800);
+        } else if(board[r][c] && isWhitePiece(board[r][c])) {
+          selectedSquare = {r,c};
+          possibleMoves = getValidMoves(r,c);
+          renderBoard();
+        } else {
+          selectedSquare = null;
+          possibleMoves = [];
+          renderBoard();
+        }
+      } else { // Select piece to move
+        if(board[r][c] && isWhitePiece(board[r][c])) {
+          selectedSquare = {r,c};
+          possibleMoves = getValidMoves(r,c);
+          renderBoard();
+        }
+      }
+    }
+
+    // Check if piece belongs to white
+    function isWhitePiece(p) {
+      return p && p.toUpperCase() === p;
+    }
+    // Check if piece belongs to black
+    function isBlackPiece(p) {
+      return p && p.toLowerCase() === p;
+    }
+
+    // Make a move on board (no validation here as validated wrapper)
+    // Move piece, capture if any
+    function makeMove(from, to) {
+      board[to.r][to.c] = board[from.r][from.c];
+      board[from.r][from.c] = '';
+      // Check for promotion (pawn reaching last row)
+      if(board[to.r][to.c].toLowerCase() === 'p') {
+        if((isWhitePiece(board[to.r][to.c]) && to.r === 0) ||
+           (isBlackPiece(board[to.r][to.c]) && to.r === 7)) {
+          board[to.r][to.c] = isWhitePiece(board[to.r][to.c]) ? 'Q' : 'q';
+        }
+      }
+    }
+
+    // Generates valid moves for a piece (simplified, no check, castling or en passant)
+    function getValidMoves(r,c) {
+      const p = board[r][c];
+      if(!p) return [];
+      const moves = [];
+      const forward = isWhitePiece(p) ? -1 : 1;
+
+      if(p.toLowerCase() === 'p') {
+        // Pawn moves
+        const oneStep = r + forward;
+        if(inBounds(oneStep,c) && !board[oneStep][c]) {
+          moves.push({r: oneStep, c});
+          // Double step from start row
+          const startRow = isWhitePiece(p) ? 6 : 1;
+          if(r === startRow && !board[oneStep + forward]?.[c]) {
+            moves.push({r: oneStep + forward, c});
+          }
+        }
+        // Capture diagonals
+        for(let dc of [-1,1]) {
+          const nr = r + forward;
+          const nc = c + dc;
+          if(inBounds(nr,nc) && board[nr][nc] && (isWhitePiece(p) ? isBlackPiece(board[nr][nc]) : isWhitePiece(board[nr][nc]))) {
+            moves.push({r: nr, c: nc});
+          }
+        }
+      } else {
+        // For simplicity, basic moves for Rook, Bishop, Queen, Knight, King simplified 
+        let directions = [];
+        switch(p.toLowerCase()) {
+          case 'r': directions = [[1,0],[-1,0],[0,1],[0,-1]]; break;
+          case 'b': directions = [[1,1],[1,-1],[-1,1],[-1,-1]]; break;
+          case 'q': directions = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]; break;
+          case 'k': directions = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]; break;
+          case 'n': directions = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]; break;
+        }
+
+        if(p.toLowerCase()==='n' || p.toLowerCase() === 'k') {
+          for(let [dr,dc] of directions) {
+            const nr = r + dr, nc = c + dc;
+            if(inBounds(nr,nc)) {
+              if(!board[nr][nc] || (isWhitePiece(p) ? isBlackPiece(board[nr][nc]) : isWhitePiece(board[nr][nc]))) {
+                moves.push({r:nr,c:nc});
+              }
+            }
+          }
+        } else {
+          // Sliding pieces: rook, bishop, queen
+          for(let [dr,dc] of directions) {
+            for(let step=1; step<8; step++) {
+              const nr = r + dr*step, nc = c + dc*step;
+              if(!inBounds(nr,nc)) break;
+              if(!board[nr][nc]) moves.push({r:nr,c:nc});
+              else if((isWhitePiece(p) ? isBlackPiece(board[nr][nc]) : isWhitePiece(board[nr][nc]))) {
+                moves.push({r:nr, c:nc});
+                break;
+              } else {
+                break;
+              }
+            }
+          }
+        }
+      }
+      return moves;
+    }
+
+    // Check if coordinates inside board
+    function inBounds(r,c) {
+      return r >= 0 && r < 8 && c >= 0 && c < 8;
+    }
+
+    // Robot makes a random valid move for black pieces
+    function robotMove() {
+      if(!gameActive) return;
+      let allMoves = [];
+      for(let r=0; r<8; r++) {
+        for(let c=0; c<8; c++) {
+          if(isBlackPiece(board[r][c])) {
+            const moves = getValidMoves(r,c);
+            for(let m of moves) {
+              allMoves.push({from: {r,c}, to: m});
+            }
+          }
+        }
+      }
+      if(allMoves.length === 0) {
+        updateStatus('Game Over - White Wins!');
+        gameActive = false;
+        return;
+      }
+      const move = allMoves[Math.floor(Math.random() * allMoves.length)];
+      makeMove(move.from, move.to);
+      renderBoard();
+      updateStatus('Your turn (White)');
+      playerTurn = 'white';
+    }
+
+    // Check for basic game over condition (no moves for player or robot)
+    // (Advanced rules e.g. checkmate not implemented for simplicity)
+
+    // Update status message
+    function updateStatus(text) {
+      statusElem.textContent = text;
+    }
+
+    resetBtn.addEventListener('click', () => {
+      initGame();
+    });
+
+    infoIcon.addEventListener('click', () => {
+      popupBg.classList.add('active');
+      popupBg.setAttribute('aria-hidden', 'false');
+      popupBg.focus();
+    });
+
+    closeBtn.addEventListener('click', () => {
+      popupBg.classList.remove('active');
+      popupBg.setAttribute('aria-hidden', 'true');
+    });
+
+    popupBg.addEventListener('click', (e) => {
+      if(e.target === popupBg) {
+        popupBg.classList.remove('active');
+        popupBg.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    // Initialize game on load
+    initGame();
+
+  })();
+</script>
+</body>
+</html>
