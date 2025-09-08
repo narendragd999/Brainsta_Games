@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Funny Falling Puzzle</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <header>
+      <h1>Funny Falling Puzzle</h1>
+      <div id="hud">
+        <div id="score">Score: 0</div>
+        <div id="timer">Time: 00:00</div>
+      </div>
+    </header>
+
+    <main id="main-area">
+      <div id="play-area">
+        <div id="item-layer"></div>
+        <div id="buckets" aria-hidden="false">
+          <!-- buckets added by JS for better responsiveness -->
+        </div>
+        <div id="overlay" class="hidden">
+          <div class="card">
+            <h2>Game Over</h2>
+            <p id="final-score">Score: 0</p>
+            <button id="btn-restart">Restart</button>
+          </div>
+        </div>
+      </div>
+
+      <aside id="controls">
+        <div class="row">
+          <label>Mode: <strong>Endless</strong></label>
+        </div>
+        <div class="row">
+          <label>Speed:
+            <input id="speed" type="range" min="700" max="2200" value="1200" />
+          </label>
+        </div>
+        <div class="row">
+          <button id="btn-pause">Pause</button>
+          <button id="btn-start">Start</button>
+        </div>
+        <p class="hint">Drag the falling items into the matching bucket. Endless mode — how long can you last?</p>
+      </aside>
+    </main>
+
+    <footer>
+      <small>Drag & Drop game — works in mobile browsers & WebView. Sounds generated via WebAudio.</small>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
