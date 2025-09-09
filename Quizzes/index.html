@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GKQuiz — Brain Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-card" role="main" aria-label="GK Quiz Game">
+    <header class="app-header">
+      <div class="title-wrap">
+        <h1 class="app-title">GKQuiz</h1>
+        <div class="subtitle">Test your knowledge — fun, fast & playful</div>
+      </div>
+
+      <!-- instruction icon -->
+      <button id="openInstructions" class="icon-btn" aria-label="Open instructions" title="How to play">
+        <!-- simple inline SVG info icon -->
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22">
+          <circle cx="12" cy="12" r="10" fill="#b8396e"></circle>
+          <text x="12" y="16" font-size="13" text-anchor="middle" fill="#fff" font-family="Arial" font-weight="700">i</text>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Configuration / Start screen -->
+    <section id="config" class="card-section">
+      <div class="controls">
+        <label class="control-row">
+          <span>Difficulty</span>
+          <select id="difficulty">
+            <option value="easy" selected>Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+
+        <label class="control-row">
+          <span>Questions</span>
+          <select id="numQuestions">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </label>
+
+        <label class="control-row">
+          <span>Source</span>
+          <select id="sourceSelect" title="Choose question source">
+            <option value="api" selected>OpenTDB (online)</option>
+            <option value="local">Local (offline ready)</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="startBtn" class="primary">Start Game</button>
+        <button id="demoBtn" class="ghost" title="Quick demo using local questions">Try Demo</button>
+      </div>
+
+      <div class="small-note">
+        <strong>Note:</strong> If you're offline, the game will automatically use the bundled local questions.
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <section id="loading" class="card-section hidden">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <div class="loading-text">Loading questions…</div>
+      <div class="small-note">Using Open Trivia DB: <code>https://opentdb.com/api.php?amount=100</code></div>
+    </section>
+
+    <!-- Quiz Area -->
+    <section id="quiz" class="card-section hidden" aria-live="polite">
+      <div class="status-row">
+        <div class="score" id="score">Score: 0</div>
+        <div class="timer" id="timer">Time: 00</div>
+      </div>
+
+      <div class="progress-wrap" aria-hidden="false">
+        <div class="progress-bar-bg">
+          <div id="progressBar" class="progress-bar-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-text" id="progressText">0 / 0</div>
+      </div>
+
+      <div id="questionCard" class="question-card">
+        <div id="questionText" class="question-text">Question text</div>
+      </div>
+
+      <div id="answers" class="answers-grid" role="list"></div>
+
+      <div class="quiz-actions">
+        <button id="nextBtn" class="primary" disabled>Next</button>
+        <button id="quitBtn" class="ghost">Quit</button>
+      </div>
+    </section>
+
+    <!-- Result / End -->
+    <section id="result" class="card-section hidden" aria-live="polite">
+      <h2 id="resultTitle">Your Result</h2>
+      <div id="resultSummary" class="result-summary"></div>
+      <div id="compatibilityBlock" class="compatibility">
+        <div id="compatScore" class="compat-score">0</div>
+        <div id="compatMsg" class="compat-msg"></div>
+      </div>
+      <div class="actions">
+        <button id="playAgain" class="primary">Play Again</button>
+        <button id="backToConfig" class="ghost">Back</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Instructions Modal -->
+  <div id="instructionsModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <h3 id="modalTitle">How to play GKQuiz</h3>
+      <p>
+        Choose difficulty and number of questions. Tap <strong>Start</strong>. Each question has a timer — answer before time runs out.
+        Correct answers increase your score; quick answers earn a small bonus. At the end you'll get a playful compatibility-style score and message.
+      </p>
+      <ul>
+        <li>Easy: more time per question, smaller score per question.</li>
+        <li>Medium: moderate time and score.</li>
+        <li>Hard: less time, bigger reward for correct answers.</li>
+      </ul>
+      <p class="small-note">Tip: Use the <em>Try Demo</em> button to quickly play with local questions.</p>
+      <div class="modal-actions">
+        <button id="closeModal" class="primary">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
