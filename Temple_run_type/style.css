@@ -1,0 +1,12 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  color: #fff;
+  text-align: center;
+}
+canvas {
+  display: block;
+  margin: 0 auto;
+}
+.title { font-family: sans-serif; margin: 10px; }
