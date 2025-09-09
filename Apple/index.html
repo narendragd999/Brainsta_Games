@@ -1,190 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Super Clicker Game</title>
-  <style>
-    /* Prevent mobile zoom and highlight */
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #fbc2eb, #a6c1ee);
-      overflow: hidden;
-      touch-action: pan-x pan-y; /* prevent double-tap zoom */
-    }
-
-    button, input, textarea {
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      outline: none;
-    }
-
-    h1 {
-      color: #fff;
-      font-size: 3rem;
-      text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-      margin-bottom: 10px;
-    }
-
-    #score {
-      font-size: 2rem;
-      color: #fff;
-      text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-      margin-bottom: 10px;
-      transition: transform 0.2s ease;
-    }
-
-    #timerBar {
-      width: 300px;
-      height: 20px;
-      background: rgba(255,255,255,0.3);
-      border-radius: 10px;
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-
-    #timerProgress {
-      height: 100%;
-      width: 100%;
-      background: #fff;
-      transition: width 1s linear;
-    }
-
-    #clickButton, #playAgain {
-      padding: 25px 50px;
-      font-size: 1.8rem;
-      border: none;
-      border-radius: 15px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin: 10px;
-      box-shadow: 0 8px 15px rgba(0,0,0,0.3);
-    }
-
-    #clickButton {
-      background: #ff6b6b;
-      color: #fff;
-    }
-
-    #clickButton:hover {
-      background: #ff4757;
-      transform: scale(1.1);
-    }
-
-    #playAgain {
-      background: #1dd1a1;
-      color: #fff;
-      display: none;
-    }
-
-    #playAgain:hover {
-      background: #10ac84;
-      transform: scale(1.1);
-    }
-
-    .spark {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: gold;
-      pointer-events: none;
-      animation: sparkAnim 0.6s ease-out forwards;
-    }
-
-    @keyframes sparkAnim {
-      0% { transform: translate(0,0) scale(1); opacity: 1; }
-      100% { transform: translate(calc(var(--x) * 20px), calc(var(--y) * 20px)) scale(0); opacity: 0; }
-    }
-
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GKQuiz — Brain Game</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <main class="app-card" role="main" aria-label="GK Quiz Game">
+    <header class="app-header">
+      <div class="title-wrap">
+        <h1 class="app-title">GKQuiz</h1>
+        <div class="subtitle">Test your knowledge — fun, fast & playful</div>
+      </div>
 
-  <h1>Super Clicker!</h1>
-  <div id="score">Score: 0</div>
-  <div id="timerBar"><div id="timerProgress"></div></div>
-  <button id="clickButton">Click Me!</button>
-  <button id="playAgain">Play Again</button>
+      <!-- instruction icon -->
+      <button id="openInstructions" class="icon-btn" aria-label="Open instructions" title="How to play">
+        <!-- simple inline SVG info icon -->
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22">
+          <circle cx="12" cy="12" r="10" fill="#b8396e"></circle>
+          <text x="12" y="16" font-size="13" text-anchor="middle" fill="#fff" font-family="Arial" font-weight="700">i</text>
+        </svg>
+      </button>
+    </header>
 
-  <!-- Sounds -->
-  <audio id="clickSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
-  <audio id="gameOverSound" src="https://www.soundjay.com/button/sounds/button-10.mp3"></audio>
+    <!-- Configuration / Start screen -->
+    <section id="config" class="card-section">
+      <div class="controls">
+        <label class="control-row">
+          <span>Difficulty</span>
+          <select id="difficulty">
+            <option value="easy" selected>Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
 
-  <script>
-    const clickButton = document.getElementById('clickButton');
-    const playAgain = document.getElementById('playAgain');
-    const scoreEl = document.getElementById('score');
-    const timerProgress = document.getElementById('timerProgress');
-    const clickSound = document.getElementById('clickSound');
-    const gameOverSound = document.getElementById('gameOverSound');
+        <label class="control-row">
+          <span>Questions</span>
+          <select id="numQuestions">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </label>
 
-    let score = 0;
-    let timeLeft = 30;
-    let timer;
+        <label class="control-row">
+          <span>Source</span>
+          <select id="sourceSelect" title="Choose question source">
+            <option value="api" selected>OpenTDB (online)</option>
+            <option value="local">Local (offline ready)</option>
+          </select>
+        </label>
+      </div>
 
-    function startGame() {
-      score = 0;
-      timeLeft = 30;
-      scoreEl.textContent = 'Score: 0';
-      scoreEl.style.transform = 'scale(1)';
-      timerProgress.style.width = '100%';
-      clickButton.disabled = false;
-      playAgain.style.display = 'none';
+      <div class="actions">
+        <button id="startBtn" class="primary">Start Game</button>
+        <button id="demoBtn" class="ghost" title="Quick demo using local questions">Try Demo</button>
+      </div>
 
-      timer = setInterval(() => {
-        timeLeft--;
-        timerProgress.style.width = `${(timeLeft/30)*100}%`;
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          endGame();
-        }
-      }, 1000);
-    }
+      <div class="small-note">
+        <strong>Note:</strong> If you're offline, the game will automatically use the bundled local questions.
+      </div>
+    </section>
 
-    function endGame() {
-      clickButton.disabled = true;
-      playAgain.style.display = 'inline-block';
-      gameOverSound.play();
-      //alert(`Time's up! Your score: ${score}`);
-    }
+    <!-- Loading -->
+    <section id="loading" class="card-section hidden">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <div class="loading-text">Loading questions…</div>
+      <div class="small-note">Using Open Trivia DB: <code>https://opentdb.com/api.php?amount=100</code></div>
+    </section>
 
-    function createSpark(x, y) {
-      const spark = document.createElement('div');
-      spark.className = 'spark';
-      spark.style.left = `${x}px`;
-      spark.style.top = `${y}px`;
-      spark.style.setProperty('--x', (Math.random()-0.5)*2);
-      spark.style.setProperty('--y', (Math.random()-0.5)*2);
-      document.body.appendChild(spark);
-      setTimeout(() => spark.remove(), 600);
-    }
+    <!-- Quiz Area -->
+    <section id="quiz" class="card-section hidden" aria-live="polite">
+      <div class="status-row">
+        <div class="score" id="score">Score: 0</div>
+        <div class="timer" id="timer">Time: 00</div>
+      </div>
 
-    clickButton.addEventListener('click', (e) => {
-      score++;
-      scoreEl.textContent = `Score: ${score}`;
-      scoreEl.style.transform = 'scale(1.3)';
-      setTimeout(() => scoreEl.style.transform = 'scale(1)', 150);
+      <div class="progress-wrap" aria-hidden="false">
+        <div class="progress-bar-bg">
+          <div id="progressBar" class="progress-bar-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-text" id="progressText">0 / 0</div>
+      </div>
 
-      clickSound.currentTime = 0;
-      clickSound.play();
+      <div id="questionCard" class="question-card">
+        <div id="questionText" class="question-text">Question text</div>
+      </div>
 
-      const rect = e.target.getBoundingClientRect();
-      createSpark(rect.left + rect.width/2, rect.top + rect.height/2);
-    });
+      <div id="answers" class="answers-grid" role="list"></div>
 
-    playAgain.addEventListener('click', startGame);
+      <div class="quiz-actions">
+        <button id="nextBtn" class="primary" disabled>Next</button>
+        <button id="quitBtn" class="ghost">Quit</button>
+      </div>
+    </section>
 
-    // Start automatically
-    startGame();
-  </script>
+    <!-- Result / End -->
+    <section id="result" class="card-section hidden" aria-live="polite">
+      <h2 id="resultTitle">Your Result</h2>
+      <div id="resultSummary" class="result-summary"></div>
+      <div id="compatibilityBlock" class="compatibility">
+        <div id="compatScore" class="compat-score">0</div>
+        <div id="compatMsg" class="compat-msg"></div>
+      </div>
+      <div class="actions">
+        <button id="playAgain" class="primary">Play Again</button>
+        <button id="backToConfig" class="ghost">Back</button>
+      </div>
+    </section>
+  </main>
 
+  <!-- Instructions Modal -->
+  <div id="instructionsModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <h3 id="modalTitle">How to play GKQuiz</h3>
+      <p>
+        Choose difficulty and number of questions. Tap <strong>Start</strong>. Each question has a timer — answer before time runs out.
+        Correct answers increase your score; quick answers earn a small bonus. At the end you'll get a playful compatibility-style score and message.
+      </p>
+      <ul>
+        <li>Easy: more time per question, smaller score per question.</li>
+        <li>Medium: moderate time and score.</li>
+        <li>Hard: less time, bigger reward for correct answers.</li>
+      </ul>
+      <p class="small-note">Tip: Use the <em>Try Demo</em> button to quickly play with local questions.</p>
+      <div class="modal-actions">
+        <button id="closeModal" class="primary">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
