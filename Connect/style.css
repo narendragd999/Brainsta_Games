@@ -1,0 +1,4 @@
+html,body{margin:0;height:100%;background:#000;display:flex;justify-content:center;align-items:center;font-family:sans-serif;color:#fff}
+.container{text-align:center}
+canvas{background:#111;border-radius:12px;touch-action:none}
+.hint{font-size:14px;color:#ccc;margin-top:8px}
