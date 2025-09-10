@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>शूट मास्टर — मज़ेदार शॉर्ट एक्शन गेम</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div id="game">
+    <header>
+      <h1>शूट मास्टर 🔫</h1>
+      <div class="stats">
+        <div>स्कोर: <span id="score">0</span></div>
+        <div>गोले: <span id="ammo">6</span></div>
+        <div>बेस्ट: <span id="best">0</span></div>
+      </div>
+    </header>
+    <main id="playArea">
+      <div id="crosshair"></div>
+      <div id="msg">टैप कर के शूट करो — टार्गेट पर निशाना लगाओ!</div>
+    </main>
+    <footer>
+      <button id="start">शुरू करें</button>
+      <button id="reload">रीलोड</button>
+    </footer>
+  </div>
+
+  <template id="targetTpl">
+    <div class="target"><div class="inner">🎯</div></div>
+  </template>
+
+  <audio id="gunshot" src="gunshot.mp3" preload="auto"></audio>
+  <audio id="reloadSound" src="reload.mp3" preload="auto"></audio>
+  <audio id="hitSound" src="hit.mp3" preload="auto"></audio>
+
+  <script src="game.js"></script>
+</body>
+</html>
