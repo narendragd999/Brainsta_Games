@@ -1,0 +1,9 @@
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto}
+.container{max-width:720px;margin:18px auto;padding:8px;text-align:center;color:#eee;background:#000}
+h1{font-size:18px;margin:6px 0 12px}
+#game-area{display:flex;justify-content:center;align-items:center;padding:6px}
+canvas{background:#111;border-radius:12px;touch-action:none}
+.controls{margin:10px 0}
+button{padding:8px 12px;margin-right:10px;border-radius:6px;border:1px solid #444;background:#222;color:#fff}
+.hint{color:#bbb;font-size:13px}
