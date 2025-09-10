@@ -1,0 +1,1 @@
+console.log('Shoot Master loaded with realistic sounds placeholders');
