@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TempleRunClone</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <h1 class="title">🏃 Temple Run Clone</h1>
+
+    <!-- Stats -->
+    <div class="stats">
+      <span id="score">💰 Score: 0</span>
+      <span id="distance">📏 Distance: 0</span>
+      <span id="timer">⏱ Time: 0s</span>
+    </div>
+
+    <!-- Canvas -->
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="restartBtn">🔄 Restart</button>
+      <button id="instructionsBtn">ℹ️ Instructions</button>
+    </div>
+  </div>
+
+  <!-- Instructions Modal -->
+  <div class="modal" id="instructionsModal">
+    <div class="modal-content">
+      <h2>📘 How to Play</h2>
+      <p>
+        - Use ⬅️ Left / ➡️ Right arrow keys (or swipe left/right on mobile) to move.<br>
+        - Avoid obstacles 🚧.<br>
+        - Collect coins 💰 to increase score.<br>
+        - The game gets faster over time!<br>
+        - Game ends if you hit an obstacle.
+      </p>
+      <button onclick="closeInstructions()">Got it!</button>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="modal" id="gameOverModal">
+    <div class="modal-content">
+      <h2>Game Over!</h2>
+      <p id="finalStats"></p>
+      <button onclick="closeGameOver()">OK</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
