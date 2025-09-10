@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>हँस-हँस के थक जाओ — मज़ेदार गेम</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game">
+    <header>
+      <h1>हँस-हँस के थक जाओ 😂</h1>
+      <div id="score">स्कोर: <span id="scoreVal">0</span></div>
+      <button id="startBtn">शुरू करें</button>
+    </header>
+
+    <main id="playArea" tabindex="0" role="application" aria-label="हँसी गेम">
+      <div id="message">"शुरू करने के लिए टैप करें"</div>
+        <img id="sticker" src="sticker.png" alt="Funny Sticker" />
+    <audio id="laughSound" src="laugh.mp3" preload="auto"></audio>
+  </main>
+
+    <footer>
+      <div id="tips">टिप: जितना जल्दी टैप करोगे, उतना ज़्यादा पॉइंट्स!</div>
+    </footer>
+  </div>
+
+  <template id="charTpl">
+    <div class="character">
+      <div class="face">😂</div>
+      <div class="bubble"></div>
+    </div>
+  </template>
+
+  <script src="game.js"></script>
+</body>
+</html>
