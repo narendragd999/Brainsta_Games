@@ -3,26 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dot Lines - Simple Game</title>
+  <title>Bouncing Ball Trail Game</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
-    <h1>Dot Lines — Tap to draw</h1>
-    <div id="game-area">
-      <canvas id="game"></canvas>
-    </div>
-    <div class="controls">
-      <button id="clearBtn">Clear Lines</button>
-      <label>Dot position:
-        <select id="dotPos">
-          <option value="0.2,0.2">Top-left (like screenshot)</option>
-          <option value="0.5,0.5">Center</option>
-          <option value="0.8,0.2">Top-right</option>
-        </select>
-      </label>
-    </div>
-    <p class="hint">Tap / click anywhere inside the circle to add a line from the dot.</p>
+    <h1>Bouncing Ball Trail Game</h1>
+    <canvas id="game"></canvas>
+    <p class="hint">Swipe to launch the ball! It will bounce inside the circle and leave colorful trails.</p>
   </div>
   <script src="script.js"></script>
 </body>
