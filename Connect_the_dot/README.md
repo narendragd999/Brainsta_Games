@@ -1,20 +1,18 @@
-Dot Lines - simple HTML5 Canvas game
-===================================
-What it does
-- Shows a circular play area and a colored dot inside it.
-- When the player taps/clicks anywhere inside the circle, a colored line is drawn from the dot to that point and previous lines persist.
-- Includes a control to clear lines and change dot position.
+Bouncing Ball Trail Game
+==========================
+How it works:
+- A ball bounces inside a circular boundary.
+- Swipe on the canvas to give the ball a velocity.
+- The ball bounces off the circle's edge realistically.
+- Trails appear where the ball moves and fade after ~2 seconds.
 
-Files
-- index.html  : Main page
-- style.css   : Basic styling
-- script.js   : Game logic (canvas, touch/mouse handlers)
-- README.md   : This file
+Files:
+- index.html
+- style.css
+- script.js
+- README.md
 
-How to run locally
-1. Unzip the package.
-2. Open index.html in a modern browser (desktop or mobile).
-3. Or host the files from any static web server (e.g., nginx, Apache, or GitHub Pages).
-
-Server upload
-- If you want these files in your server root, unzip the archive and copy the files into your site's root (for example /var/www/html or the configured document root).
+How to use:
+1. Unzip package.
+2. Open index.html in a browser.
+3. Swipe / drag to launch the ball.
