@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>हा हा मास्टर — मज़ेदार एंडलेस गेम</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game">
+    <header>
+      <div class="left">
+        <h1>हा हा मास्टर 😂</h1>
+        <div class="sub">एक टैप में हँसी का विजेता बनो!</div>
+      </div>
+      <div class="right">
+        <div id="score">स्कोर: <span id="scoreVal">0</span></div>
+        <div id="best">बेस्ट: <span id="bestVal">0</span></div>
+      </div>
+    </header>
+
+    <main id="playArea" tabindex="0" role="application" aria-label="हँसी गेम">
+      <div id="hud">
+        <div id="combo">कॉम्बो x<span id="comboVal">1</span></div>
+        <div id="mult">मल्टी: <span id="multVal">1</span></div>
+      </div>
+      <div id="centerMsg">टैप करके शुरू करें — मज़ा बढ़ेगा हर लेवल पर!</div>
+      <img id="sticker" src="sticker.png" alt="Funny Sticker" />
+      <div id="powerTray"></div>
+    </main>
+
+    <footer>
+      <button id="startBtn">शुरू करें</button>
+      <button id="resetBtn">रीसेट स्कोर</button>
+      <div id="tips">टिप्स: तेज़ी से टैप करो — कॉम्बो बढ़ाओ — पॉवरअप लो!</div>
+    </footer>
+  </div>
+
+  <template id="charTpl">
+    <div class="character">
+      <div class="face">😂</div>
+      <div class="bubble"></div>
+    </div>
+  </template>
+
+  <audio id="arePagal" src="are_pagal.mp3" preload="auto"></audio>
+  <audio id="popSound" src="are_pagal.mp3" preload="auto"></audio>
+  <audio id="powerSound" src="are_pagal.mp3" preload="auto"></audio>
+
+  <script src="game.js"></script>
+</body>
+</html>
