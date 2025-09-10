@@ -1,0 +1,53 @@
+/* Responsive, touch-friendly styles */
+:root{
+  --bg:#fffbe6;
+  --card:#fff;
+  --accent:#ff6b6b;
+  --muted:#444;
+  --shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Noto Sans', 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
+body{background:linear-gradient(180deg,var(--bg),#fff);display:flex;align-items:center;justify-content:center;padding:4vw;}
+
+#game{width:100%;max-width:900px;background:var(--card);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;min-height:70vh}
+header{padding:4vw 4vw 0 4vw;display:flex;align-items:center;gap:12px;justify-content:space-between}
+h1{font-size:clamp(18px,4.5vw,26px);margin:0;color:var(--muted)}
+#score{font-weight:700;color:var(--accent)}
+#startBtn{padding:.6rem 1rem;border-radius:12px;border:0;background:var(--accent);color:white;font-weight:700;font-size:14px;touch-action:manipulation}
+
+main#playArea{flex:1;position:relative;padding:4vw;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#message{color:#666;font-size:clamp(14px,2.6vw,18px);text-align:center;max-width:80%}
+
+.character{position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px;touch-action:none;user-select:none}
+.face{font-size:clamp(28px,8vw,64px);filter:drop-shadow(0 6px 14px rgba(0,0,0,0.12));transform-origin:center center}
+.bubble{background:rgba(255,255,255,0.95);padding:8px 10px;border-radius:12px;box-shadow:0 6px 12px rgba(0,0,0,0.06);font-weight:700;white-space:nowrap;transform-origin:center center;font-size:clamp(12px,2.2vw,16px)}
+.character.pop {animation:pop .35s ease-out;}
+.character.laugh .face{transform:scale(1.12) rotate(-6deg)}
+.character.laugh .bubble{transform:translateY(-6px) scale(1.05)}
+
+@keyframes pop{
+  0%{transform:scale(.4);opacity:0}
+  60%{transform:scale(1.08);opacity:1}
+  100%{transform:scale(1)}
+}
+
+footer{padding:12px 18px;background:linear-gradient(180deg,transparent,#fff);font-size:13px;color:#777;border-top:1px solid rgba(0,0,0,0.03)}
+/* Small screens adjustments */
+@media (max-width:420px){
+  #game{border-radius:12px;padding-bottom:6px}
+  header{padding:3vw}
+  footer{font-size:12px}
+}
+
+
+#sticker{
+  position:absolute;
+  bottom:10px;
+  right:10px;
+  width:80px;
+  height:auto;
+  opacity:0.8;
+  pointer-events:none;
+}
