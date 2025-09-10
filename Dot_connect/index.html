@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Bouncing Ball Simple</title>
+  <style>
+    body {margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#000;color:#fff;font-family:sans-serif}
+    canvas {background:#111;border-radius:12px;touch-action:none}
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <script>
+    const canvas=document.getElementById('game');
+    const ctx=canvas.getContext('2d');
+    let w,h;
+    function resize(){w=Math.min(window.innerWidth-20,500);h=w;
+      canvas.width=w;canvas.height=h;
+      circle={x:w/2,y:h/2,r:w/2-10};
+      if(!ball.x){ball.x=circle.x;ball.y=circle.y;}
+    }
+    window.addEventListener('resize',resize);resize();
+
+    let circle={x:w/2,y:h/2,r:w/2-10};
+    let ball={x:circle.x,y:circle.y,vx:0,vy:0,r:12,color:'#4af'};
+    let trails=[];
+
+    function update(){
+      ball.x+=ball.vx;ball.y+=ball.vy;
+      ball.vx*=0.995;ball.vy*=0.995;
+      // collision
+      let dx=ball.x-circle.x,dy=ball.y-circle.y;
+      let dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist+ball.r>circle.r){
+        let nx=dx/dist,ny=dy/dist;
+        let overlap=dist+ball.r-circle.r;
+        ball.x-=nx*overlap;ball.y-=ny*overlap;
+        let dot=ball.vx*nx+ball.vy*ny;
+        ball.vx-=2*dot*nx;ball.vy-=2*dot*ny;
+      }
+      // trails
+      trails.push({x:ball.x,y:ball.y,time:Date.now()});
+      trails=trails.filter(t=>Date.now()-t.time<2000);
+    }
+    function draw(){
+      ctx.clearRect(0,0,w,h);
+      ctx.lineWidth=4;ctx.strokeStyle='#0f0';
+      ctx.beginPath();ctx.arc(circle.x,circle.y,circle.r,0,Math.PI*2);ctx.stroke();
+      for(let t of trails){
+        ctx.fillStyle='rgba(255,255,0,0.7)';
+        ctx.beginPath();ctx.arc(t.x,t.y,2,0,Math.PI*2);ctx.fill();
+      }
+      ctx.fillStyle=ball.color;
+      ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+    }
+    function loop(){update();draw();requestAnimationFrame(loop);}loop();
+
+    // swipe
+    let startX=0,startY=0,startT=0;
+    function getPos(e){const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+    canvas.addEventListener('pointerdown',e=>{let p=getPos(e);startX=p.x;startY=p.y;startT=Date.now();});
+    canvas.addEventListener('pointerup',e=>{
+      let p=getPos(e);let dx=p.x-startX,dy=p.y-startY;let dt=(Date.now()-startT)/1000;
+      if(dt<0.5){ball.vx=dx*0.3;ball.vy=dy*0.3;}
+    });
+  </script>
+</body>
+</html>
