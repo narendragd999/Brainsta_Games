@@ -1,135 +1,70 @@
-// Dot Lines Game
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
-const DPR = window.devicePixelRatio || 1;
-let w = 640, h = 640;
-const circlePadding = 12;
-let lines = [];
-let dotRel = {x:0.2, y:0.2}; // relative position inside canvas
-const dotRadius = 12;
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+let w,h;const DPR=window.devicePixelRatio||1;
+function resize(){w=Math.min(window.innerWidth-20,600);h=w;
+canvas.style.width=w+'px';canvas.style.height=h+'px';
+canvas.width=w*DPR;canvas.height=h*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+window.addEventListener('resize',resize);resize();
 
-function resize() {
-  // make square canvas, responsive
-  const maxWidth = Math.min(window.innerWidth - 40, 720);
-  w = maxWidth;
-  h = maxWidth;
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
-  canvas.width = Math.round(w * DPR);
-  canvas.height = Math.round(h * DPR);
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-  drawAll();
+// circle boundary
+const circle={x:w/2,y:h/2,r:w/2-10};
+
+// ball state
+let ball={x:circle.x,y:circle.y,vx:0,vy:0,r:10,color:'#4af'};
+
+// trails
+let trails=[];
+
+// physics
+function update(dt){
+  ball.x+=ball.vx*dt;
+  ball.y+=ball.vy*dt;
+  // friction
+  ball.vx*=0.995;ball.vy*=0.995;
+  // collision with circle boundary
+  let dx=ball.x-circle.x,dy=ball.y-circle.y;
+  let dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist+ball.r>circle.r){
+    let nx=dx/dist,ny=dy/dist;
+    let overlap=dist+ball.r-circle.r;
+    ball.x-=nx*overlap;ball.y-=ny*overlap;
+    let dot=ball.vx*nx+ball.vy*ny;
+    ball.vx-=2*dot*nx;ball.vy-=2*dot*ny;
+  }
+  // add trail
+  trails.push({x:ball.x,y:ball.y,color:`hsl(${(Date.now()/10)%360},80%,60%)`,time:Date.now()});
+  // keep trails only 2s
+  const now=Date.now();
+  trails=trails.filter(t=>now-t.time<2000);
 }
 
-window.addEventListener('resize', resize);
-resize();
-
-function getCircle() {
-  const cx = w/2;
-  const cy = h/2;
-  const radius = Math.min(w,h)/2 - circlePadding;
-  return {cx, cy, radius};
-}
-
-function drawAll() {
-  // background
+function draw(){
   ctx.clearRect(0,0,w,h);
-  ctx.fillStyle = '#0b0b0b';
-  ctx.fillRect(0,0,w,h);
-
-  // draw circle
-  const c = getCircle();
-  ctx.lineWidth = 6;
-  ctx.strokeStyle = '#36ff66'; // bright green rim
-  ctx.beginPath();
-  ctx.arc(c.cx, c.cy, c.radius, 0, Math.PI*2);
-  ctx.stroke();
-
-  // draw existing lines
-  for (const ln of lines) {
-    ctx.beginPath();
-    ctx.moveTo(ln.x1, ln.y1);
-    ctx.lineTo(ln.x2, ln.y2);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = ln.color;
-    ctx.stroke();
+  // circle
+  ctx.lineWidth=4;ctx.strokeStyle='#0f0';
+  ctx.beginPath();ctx.arc(circle.x,circle.y,circle.r,0,Math.PI*2);ctx.stroke();
+  // trails
+  for(let t of trails){
+    ctx.fillStyle=t.color;
+    ctx.beginPath();ctx.arc(t.x,t.y,2,0,Math.PI*2);ctx.fill();
   }
-
-  // draw dot
-  const dot = getDotPosition();
-  ctx.beginPath();
-  ctx.fillStyle = '#4860ff';
-  ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI*2);
-  ctx.fill();
-
-  // small inner highlight
-  ctx.beginPath();
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.arc(dot.x - 4, dot.y - 3, 4, 0, Math.PI*2);
-  ctx.fill();
-
-  // small caption
-  ctx.fillStyle = '#fff';
-  ctx.font = '14px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('the end...', c.cx, h - 18);
+  // ball
+  ctx.fillStyle=ball.color;
+  ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
 }
 
-function getDotPosition() {
-  // dotRel.x / y are relative [0..1] wrt canvas
-  return {x: dotRel.x * w, y: dotRel.y * h};
-}
+let last=0;
+function loop(ts){if(!last)last=ts;let dt=(ts-last)/16;last=ts;
+update(dt);draw();requestAnimationFrame(loop);}loop();
 
-function pointInCircle(px, py, circle) {
-  const dx = px - circle.cx, dy = py - circle.cy;
-  return (dx*dx + dy*dy) <= (circle.radius * circle.radius);
-}
-
-function randColor() {
-  // generate a nice bright color
-  const hue = Math.floor(Math.random()*360);
-  return `hsl(${hue} 80% 60%)`;
-}
-
-function addLineTo(x, y) {
-  const dot = getDotPosition();
-  const c = getCircle();
-  if (!pointInCircle(x, y, c)) return; // only add if touched inside circle
-  lines.push({x1: dot.x, y1: dot.y, x2: x, y2: y, color: randColor()});
-  drawAll();
-}
-
-// handle touch / mouse
-function getEventPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  let clientX, clientY;
-  if (e.touches && e.touches.length) {
-    clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
-  } else {
-    clientX = e.clientX; clientY = e.clientY;
+// swipe handling
+let startX=0,startY=0,startT=0;
+canvas.addEventListener('pointerdown',e=>{
+  startX=e.clientX;startY=e.clientY;startT=Date.now();
+});
+canvas.addEventListener('pointerup',e=>{
+  let dx=e.clientX-startX,dy=e.clientY-startY;
+  let dt=(Date.now()-startT)/1000;if(dt<0.3){
+    ball.vx=dx*0.5;ball.vy=dy*0.5;
   }
-  const x = (clientX - rect.left);
-  const y = (clientY - rect.top);
-  return {x, y};
-}
-
-canvas.addEventListener('pointerdown', (ev) => {
-  ev.preventDefault();
-  const p = getEventPos(ev);
-  addLineTo(p.x, p.y);
 });
-
-document.getElementById('clearBtn').addEventListener('click', () => {
-  lines = [];
-  drawAll();
-});
-
-document.getElementById('dotPos').addEventListener('change', (ev) => {
-  const v = ev.target.value.split(',');
-  dotRel.x = parseFloat(v[0]);
-  dotRel.y = parseFloat(v[1]);
-  drawAll();
-});
-
-// initial draw
-drawAll();
