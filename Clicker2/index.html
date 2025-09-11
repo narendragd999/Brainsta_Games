@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no">
+  <title>Super Clicker Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Inter', Arial, sans-serif;
+      background: linear-gradient(135deg, #6a11cb, #ffffff);
+      overflow: hidden;
+      touch-action: pan-x pan-y;
+    }
+
+    h1 {
+      color: #2c2c2c;
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    #scoreCard {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #score {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #333;
+      transition: transform 0.2s ease;
+    }
+
+    #timerBar {
+      width: 300px;
+      height: 14px;
+      background: rgba(0,0,0,0.08);
+      border-radius: 10px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+
+    #timerProgress {
+      height: 100%;
+      width: 100%;
+      background: #6a11cb;
+      transition: width 1s linear;
+    }
+
+    button {
+      padding: 18px 40px;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin: 10px;
+      font-weight: 500;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+    #clickButton {
+      background: #3498db;
+      color: #fff;
+    }
+    #clickButton:hover {
+      background: #2e86c1;
+      transform: scale(1.05);
+    }
+
+    #playAgain {
+      background: #6a11cb;
+      color: #fff;
+      display: none;
+    }
+    #playAgain:hover {
+      background: #5b0db4;
+      transform: scale(1.05);
+    }
+
+    .spark {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: gold;
+      pointer-events: none;
+      animation: sparkAnim 0.6s ease-out forwards;
+    }
+
+    @keyframes sparkAnim {
+      0% { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: translate(calc(var(--x) * 20px), calc(var(--y) * 20px)) scale(0); opacity: 0; }
+    }
+
+    /* Loader overlay */
+    #loaderOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .spinner {
+      border: 6px solid rgba(255,255,255,0.3);
+      border-top: 6px solid #fff;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Super Clicker!</h1>
+  <div id="scoreCard">
+    <div id="score">Score: 0</div>
+  </div>
+  <div id="timerBar"><div id="timerProgress"></div></div>
+  <button id="clickButton">Click Me!</button>
+  <button id="playAgain">Play Again</button>
+
+  <!-- Loader Overlay -->
+  <div id="loaderOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Sounds -->
+  <audio id="clickSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
+  <audio id="gameOverSound" src="https://www.soundjay.com/button/sounds/button-10.mp3"></audio>
+
+  <script>
+    const clickButton = document.getElementById('clickButton');
+    const playAgain = document.getElementById('playAgain');
+    const scoreEl = document.getElementById('score');
+    const timerProgress = document.getElementById('timerProgress');
+    const clickSound = document.getElementById('clickSound');
+    const gameOverSound = document.getElementById('gameOverSound');
+    const loaderOverlay = document.getElementById('loaderOverlay');
+
+    let score = 0;
+    let timeLeft = 30;
+    let timer;
+
+    function startGame() {
+      loaderOverlay.style.display = 'none';
+      score = 0;
+      timeLeft = 30;
+      scoreEl.textContent = 'Score: 0';
+      scoreEl.style.transform = 'scale(1)';
+      timerProgress.style.width = '100%';
+      clickButton.disabled = false;
+      playAgain.style.display = 'none';
+
+      timer = setInterval(() => {
+        timeLeft--;
+        timerProgress.style.width = `${(timeLeft/30)*100}%`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      clickButton.disabled = true;
+      playAgain.style.display = 'inline-block';
+      gameOverSound.play();
+      loaderOverlay.style.display = 'flex';
+      setTimeout(() => loaderOverlay.style.display = 'none', 1200);
+    }
+
+    function createSpark(x, y) {
+      const spark = document.createElement('div');
+      spark.className = 'spark';
+      spark.style.left = `${x}px`;
+      spark.style.top = `${y}px`;
+      spark.style.setProperty('--x', (Math.random()-0.5)*2);
+      spark.style.setProperty('--y', (Math.random()-0.5)*2);
+      document.body.appendChild(spark);
+      setTimeout(() => spark.remove(), 600);
+    }
+
+    clickButton.addEventListener('click', (e) => {
+      score++;
+      scoreEl.textContent = `Score: ${score}`;
+      scoreEl.style.transform = 'scale(1.2)';
+      setTimeout(() => scoreEl.style.transform = 'scale(1)', 150);
+
+      clickSound.currentTime = 0;
+      clickSound.play();
+
+      const rect = e.target.getBoundingClientRect();
+      createSpark(rect.left + rect.width/2, rect.top + rect.height/2);
+    });
+
+    playAgain.addEventListener('click', startGame);
+
+    // Auto start
+    startGame();
+  </script>
+
+</body>
+</html>
