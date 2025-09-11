@@ -1,0 +1,1 @@
+Responsive Pong - Single Player vs AI\nControls:\n- Touch/drag left side to move left paddle.\n- Tap to serve when game running.\n- Keyboard: Arrow Up/Down or W/S to move; Space to serve.\nFiles: index.html, style.css, game.js\nCreated for user request; mobile friendly and zoom locked.
