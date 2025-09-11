@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Super GK Quiz</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #6a11cb, #fff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #333;
+      padding: 10px;
+    }
+    .card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+      animation: fadeIn 0.5s ease;
+    }
+    h1,h2 {
+      color: #6a11cb;
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+      text-align: left;
+    }
+    select, input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    button {
+      margin-top: 15px;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.3s ease;
+      width: 100%;
+    }
+    .btn-primary {
+      background: #3498db;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #2980b9; transform: scale(1.03); }
+    .btn-secondary {
+      background: #6a11cb;
+      color: #fff;
+    }
+    .btn-secondary:hover { background: #4a0e9d; transform: scale(1.03); }
+
+    /* Progress bar (quiz) */
+    #progressText {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    #progressBar {
+      width: 100%;
+      height: 12px;
+      background: #eee;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    #progressFill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #3498db, #6a11cb);
+      transition: width 0.4s ease;
+    }
+
+    /* Quiz answers */
+    #answers { margin-top: 15px; }
+    .answer {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #f7f7f7;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 1rem;
+    }
+    .answer:hover { transform: scale(1.02); }
+    .answer.correct { background: #27ae60; color: #fff; animation: pulseCorrect 0.6s; }
+    .answer.incorrect { background: #e74c3c; color: #fff; animation: shake 0.4s; }
+
+    @keyframes pulseCorrect {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Timer */
+    #timer {
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    #timer.warning { color: #e67e22; animation: pulseTimer 1s infinite; }
+    #timer.danger { color: #e74c3c; animation: pulseTimer 0.5s infinite; }
+    @keyframes pulseTimer {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px);} to {opacity:1; transform:translateY(0);} }
+
+    /* Results progress bar */
+    #scoreBar {
+      width: 100%;
+      height: 18px;
+      background: #eee;
+      border-radius: 9px;
+      overflow: hidden;
+      margin: 15px 0;
+    }
+    #scoreFill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #27ae60, #2ecc71);
+      transition: width 0.6s ease;
+    }
+    #scorePercent {
+      font-weight: bold;
+      margin-top: 8px;
+      color: #27ae60;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 480px) {
+      h1,h2 { font-size: 1.5rem; }
+      button { font-size: 1rem; padding: 12px; }
+      .answer { font-size: 0.95rem; padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card" id="configCard">
+  <h1>🎓 GK Quiz</h1>
+  <label for="difficulty">Difficulty:</label>
+  <select id="difficulty">
+    <option value="">Any Difficulty</option>
+    <option value="easy">Easy</option>
+    <option value="medium">Medium</option>
+    <option value="hard">Hard</option>
+  </select>
+
+  <label for="questionCount">Number of Questions:</label>
+  <input type="number" id="questionCount" min="1" max="50" value="10">
+
+  <label for="category">Category:</label>
+  <select id="category"><option>Loading...</option></select>
+
+  <label for="type">Type:</label>
+  <select id="type">
+    <option value="">Any Type</option>
+    <option value="multiple">Multiple Choice</option>
+    <option value="boolean">True / False</option>
+  </select>
+
+  <button class="btn-primary" id="startBtn">Start Quiz</button>
+</div>
+
+<div class="card" id="quizCard" style="display:none;">
+  <div id="progressText"></div>
+  <div id="progressBar"><div id="progressFill"></div></div>
+  <h2 id="questionText"></h2>
+  <div id="answers"></div>
+  <p id="timer">Time: 0</p>
+</div>
+
+<div class="card" id="resultsCard" style="display:none;">
+  <h2>Your Score</h2>
+  <p id="finalScore"></p>
+  <div id="scoreBar"><div id="scoreFill"></div></div>
+  <div id="scorePercent"></div>
+  <button class="btn-secondary" id="playAgain">Play Again</button>
+</div>
+
+<script>
+  const configCard = document.getElementById("configCard");
+  const quizCard = document.getElementById("quizCard");
+  const resultsCard = document.getElementById("resultsCard");
+  const startBtn = document.getElementById("startBtn");
+  const categorySelect = document.getElementById("category");
+  const typeSelect = document.getElementById("type");
+  const difficultySelect = document.getElementById("difficulty");
+  const countInput = document.getElementById("questionCount");
+  const questionText = document.getElementById("questionText");
+  const answersDiv = document.getElementById("answers");
+  const timerEl = document.getElementById("timer");
+  const finalScore = document.getElementById("finalScore");
+  const playAgainBtn = document.getElementById("playAgain");
+  const progressText = document.getElementById("progressText");
+  const progressFill = document.getElementById("progressFill");
+  const scoreFill = document.getElementById("scoreFill");
+  const scorePercent = document.getElementById("scorePercent");
+
+  let questions = [];
+  let currentIndex = 0;
+  let score = 0;
+  let timer;
+  let timeLeft = 0;
+
+  // Load categories dynamically
+  async function loadCategories() {
+    try {
+      const res = await fetch("https://opentdb.com/api_category.php");
+      const data = await res.json();
+      categorySelect.innerHTML = '<option value="">Any Category</option>';
+      data.trivia_categories.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat.id;
+        opt.textContent = cat.name;
+        categorySelect.appendChild(opt);
+      });
+    } catch (err) {
+      console.error("Category load error:", err);
+      categorySelect.innerHTML = '<option value="">Any Category</option>';
+    }
+  }
+  loadCategories();
+
+  async function fetchQuestions() {
+    const amount = countInput.value;
+    const difficulty = difficultySelect.value;
+    const category = categorySelect.value;
+    const type = typeSelect.value;
+
+    let apiUrl = `https://opentdb.com/api.php?amount=${amount}`;
+    if (difficulty) apiUrl += `&difficulty=${difficulty}`;
+    if (category) apiUrl += `&category=${category}`;
+    if (type) apiUrl += `&type=${type}`;
+
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+    if (data.response_code !== 0) throw new Error("No questions found");
+    return data.results;
+  }
+
+  function startQuiz() {
+    configCard.style.display = "none";
+    quizCard.style.display = "block";
+    resultsCard.style.display = "none";
+    currentIndex = 0;
+    score = 0;
+    fetchQuestions()
+      .then(qs => {
+        questions = qs;
+        showQuestion();
+      })
+      .catch(err => {
+        alert("Error loading questions: " + err.message);
+        configCard.style.display = "block";
+        quizCard.style.display = "none";
+      });
+  }
+
+  function showQuestion() {
+    if (currentIndex >= questions.length) return endQuiz();
+
+    const q = questions[currentIndex];
+    questionText.innerHTML = q.question;
+    answersDiv.innerHTML = "";
+
+    // Progress
+    progressText.textContent = `Question ${currentIndex+1} of ${questions.length}`;
+    progressFill.style.width = `${((currentIndex+1)/questions.length)*100}%`;
+
+    // Shuffle answers
+    let answers = [...q.incorrect_answers, q.correct_answer].sort(() => Math.random() - 0.5);
+    answers.forEach(ans => {
+      const btn = document.createElement("button");
+      btn.className = "answer";
+      btn.innerHTML = ans;
+      btn.onclick = () => checkAnswer(btn, ans === q.correct_answer);
+      answersDiv.appendChild(btn);
+    });
+
+    // Reset timer
+    clearInterval(timer);
+    timeLeft = 15;
+    timerEl.textContent = "Time: " + timeLeft;
+    timerEl.className = "";
+    timer = setInterval(() => {
+      timeLeft--;
+      timerEl.textContent = "Time: " + timeLeft;
+      if (timeLeft <= 10 && timeLeft > 5) {
+        timerEl.classList.add("warning");
+        timerEl.classList.remove("danger");
+      } else if (timeLeft <= 5) {
+        timerEl.classList.add("danger");
+      }
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        currentIndex++;
+        showQuestion();
+      }
+    }, 1000);
+  }
+
+  function checkAnswer(button, isCorrect) {
+    clearInterval(timer);
+    if (isCorrect) {
+      button.classList.add("correct");
+      score++;
+    } else {
+      button.classList.add("incorrect");
+      [...answersDiv.children].forEach(b=>{
+        if (b.innerHTML === questions[currentIndex].correct_answer) {
+          b.classList.add("correct");
+        }
+      });
+    }
+    setTimeout(() => {
+      currentIndex++;
+      showQuestion();
+    }, 1000);
+  }
+
+  function endQuiz() {
+    quizCard.style.display = "none";
+    resultsCard.style.display = "block";
+    finalScore.textContent = `You scored ${score} out of ${questions.length}`;
+
+    const percent = Math.round((score / questions.length) * 100);
+    scoreFill.style.width = percent + "%";
+    scorePercent.textContent = percent + "%";
+  }
+
+  startBtn.addEventListener("click", startQuiz);
+  playAgainBtn.addEventListener("click", ()=>{
+    configCard.style.display = "block";
+    resultsCard.style.display = "none";
+  });
+</script>
+</body>
+</html>
