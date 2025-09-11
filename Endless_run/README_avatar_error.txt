@@ -1,0 +1,1 @@
+[Errno 2] No such file or directory: '/mnt/data/76c9bdee-2c06-426a-a1a4-6476e8e432cf.png'
