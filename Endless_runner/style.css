@@ -1,0 +1,13 @@
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans',sans-serif}
+html,body,#gameWrap{height:100%}
+body{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#0f172a,#001219);color:#fff;padding:12px}
+#gameWrap{width:100%;max-width:900px;background:linear-gradient(180deg,#07132a,#022340);border-radius:12px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+canvas{width:100%;height:auto;display:block;border-radius:8px;background:linear-gradient(180deg,#87CEFA,#bfe9ff)}
+#ui{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+#score{font-weight:700}
+#btnStart{background:#10b981;border:none;padding:10px 14px;border-radius:8px;color:#022;cursor:pointer;font-weight:700}
+#controls{opacity:0.85;font-size:12px}
+@media (max-width:420px){
+  #controls{font-size:11px}
+  #btnStart{padding:8px 10px}
+}
