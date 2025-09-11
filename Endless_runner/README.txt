@@ -1,0 +1,1 @@
+This is a simple mobile-friendly endless runner clone created for the user. Play by tapping the screen to jump. Long-press to glide. Uses only canvas, no external assets.
