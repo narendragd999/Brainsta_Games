@@ -1,0 +1,1 @@
+Pong Fullscreen Mobile Version\n\nControls:\n- Touch/drag to move left paddle.\n- Tap screen to serve.\nRight paddle controlled by AI.
