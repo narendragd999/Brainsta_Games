@@ -1,0 +1,12 @@
+* { box-sizing: border-box; margin:0; padding:0; font-family: Arial, sans-serif; -webkit-user-select:none; user-select:none; }
+html,body,#gameContainer { height:100%; width:100%; background: #0b3a2a; display:flex; align-items:center; justify-content:center; }
+#gameContainer { position:relative; overflow:hidden; max-width:1100px; border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,0.45); }
+canvas { display:block; background:linear-gradient(#7ec8ff,#5aa0ff); width:100%; height:100%; }
+#ui { position:absolute; top:12px; left:12px; z-index:5; color:white; text-shadow:0 1px 2px rgba(0,0,0,0.6); display:flex; gap:12px; align-items:center; }
+#score, #coins { font-weight:800; font-size:18px; background:rgba(0,0,0,0.25); padding:6px 10px; border-radius:8px; }
+#instructions { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); color:#03304d; background:rgba(255,255,255,0.92); padding:8px 12px; border-radius:14px; font-weight:700; z-index:5; }
+#restartBtn { position:absolute; top:12px; right:12px; z-index:5; padding:8px 12px; border-radius:8px; border:none; background:#ffcc00; font-weight:700; }
+.hidden { display:none; }
+@media (min-width:700px) {
+  #gameContainer { width:1000px; height:560px; }
+}
