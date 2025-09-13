@@ -1,0 +1,118 @@
+
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>Viraaj Run — Animated</title>
+  <style>html,body{margin:0;padding:0;height:100%;background:#111;font-family:Arial, sans-serif}#game-container{width:100%;height:100vh}</style>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <script>
+    // --- DOMAIN LOCK CONFIG ---
+    // Replace allowedHost with your server hostname (without protocol), e.g. 'example.com'
+    const allowedHost = "your-server.com";
+    // optional: token check endpoint (place a small text file on your server with token value)
+    const tokenUrl = "/game_token.txt";
+    const requiredToken = "CHANGE_ME_TOKEN";
+
+    function showLockedMessage(msg){
+      document.body.innerHTML = "<div style='color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;background:#111'><div style='text-align:center'><h2>"+msg+"</h2><p style='color:#ddd'>Game locked: केवल अधिकृत सर्वर पर चलेगा।</p></div></div>";
+    }
+
+    // Basic hostname check
+    const host = window.location.hostname;
+    if (host !== allowedHost && allowedHost !== "your-server.com"){
+      // optional token fetch fallback
+      fetch(tokenUrl).then(r=>r.text()).then(t=>{ if (t.trim() !== requiredToken) showLockedMessage("अनधिकृत सर्वर"); else startGame(); }).catch(e=>{ showLockedMessage("अनधिकृत सर्वर"); });
+    } else if (allowedHost === "your-server.com"){
+      startGame();
+    } else { startGame(); }
+
+    // --- GAME START ---
+    function startGame(){
+      const config = { type: Phaser.AUTO, parent: 'game-container', width: window.innerWidth, height: window.innerHeight, physics: { default: 'arcade', arcade: { gravity: { y: 1200 }, debug:false } }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: { preload, create, update } };
+
+      let game = new Phaser.Game(config);
+
+      function preload(){ 
+        this.load.image('bg', 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffd27f"/><stop offset="0.5" stop-color="#ff8a00"/><stop offset="1" stop-color="#7ec850"/></linearGradient><rect width="100%" height="100%" fill="url(#g)"/><path d="M0 600 Q300 450 600 600 T1200 600 L1200 800 L0 800 Z" fill="#4b8a29" opacity="0.95"/></svg>'));
+        this.load.spritesheet('player', 'player_sheet.png', { frameWidth:128, frameHeight:128 });
+        this.load.spritesheet('coin', 'coin_sheet.png', { frameWidth:48, frameHeight:48 });
+        this.load.image('obstacle', 'obstacle.png');
+        // tiny jump beep
+        const jumpWav = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+        this.load.audio('jump', jumpWav);
+      }
+
+      let player, cursors, obstacles, coins, score=0, scoreText, speed=300, spawnTimer=0;
+
+      function create(){ 
+        this.add.tileSprite(0,0,this.scale.width,this.scale.height,'bg').setOrigin(0).setScrollFactor(0);
+
+        // ground
+        const ground = this.add.rectangle(0, this.scale.height-110, this.scale.width*2, 110, 0x000000,0);
+        this.physics.add.existing(ground, true);
+
+        // player with animation
+        player = this.physics.add.sprite(160, this.scale.height-200, 'player').setScale(0.9).setOrigin(0.5,1);
+        player.setCollideWorldBounds(true);
+        player.body.setSize(60,110,false);
+        player.setBounce(0);
+        this.physics.add.collider(player, ground);
+
+        // animations
+        this.anims.create({ key:'run', frames:this.anims.generateFrameNumbers('player',{start:0,end:3}), frameRate:12, repeat:-1 });
+        this.anims.create({ key:'coinspin', frames:this.anims.generateFrameNumbers('coin',{start:0,end:5}), frameRate:14, repeat:-1 });
+        player.play('run');
+
+        obstacles = this.physics.add.group();
+        coins = this.physics.add.group();
+        this.physics.add.collider(obstacles, ground);
+        this.physics.add.overlap(player, obstacles, hitObstacle, null, this);
+        this.physics.add.overlap(player, coins, collectCoin, null, this);
+
+        // controls
+        cursors = this.input.keyboard.createCursorKeys();
+        this.input.on('pointerdown', ()=> jump.call(this));
+
+        // HUD
+        scoreText = this.add.text(16,16,'Score: 0',{font:'20px Arial', fill:'#fff'}).setScrollFactor(0);
+        this.add.text(this.scale.width-12,16,'Tap to Jump',{font:'14px Arial', fill:'#fff'}).setOrigin(1,0).setScrollFactor(0);
+
+        this.scale.on('resize', (g)=>{ player.setY(g.height-200); });
+      }
+
+      function update(time, delta){ 
+        speed += delta * 0.0025; // gradual acceleration
+        const move = (speed * delta)/1000;
+        this.cameras.main.scrollX += move;
+        spawnTimer += delta;
+        if (spawnTimer > 800 - Math.min(500, speed)){ spawnObstacle.call(this); spawnTimer=0; }
+        if (Math.random() < 0.03) spawnCoin.call(this);
+
+        obstacles.getChildren().forEach(o=>{ if (o.x < this.cameras.main.scrollX - 200) o.destroy(); });
+        coins.getChildren().forEach(c=>{ if (c.x < this.cameras.main.scrollX - 200) c.destroy(); });
+
+        if (player.body.blocked.down) player.canJump = true;
+        if (Phaser.Input.Keyboard.JustDown(cursors.up)) jump.call(this);
+        score += move * 0.06;
+        scoreText.setText('Score: ' + Math.floor(score));
+      }
+
+      function jump(){ if (!player.canJump) return; player.setVelocityY(-620); player.canJump=false; this.sound.play('jump',{volume:0.2}); }
+
+      function spawnObstacle(){ const x = this.cameras.main.scrollX + this.scale.width + 80; const y = this.scale.height - 120; const o = obstacles.create(x,y,'obstacle').setOrigin(0.5,1).setScale(0.9); o.body.setImmovable(true); o.body.setVelocityX(-speed); }
+
+      function spawnCoin(){ const x = this.cameras.main.scrollX + this.scale.width + 100 + Math.random()*200; const y = this.scale.height - 220 - Math.random()*120; const c = coins.create(x,y,'coin').setScale(0.9); c.body.setAllowGravity(false); c.body.setVelocityX(-speed); c.play('coinspin'); }
+
+      function hitObstacle(player,o){ this.physics.pause(); const cx = this.cameras.main.scrollX + this.scale.width/2; const cy = this.scale.height/2; this.add.text(cx,cy-24,'Game Over',{font:'40px Arial', fill:'#fff'}).setOrigin(0.5); this.add.text(cx,cy+24,'Tap to Restart',{font:'18px Arial', fill:'#fff'}).setOrigin(0.5); this.input.once('pointerdown', ()=> window.location.reload()); }
+
+      function collectCoin(p,c){ c.destroy(); score += 35; }
+
+    } // end startGame
+  </script>
+</body>
+</html>
