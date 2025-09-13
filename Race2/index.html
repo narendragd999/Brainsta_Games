@@ -1,0 +1,263 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Polished Runner (Top-down)</title>
+<style>
+  html,body{height:100%;margin:0;background:#7ec0ee;overflow:hidden;font-family:Arial,Helvetica,sans-serif;}
+  #gameCanvas{display:block;margin:0 auto;background:#87CEEB;width:100%;height:100vh;}
+  #hud{position:fixed;left:12px;top:12px;color:#fff;z-index:40;text-shadow:1px 1px 2px #000;}
+  #modeBtn{position:fixed;right:12px;top:12px;padding:8px 12px;border-radius:8px;border:none;background:#ffcc00;font-weight:bold;z-index:40;cursor:pointer;}
+  #info{position:fixed;left:12px;top:44px;color:#fff;z-index:40;text-shadow:1px 1px 2px #000;}
+</style>
+</head><body>
+<canvas id="gameCanvas"></canvas>
+<div id="hud">Score: <span id="score">0</span>  Coins: <span id="coins">0</span></div>
+<button id="modeBtn">Mode: Scooter</button>
+<div id="info">Swipe anywhere (left/right) or use arrow keys. Tap mode to switch.</div>
+<script>
+// --- Setup ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = canvas.width = window.innerWidth;
+let H = canvas.height = window.innerHeight;
+window.addEventListener('resize', ()=>{ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; });
+
+const lanes = 3;
+let playerLane = 1, targetLane = 1;
+let laneX = i => (W*0.2 + i*(W*0.6/(lanes-1))); // map lane to x (spread across center 60%)
+let score = 0, coins = 0;
+let speed = 3.5;
+let gameOver = false;
+let mode = 'scooter'; // or car
+
+// assets loading
+const assets = {};
+const loadImg = (k,src)=>{ const img=new Image(); img.src=src; assets[k]=img; };
+loadImg('bg','assets/bg.png');
+loadImg('road','assets/road.png');
+loadImg('scooter','assets/scooter.png');
+loadImg('car','assets/car.png');
+loadImg('truck','assets/truck.png');
+loadImg('coin','assets/coin.png');
+loadImg('crash','assets/crash.png');
+
+// sounds (HTMLAudio, will use playbackRate to simulate pitch)
+const sounds = {};
+const loadSound = (k,src)=>{ const a = new Audio(src); a.preload='auto'; a.loop=false; sounds[k]=a; };
+loadSound('coin','assets/coin.wav');
+loadSound('crash','assets/crash.wav');
+loadSound('engine_scooter','assets/engine_scooter.wav');
+loadSound('engine_car','assets/engine_car.wav');
+loadSound('truck_rumble','assets/truck_rumble.wav');
+
+// play engine loop
+let engineAudio = null;
+function startEngineFor(modeName){
+  try{
+    if(engineAudio){ engineAudio.pause(); engineAudio.currentTime=0; }
+    engineAudio = (modeName==='scooter')? sounds['engine_scooter'] : sounds['engine_car'];
+    engineAudio.loop = true; engineAudio.volume = 0.45; engineAudio.play().catch(()=>{});
+  }catch(e){}
+}
+startEngineFor(mode);
+
+// game objects
+let obstacles = []; // {lane, y, type:'truck'/'car', speed}
+let coinObjs = []; // {lane, y}
+let spawnTimer = 0;
+let coinSpawnTimer = 0;
+let difficultyTimer = 0;
+let truckProbability = 0.25; // start with low truck probability
+
+function spawnObstacle(){
+  const isTruck = Math.random() < truckProbability;
+  const lane = Math.floor(Math.random()*lanes);
+  const type = isTruck ? 'truck' : 'car';
+  obstacles.push({lane:lane, y:-120, type:type, speed: speed + (isTruck?0.5:0)});
+}
+
+function spawnCoin(){
+  const lane = Math.floor(Math.random()*lanes);
+  coinObjs.push({lane:lane, y:-80});
+}
+
+// dynamic spawning logic
+function updateSpawning(dt){
+  spawnTimer -= dt;
+  coinSpawnTimer -= dt;
+  difficultyTimer += dt;
+  if(spawnTimer <= 0){
+    spawnTimer = 900 - Math.max(0, score/8); // spawn faster as score increases
+    // ensure at least some spacing
+    if(spawnTimer < 300) spawnTimer = 300;
+    // spawn 1 obstacle (sometimes 2 at higher difficulty)
+    spawnObstacle();
+    if(Math.random() < Math.min(0.3, score/2000)) spawnObstacle();
+  }
+  if(coinSpawnTimer <= 0){
+    coinSpawnTimer = 1200 + Math.random()*800;
+    spawnCoin();
+  }
+  // gradually increase truck probability with time/score
+  truckProbability = 0.25 + Math.min(0.6, score/3000);
+  // increase base speed gradually
+  speed += 0.00005 * dt;
+}
+
+// Input: full-screen swipe mapping
+let isTouching=false; let lastTouchX=0;
+window.addEventListener('touchstart', e=>{ isTouching=true; lastTouchX = e.touches[0].clientX; });
+window.addEventListener('touchmove', e=>{ if(!isTouching) return; const x = e.touches[0].clientX; const percent = x / window.innerWidth; targetLane = Math.floor(percent * lanes); if(targetLane<0) targetLane=0; if(targetLane>lanes-1) targetLane=lanes-1; lastTouchX=x; });
+window.addEventListener('touchend', e=>{ isTouching=false; lastTouchX=0; });
+// mouse for desktop
+window.addEventListener('mousedown', e=>{ isTouching=true; lastTouchX=e.clientX; });
+window.addEventListener('mousemove', e=>{ if(!isTouching) return; const percent = e.clientX / window.innerWidth; targetLane = Math.floor(percent * lanes); });
+window.addEventListener('mouseup', e=>{ isTouching=false; });
+
+// keyboard
+window.addEventListener('keydown', e=>{
+  if(e.key==='ArrowLeft') targetLane = Math.max(0, targetLane-1);
+  if(e.key==='ArrowRight') targetLane = Math.min(lanes-1, targetLane+1);
+  if(e.key==='r' && gameOver) restart();
+});
+
+// collision helpers
+function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
+  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
+}
+
+// main update loop
+let last = performance.now();
+function update(){
+  const now = performance.now();
+  const dt = now - last; last = now;
+  if(gameOver) { requestAnimationFrame(update); return; }
+  score += Math.floor(dt/16); // roughly +1 per frame
+  // update spawn logic
+  updateSpawning(dt);
+  // update obstacles
+  for(let i=obstacles.length-1;i>=0;i--){
+    obstacles[i].y += obstacles[i].speed * (dt/16) * 4;
+    if(obstacles[i].y > H + 200) obstacles.splice(i,1);
+  }
+  // update coins
+  for(let i=coinObjs.length-1;i>=0;i--){
+    coinObjs[i].y += speed * (dt/16) * 4;
+    if(coinObjs[i].y > H + 120) coinObjs.splice(i,1);
+  }
+  // move player lane smoothly (interpolation)
+  const currentX = laneX(playerLane);
+  const targetX = laneX(targetLane);
+  const interp = 0.18; // smoothing factor
+  const newX = currentX + (targetX - currentX) * Math.min(1, interp * (dt/16));
+  // determine approximate lane position for collision by rounding newX to nearest lane index
+  // (but keep playerLane numeric for drawing smoothness)
+  playerLane = newX < laneX(0) + (laneX(1)-laneX(0))/2 ? 0 : (newX < laneX(1) + (laneX(2)-laneX(1))/2 ? 1 : 2);
+  // collisions: check obstacles overlapping player's near y
+  const playerY = H - 140;
+  const playerW = 100, playerH = 120;
+  for(let i=obstacles.length-1;i>=0;i--){
+    const o = obstacles[i];
+    const ox = laneX(o.lane) - 40, oy = o.y, ow = 80, oh = 120;
+    // collision threshold when obstacle close to player's Y
+    if(oy > playerY - 100 && oy < playerY + 40 && Math.abs(o.lane - targetLane) < 0.6){
+      // collision
+      sounds['crash'].play().catch(()=>{});
+      gameOver = true;
+      // stop engine
+      try{ if(engineAudio){ engineAudio.pause(); engineAudio.currentTime=0; } }catch(e){}
+    }
+  }
+  // coin collection
+  for(let i=coinObjs.length-1;i>=0;i--){
+    const c = coinObjs[i];
+    if(c.y > playerY - 60 && c.y < playerY + 40 && Math.abs(c.lane - targetLane) < 0.6){
+      coins += 1;
+      sounds['coin'].currentTime = 0; sounds['coin'].play().catch(()=>{});
+      coinObjs.splice(i,1);
+    }
+  }
+  // Update HUD and engine pitch based on speed
+  document.getElementById('score').innerText = score;
+  document.getElementById('coins').innerText = coins;
+  // engine pitch simulate by changing playbackRate based on score/speed
+  try{
+    if(engineAudio){ engineAudio.playbackRate = 1 + Math.min(0.8, score/4000); }
+  }catch(e){}
+  requestAnimationFrame(update);
+}
+
+// drawing
+function draw(){
+  requestAnimationFrame(draw);
+  // background fill
+  ctx.clearRect(0,0,W,H);
+  // draw bg scaled to canvas width
+  if(assets.bg && assets.bg.complete) ctx.drawImage(assets.bg, 0, H-300, W, 300);
+  // draw road centered
+  const roadW = W*0.6, roadH = H;
+  // draw road by scaling the road image
+  if(assets.road && assets.road.complete) ctx.drawImage(assets.road, (W-roadW)/2, 0, roadW, roadH);
+  // draw coins and obstacles (sorted by y for simple depth)
+  const allObjs = obstacles.concat(coinObjs).sort((a,b)=>a.y - b.y);
+  for(let o of allObjs){
+    const x = laneX(o.lane), y = o.y;
+    if(o.type){
+      const img = assets[o.type];
+      if(img && img.complete) ctx.drawImage(img, x-40, y, 80, 120);
+    } else {
+      const img = assets['coin'];
+      if(img && img.complete) ctx.drawImage(img, x-20, y, 40, 40);
+    }
+  }
+  // draw player at bottom (mode sprite)
+  const drawX = laneX(targetLane), drawY = H - 140;
+  const playerImg = (mode==='scooter') ? assets['scooter'] : assets['car'];
+  if(playerImg && playerImg.complete) ctx.drawImage(playerImg, drawX-50, drawY-90, 100, 140);
+  // game over overlay
+  if(gameOver){
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='white'; ctx.font='48px sans-serif'; ctx.fillText('GAME OVER', W/2-140, H/2);
+    ctx.font='20px sans-serif'; ctx.fillText('Tap to restart', W/2-70, H/2+40);
+  }
+}
+
+// main loop start
+draw();
+update();
+
+// spawn timers handled via timeouts for responsiveness
+setInterval(()=>{ if(!gameOver) spawnObstacle(); }, 900);
+setInterval(()=>{ if(!gameOver) spawnCoin(); }, 1400);
+
+// mode switch button
+const modeBtn = document.createElement('button');
+modeBtn.style.position='fixed'; modeBtn.style.right='12px'; modeBtn.style.top='12px';
+modeBtn.style.padding='8px 12px'; modeBtn.style.borderRadius='8px'; modeBtn.style.border='none';
+modeBtn.style.background='#ffcc00'; modeBtn.style.fontWeight='bold'; modeBtn.innerText='Mode: Scooter';
+document.body.appendChild(modeBtn);
+modeBtn.onclick = ()=>{
+  mode = (mode==='scooter') ? 'car' : 'scooter';
+  modeBtn.innerText = 'Mode: ' + (mode==='scooter' ? 'Scooter' : 'Car');
+  // start appropriate engine sound
+  try{ if(engineAudio){ engineAudio.pause(); engineAudio.currentTime=0; } startEngineFor(mode); }catch(e){}
+};
+
+// restart on tap if gameOver
+canvas.addEventListener('click', ()=>{ if(gameOver){ restart(); } });
+function restart(){
+  obstacles=[]; coinObjs=[]; score=0; coins=0; speed=3.5; gameOver=false; targetLane=1; startEngineFor(mode);
+}
+
+// ensure engine function defined in global context (uses sounds)
+function startEngineFor(modeName){
+  try{
+    if(window.currentEngine){ window.currentEngine.pause(); window.currentEngine.currentTime=0; }
+    const a = (modeName==='scooter') ? sounds['engine_scooter'] : sounds['engine_car'];
+    a.loop = true; a.volume = 0.45; a.play().catch(()=>{});
+    window.currentEngine = a;
+  }catch(e){}
+}
+startEngineFor(mode);
+
+</script>
+</body></html>
