@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Scooter Runner</title>
+<style>
+  html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:#b3e5fc;}
+  #gameCanvas{display:block;margin:0 auto;background:linear-gradient(#87CEEB,#87CEEB);width:100%;height:100vh;}
+  #hud{position:fixed;left:10px;top:10px;z-index:20;color:#fff;font-weight:bold;text-shadow:1px 1px 2px #000; }
+  #instructions{position:fixed;left:50%;transform:translateX(-50%);top:20px;color:#fff;font-weight:bold;z-index:20;text-shadow:1px 1px 2px #000;}
+  #touchbar{position:fixed;left:50%;transform:translateX(-50%);bottom:60px;width:60%;height:18px;background:rgba(0,0,0,0.25);border-radius:10px;z-index:20;}
+  #thumb{position:absolute;top:-6px;width:30px;height:30px;border-radius:50%;background:#fbf3b2;border:3px solid #222;right:0;box-shadow:0 2px 6px rgba(0,0,0,0.4);}
+</style>
+</head><body>
+<div id="hud">Score: <span id="score">0</span></div>
+<div id="instructions">HOLD AND SWIPE TO MOVE</div>
+<div id="touchbar"><div id="thumb"></div></div>
+<canvas id="gameCanvas"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = canvas.width = window.innerWidth;
+let H = canvas.height = window.innerHeight;
+window.addEventListener('resize', ()=>{W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;});
+
+const assets = {};
+function loadAssets(done){
+  const list = [
+    {name:'scooter', src:'assets/scooter_hd.png'},
+    {name:'truck', src:'assets/truck_hd.png'},
+    {name:'car', src:'assets/car_hd.png'},
+    {name:'palm', src:'assets/palm_hd.png'},
+    {name:'bg', src:'assets/bgstrip_hd.png'}
+  ];
+  let loaded=0;
+  list.forEach(it=>{
+    const img=new Image();
+    img.onload = ()=>{ assets[it.name]=img; loaded++; if(loaded===list.length) done(); };
+    img.src = it.src;
+  });
+}
+
+const lanes = 3;
+let player = { lane:1, width:110, height:110 };
+let obstacles = [];
+let spawnTimer = 0;
+let score = 0;
+let speed = 6;
+let running = true;
+let thumb = document.getElementById('thumb');
+let scoreEl = document.getElementById('score');
+
+function reset(){
+  obstacles = [];
+  spawnTimer = 0;
+  score = 0;
+  speed = 6;
+  player.lane = 1;
+  scoreEl.textContent = score;
+}
+
+function worldToScreenLane(i){
+  const roadW = W * 0.6;
+  const left = (W - roadW)/2;
+  return left + (i+0.5)*(roadW/lanes);
+}
+
+function spawnObstacle(){
+  const type = Math.random() < 0.6 ? 'car':'truck';
+  const lane = Math.floor(Math.random()*lanes);
+  const img = assets[type];
+  obstacles.push({type:type, lane:lane, y:-250, x: worldToScreenLane(lane), img:img, w: img.width*0.18, h: img.height*0.18});
+}
+
+function update(dt){
+  if(!running) return;
+  spawnTimer -= dt;
+  if(spawnTimer<=0){
+    spawnTimer = 600 + Math.random()*700;
+    spawnObstacle();
+  }
+  obstacles.forEach(o=>{ o.y += speed * (dt/16); });
+  obstacles = obstacles.filter(o=> o.y < H + 300);
+  obstacles.forEach(o=>{
+    const px = worldToScreenLane(player.lane);
+    const py = H - 200;
+    const pw = player.width;
+    const ph = player.height;
+    const ox = o.x - o.w/2;
+    const oy = o.y;
+    if(px + pw*0.2 < ox + o.w*0.7 && px + pw*0.8 > ox && py < oy + o.h*0.8 && py + ph*0.3 > oy){
+      running=false;
+      document.getElementById('instructions').textContent = 'GAME OVER - Tap to Restart';
+    }
+  });
+  score += Math.floor(dt/16);
+  scoreEl.textContent = score;
+  speed += 0.0006 * dt;
+}
+
+function drawRoad(){
+  const bg = assets.bg;
+  if(bg) ctx.drawImage(bg, 0, H-360, W, 360);
+  const roadW = W*0.6;
+  const left = (W-roadW)/2;
+  ctx.fillStyle = '#6b6b6b'; ctx.fillRect(left,0,roadW,H);
+  ctx.fillStyle = '#dcdcdc'; ctx.fillRect(left-40,0,40,H); ctx.fillRect(left+roadW,0,40,H);
+  ctx.fillStyle = '#f7e22b';
+  const cx = left + roadW/2 - 10;
+  for(let y=0;y<H;y+=40){ ctx.fillRect(cx, y+((performance.now()/30)%40), 6, 24); ctx.fillRect(cx+20, y+((performance.now()/30)%40), 6, 24); }
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawRoad();
+  const p = assets.palm;
+  if(p){
+    const step = Math.max(120, Math.floor(W/6));
+    for(let i=0;i<6;i++){
+      ctx.drawImage(p, 10 + i*step, H-300, p.width*0.25, p.height*0.25);
+      ctx.drawImage(p, W-130 - i*step, H-300, p.width*0.25, p.height*0.25);
+    }
+  }
+  obstacles.forEach(o=>{
+    ctx.save();
+    const sx = o.x - o.w/2;
+    ctx.drawImage(o.img, sx, o.y, o.w, o.h);
+    ctx.restore();
+  });
+  const px = worldToScreenLane(player.lane);
+  const playerX = px - player.width/2;
+  const playerY = H - 180;
+  ctx.drawImage(assets.scooter, playerX, playerY, player.width, player.height);
+}
+
+let last = performance.now();
+function loop(now){
+  const dt = now - last;
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loadAssets(()=>{ reset(); requestAnimationFrame(loop); });
+
+window.addEventListener('keydown', (e)=>{
+  if(e.key === 'ArrowLeft'){ player.lane = Math.max(0, player.lane-1); moveThumbToLane(); }
+  if(e.key === 'ArrowRight'){ player.lane = Math.min(lanes-1, player.lane+1); moveThumbToLane(); }
+  if(!running && (e.key===' '||e.key==='Enter')){ running=true; reset(); document.getElementById('instructions').textContent='HOLD AND SWIPE TO MOVE'; }
+});
+
+const touchbar = document.getElementById('touchbar');
+let dragging = false;
+touchbar.addEventListener('touchstart', (ev)=>{ ev.preventDefault(); dragging=true; });
+touchbar.addEventListener('touchmove', (ev)=>{ ev.preventDefault(); if(!dragging) return; const t = ev.touches[0]; handleSwipe(t.clientX); });
+touchbar.addEventListener('touchend', (ev)=>{ ev.preventDefault(); dragging=false; });
+
+touchbar.addEventListener('mousedown', (ev)=>{ dragging=true; });
+window.addEventListener('mousemove', (ev)=>{ if(dragging){ handleSwipe(ev.clientX); } });
+window.addEventListener('mouseup', ()=>{ dragging=false; });
+
+function handleSwipe(clientX){
+  const rect = touchbar.getBoundingClientRect();
+  const rel = Math.min(rect.width, Math.max(0, clientX - rect.left));
+  const percent = rel / rect.width;
+  const lane = Math.floor(percent * lanes);
+  player.lane = Math.max(0, Math.min(lanes-1, lane));
+  moveThumbToLane();
+}
+
+function moveThumbToLane(){
+  const rect = touchbar.getBoundingClientRect();
+  const percent = (player.lane + 0.5)/lanes;
+  const pos = Math.max(6, percent * rect.width - 15);
+  thumb.style.left = pos + 'px';
+}
+
+canvas.addEventListener('click', ()=>{
+  if(!running){ running=true; reset(); document.getElementById('instructions').textContent='HOLD AND SWIPE TO MOVE'; }
+});
+setTimeout(moveThumbToLane, 200);
+</script></body></html>
