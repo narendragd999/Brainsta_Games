@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><title>Warship Defense — PRO</title><link rel="stylesheet" href="styles.css"/></head>
+<body>
+<div id="game-wrap">
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div id="score">Score: <span id="score-val">0</span></div>
+    <div id="hp">HP: <span id="hp-val">100</span></div>
+    <div id="weapon">Weapon: <span id="weapon-val">Primary</span></div>
+  </div>
+  <div id="controls-ui">
+    <div id="left-joystick" class="joystick"><div class="stick"></div></div>
+    <button id="fire-btn" class="action-btn">Shoot</button>
+    <button id="switch-btn" class="switch-btn">Switch</button>
+    <button id="start" class="ui-btn">Start</button>
+  </div>
+  <div id="overlay" class="overlay-visible"><div id="overlay-inner"><h1>Warship Defense — PRO</h1><p>Left joystick to move — shoot and switch weapons. High quality visuals & multiple enemy types.</p><button id="start2" class="ui-btn">Start Game</button></div></div>
+</div>
+<script src="game.js"></script>
+</body></html>
