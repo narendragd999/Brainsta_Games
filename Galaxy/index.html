@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Pulse Strike — Mobile Ultra (v2)</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="game-wrap">
+  <canvas id="game"></canvas>
+
+  <!-- Mobile Controls -->
+  <div id="controls-ui" class="mobile">
+    <div id="left-joystick" class="joystick" aria-label="Move">
+      <div class="stick"></div>
+    </div>
+    <button id="fire-btn" class="action-btn" aria-label="Shoot">Shoot</button>
+    <div id="top-tools">
+      <button id="start" class="ui-btn">Start</button>
+      <button id="mute" class="ui-btn">🔊</button>
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay-visible" role="dialog" aria-modal="true">
+    <div id="overlay-inner">
+      <h1 id="title">Pulse Strike — Mobile Ultra</h1>
+      <p id="subtitle">Touch-optimized — joystick (left) to move, button (right) to shoot. Press Start.</p>
+      <div class="btn-row">
+        <button id="start2" class="ui-btn">Start Game</button>
+        <button id="download" class="ui-btn">Download ZIP</button>
+      </div>
+      <p class="hint">Rotate to landscape for the best experience.</p>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
