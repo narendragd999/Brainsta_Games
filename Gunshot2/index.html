@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pulse Strike — Action Canvas Game</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="game-wrap">
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div id="score">Score: <span id="score-val">0</span></div>
+    <div id="hp">HP: <span id="hp-val">100</span></div>
+    <div id="controls">WASD / Arrow keys to move — Mouse to aim — Click to shoot — Touch: tap to shoot & drag to move</div>
+  </div>
+  <div id="overlay" class="hidden">
+    <div id="overlay-inner">
+      <h1 id="title">Pulse Strike</h1>
+      <p id="subtitle">A high-visual action demo — press <strong>Enter</strong> to start</p>
+      <button id="start">Start Game</button>
+      <button id="download">Download ZIP</button>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
