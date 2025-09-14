@@ -1,0 +1,21 @@
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#game-wrap{height:100%}
+body{background:#0b0f1a;color:#e6eef8;font-family:Inter,Segoe UI,system-ui,Arial,Helvetica,sans-serif;display:flex;align-items:center;justify-content:center}
+#game-wrap{position:relative;width:100%;height:100vh;overflow:hidden;background:linear-gradient(180deg,#071122 0%, #07101a 50%, #001018 100%);display:flex;align-items:center;justify-content:center}
+canvas{display:block;max-width:100%;height:auto;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
+#hud{position:absolute;left:12px;top:12px;backdrop-filter: blur(4px);padding:10px 12px;border-radius:10px;background:rgba(0,0,0,0.18);color:#d8f0ff;font-weight:600;display:flex;flex-direction:column;gap:6px}
+#controls{font-weight:400;font-size:12px;color:#cfe8ff}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(0,0,0,0.35),rgba(0,0,0,0.6))}
+#overlay.hidden{display:none}
+#overlay-inner{background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02));padding:28px;border-radius:14px;text-align:center;backdrop-filter:blur(6px);box-shadow:0 12px 30px rgba(0,0,0,0.6);max-width:520px}
+#title{font-size:28px;margin-bottom:6px;color:#fff;letter-spacing:0.6px}
+#subtitle{color:#cfe8ff;opacity:0.9;margin-bottom:16px}
+#start,#download{cursor:pointer;padding:10px 14px;border-radius:10px;border:0;background:linear-gradient(90deg,#1fd6ff,#0066ff);color:#02121b;font-weight:700;margin:6px}
+#download{background:linear-gradient(90deg,#ffd76b,#ff6b6b);color:#2b0d00}
+#score{font-size:14px}
+#hp{font-size:14px}
+@media (max-width:700px){
+  #hud{left:8px;top:8px;padding:8px 10px}
+  #overlay-inner{width:92vw;padding:18px}
+}
