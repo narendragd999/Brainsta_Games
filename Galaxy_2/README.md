@@ -1,0 +1,1 @@
+Warship Defense — PRO\nFeatures:\n- Warship + 3 alien types\n- Multiple weapons (Primary, Spread, Radial, Omni)\n- Weapon switch, score, HP, particles, sounds\nOpen index.html in Chrome (mobile) and rotate to landscape for best results.
