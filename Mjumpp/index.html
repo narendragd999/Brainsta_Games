@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Monkey Swing — Cut & Connect (v5)</title>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div id="game-wrap">
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div id="score">Score: <span id="score-val">0</span></div>
+    <div id="instr">Tap a rope handle to <strong>cut</strong> it — enter the glowing circle to auto-connect to the next rope.</div>
+  </div>
+  <div id="overlay" class="overlay-visible">
+    <div id="overlay-inner"><h1>Monkey Swing — Cut & Connect</h1><p class="sub">Cut ropes with a tap. When the monkey enters a glowing circle, the next rope auto-attaches. Use cuts to move forward. Press Start.</p><button id="start" class="btn">Start</button></div>
+  </div>
+</div>
+<button id="swing-btn" aria-label="Swing">Swing</button>
+<script src="game.js"></script>
+</body>
+</html>
