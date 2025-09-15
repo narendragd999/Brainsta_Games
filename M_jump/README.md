@@ -1,0 +1,1 @@
+Monkey Swing — Tap to release and try to land on the next rope. Funny visuals and smooth animation.
