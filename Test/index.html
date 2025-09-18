@@ -1,33 +1,23 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Super Funny Pop — Click & Laugh</title>
-<link rel="stylesheet" href="style.css" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Monkey Swing — Cut & Connect (v5)</title>
+<link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-<div class="container">
-  <div class="card">
-    <div class="header">
-      <h1>Super Funny Pop</h1>
-      <div class="tag">Click the character — laugh out loud!</div>
-    </div>
-    <div class="canvasWrap">
-      <canvas id="gameCanvas"></canvas>
-    </div>
-    <div class="controls">
-      <div class="left">
-        <button id="startBtn" class="btn">Tap to Start</button>
-        <button id="muteBtn" class="small">Mute</button>
-        <button id="shareBtn" class="small">Share</button>
-      </div>
-      <div class="right">
-        <div class="score">Score: <span id="score">0</span></div>
-      </div>
-    </div>
+<div id="game-wrap">
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div id="score">Score: <span id="score-val">0</span></div>
+    <div id="instr">Tap a rope handle to <strong>cut</strong> it — enter the glowing circle to auto-connect to the next rope.</div>
+  </div>
+  <div id="overlay" class="overlay-visible">
+    <div id="overlay-inner"><h1>Monkey Swing — Cut & Connect</h1><p class="sub">Cut ropes with a tap. When the monkey enters a glowing circle, the next rope auto-attaches. Use cuts to move forward. Press Start.</p><button id="start" class="btn">Start</button></div>
   </div>
 </div>
-<script src="main.js"></script>
+<button id="swing-btn" aria-label="Swing">Swing</button>
+<script src="game.js"></script>
 </body>
 </html>
