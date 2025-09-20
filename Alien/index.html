@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Aliens Platformer 2D — Mobile</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="card topbar">
+    <div class="title">Aliens Platformer 2D</div>
+    <div class="level">Level <span id="level">1</span>/10</div>
+  </header>
+
+  <main class="game card">
+    <canvas id="gameCanvas"></canvas>
+    <div id="overlay" class="overlay hidden"><div class="loader"></div></div>
+  </main>
+
+  <nav class="controls card">
+    <div class="left-controls">
+      <button id="leftBtn" class="btn small">◀</button>
+      <button id="jumpBtn" class="btn">Jump</button>
+      <button id="rightBtn" class="btn small">▶</button>
+    </div>
+    <div class="right-controls">
+      <button id="restartBtn" class="btn secondary">Restart</button>
+      <button id="nextBtn" class="btn primary">Next</button>
+    </div>
+  </nav>
+
+  <footer class="card footer"><small>Touch controls or use keyboard (A/D or ←/→ to move, W / Space to jump)</small></footer>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
