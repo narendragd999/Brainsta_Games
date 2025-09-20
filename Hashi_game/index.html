@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Hashi — Bridges (Mobile)</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="title">Hashi — Bridges</div>
+    <div class="controls">
+      <button id="prevBtn" class="btn secondary">Prev</button>
+      <div class="level-label">Level <span id="levelNum">1</span>/10</div>
+      <button id="nextBtn" class="btn primary">Next</button>
+    </div>
+  </header>
+
+  <main id="gameWrap">
+    <div id="boardContainer">
+      <canvas id="board"></canvas>
+    </div>
+
+    <div class="uiRow">
+      <button id="hintBtn" class="btn secondary small">Hint</button>
+      <button id="resetBtn" class="btn primary small">Reset</button>
+      <div id="message" class="card small">Draw bridges between islands to match numbers.</div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="tiny">Smooth animations • Responsive • Audio feedback</div>
+  </footer>
+</div>
+
+<!-- Modal -->
+<div id="overlay" class="overlay hidden">
+  <div class="modal card">
+    <h3 id="modalTitle">Level Complete</h3>
+    <p id="modalText">Great job — move to the next level.</p>
+    <div class="modalActions">
+      <button id="modalNext" class="btn primary">Next Level</button>
+      <button id="modalClose" class="btn secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
