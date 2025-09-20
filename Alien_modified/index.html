@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Aliens Platformer 2D — Themed</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app">
+  <header class="topbar card">
+    <div class="title">Aliens Platformer 2D</div>
+    <div class="level-ind">Level <span id="level">1</span>/10</div>
+  </header>
+
+  <main class="game card">
+    <canvas id="gameCanvas" role="img" aria-label="Game canvas"></canvas>
+    <div id="overlay" class="overlay hidden"><div class="loader"></div></div>
+  </main>
+
+  <nav class="controls card">
+    <div class="left">
+      <button id="btnLeft" class="btn small control" aria-label="Left">◀</button>
+      <button id="btnJump" class="btn primary control" aria-label="Jump">Jump</button>
+      <button id="btnRight" class="btn small control" aria-label="Right">▶</button>
+    </div>
+    <div class="right">
+      <button id="btnRestart" class="btn secondary small">Restart</button>
+      <button id="btnHint" class="btn secondary small">Hint</button>
+      <button id="btnSlow" class="btn secondary small">Slow</button>
+      <button id="btnNext" class="btn primary small">Next</button>
+    </div>
+  </nav>
+
+  <div class="card footer">
+    <small>Touch: drag the player or use buttons. Keyboard: ← → / A D, jump with W or Space.</small>
+  </div>
+</div>
+
+<!-- Inline simple icons (flaticons feel) -->
+<svg id="icons" style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="icon-star" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.431L23 9.748l-5.5 5.357L18.334 24 12 20.201 5.666 24 6.5 15.105 1 9.748l7.332-1.73z"/></symbol>
+  <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M12 21s-7-4.534-9-7.018C-1 9.5 3 4 7 6c2 1 2 3 5 3s3-2 5-3c4-2 8 3-4 7.982C19 16.466 12 21 12 21z"/></symbol>
+</svg>
+
+<script src="game.js"></script>
+</body>
+</html>
