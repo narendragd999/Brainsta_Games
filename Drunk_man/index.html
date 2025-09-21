@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D नशेड़ी रनर - Forward Walking Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Game Container -->
+    <div id="gameContainer" class="game-container">
+        
+        <!-- Instructions Icon & Popup -->
+        <div id="instructionsIcon" class="instructions-icon">❓</div>
+        
+        <div id="instructionsPopup" class="instructions-popup hidden">
+            <div class="popup-content">
+                <h3>गेम कैसे खेलें</h3>
+                <div class="instruction-item">
+                    <div class="icon">👈</div>
+                    <span>बाएं टैप करें = बाईं ओर संभलना</span>
+                </div>
+                <div class="instruction-item">
+                    <div class="icon">👉</div>
+                    <span>दाएं टैप करें = दाईं ओर संभलना</span>
+                </div>
+                <p class="objective">संतुलन बनाए रखें और दूर तक चलें!</p>
+                <button id="closeInstructions" class="btn btn--primary btn--sm">बंद करें</button>
+            </div>
+        </div>
+        
+        <!-- Start Screen -->
+        <div id="startScreen" class="start-screen">
+            <h1 class="game-title">🍺 3D नशेड़ी रनर 🍺</h1>
+            <div class="character-preview">
+                <div class="drunk-man-3d preview">
+                    <div class="head-3d">
+                        <div class="eyes-3d">
+                            <div class="eye-3d left"></div>
+                            <div class="eye-3d right"></div>
+                        </div>
+                        <div class="nose-3d"></div>
+                        <div class="mouth-3d"></div>
+                    </div>
+                    <div class="body-3d"></div>
+                    <div class="arms-3d">
+                        <div class="arm-3d left"></div>
+                        <div class="arm-3d right"></div>
+                    </div>
+                    <div class="legs-3d">
+                        <div class="leg-3d left"></div>
+                        <div class="leg-3d right"></div>
+                    </div>
+                </div>
+            </div>
+            <p class="instructions">आगे की तरफ चलते रहें और बाएं-दाएं टैप से संतुलन बनाएं</p>
+            <button id="startButton" class="btn btn--primary btn--lg">शुरू करें!</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="game-screen hidden">
+            <!-- Game UI -->
+            <div class="game-ui">
+                <div class="score-display">
+                    <span>स्कोर: <span id="currentScore">0</span></span>
+                    <span>बेस्ट: <span id="bestScore">0</span></span>
+                </div>
+            </div>
+
+            <!-- 3D Game World -->
+            <div class="game-world-3d">
+                <!-- Sky with Gradient -->
+                <div class="sky-3d"></div>
+                
+                <!-- Background Buildings -->
+                <div class="buildings-3d">
+                    <div class="building building-1"></div>
+                    <div class="building building-2"></div>
+                    <div class="building building-3"></div>
+                    <div class="building building-4"></div>
+                </div>
+                
+                <!-- Street Lights (3D perspective) -->
+                <div class="street-lights-3d">
+                    <div class="street-light-3d left">
+                        <div class="light-pole"></div>
+                        <div class="light-head"></div>
+                    </div>
+                    <div class="street-light-3d right">
+                        <div class="light-pole"></div>
+                        <div class="light-head"></div>
+                    </div>
+                </div>
+                
+                <!-- 3D Road with Perspective -->
+                <div class="road-3d">
+                    <div class="road-surface"></div>
+                    <div class="road-markings">
+                        <div class="center-line"></div>
+                        <div class="side-line left"></div>
+                        <div class="side-line right"></div>
+                    </div>
+                </div>
+                
+                <!-- Trees/Foliage on sides -->
+                <div class="foliage-3d">
+                    <div class="tree left">🌳</div>
+                    <div class="tree right">🌳</div>
+                    <div class="bush left">🌿</div>
+                    <div class="bush right">🌿</div>
+                </div>
+
+                <!-- Forward-Facing Character -->
+                <div id="drunkMan3D" class="drunk-man-3d">
+                    <div class="head-3d">
+                        <div class="eyes-3d">
+                            <div class="eye-3d left"></div>
+                            <div class="eye-3d right"></div>
+                        </div>
+                        <div class="nose-3d"></div>
+                        <div class="mouth-3d"></div>
+                    </div>
+                    <div class="body-3d">
+                        <div class="shirt-pattern"></div>
+                        <div class="tie"></div>
+                    </div>
+                    <div class="arms-3d">
+                        <div class="arm-3d left"></div>
+                        <div class="arm-3d right"></div>
+                    </div>
+                    <div class="legs-3d">
+                        <div class="leg-3d left"></div>
+                        <div class="leg-3d right"></div>
+                    </div>
+                </div>
+
+                <!-- Obstacles Container (3D perspective) -->
+                <div id="obstaclesContainer3D" class="obstacles-container-3d"></div>
+                
+                <!-- Particle Effects -->
+                <div id="particleContainer" class="particle-container"></div>
+            </div>
+
+            <!-- Touch Zones -->
+            <div class="touch-zones">
+                <div id="leftTouchZone" class="touch-zone left">
+                    <div class="touch-indicator">👈<br><span>बाएं</span></div>
+                </div>
+                <div id="rightTouchZone" class="touch-zone right">
+                    <div class="touch-indicator">👉<br><span>दाएं</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="game-over-screen hidden">
+            <h2 class="game-over-title">गिर गए! 😵</h2>
+            <p id="gameOverMessage" class="game-over-message">फिर से कोशिश करो!</p>
+            <div class="final-score">
+                <p>आपका स्कोर: <span id="finalScore">0</span></p>
+                <p>सबसे अच्छा: <span id="finalBestScore">0</span></p>
+            </div>
+            <button id="restartButton" class="btn btn--primary btn--lg">फिर से खेलें</button>
+        </div>
+        
+        <!-- Sound Indicator -->
+        <div id="soundIndicator" class="sound-indicator hidden"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
