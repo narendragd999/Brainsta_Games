@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodle Jump - Fixed Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            padding: 20px;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #game-canvas {
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FF);
+            display: block;
+        }
+        
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        
+        #high-score-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 18px;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        
+        #debug-info {
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            font-size: 14px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 10;
+            display: none;
+        }
+        
+        #controls-info {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+            font-size: 16px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        #start-screen, #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            z-index: 20;
+        }
+        
+        #game-over-screen {
+            display: none;
+        }
+        
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.5);
+            color: #FFD700;
+        }
+        
+        h2 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: #FF6347;
+        }
+        
+        p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        button {
+            padding: 12px 30px;
+            font-size: 20px;
+            background: linear-gradient(to bottom, #FF8C00, #FF4500);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            pointer-events: auto;
+            margin: 5px;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        #mobile-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
+            padding: 0 30px;
+            pointer-events: none;
+        }
+        
+        .mobile-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            color: white;
+            pointer-events: auto;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        @media (max-width: 500px) {
+            #game-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            #mobile-controls {
+                display: flex;
+            }
+            
+            #controls-info {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="400" height="600"></canvas>
+        
+        <div id="ui-container">
+            <div id="score-display">Score: 0</div>
+            <div id="high-score-display">High Score: 0</div>
+            <div id="debug-info">Debug Info</div>
+            
+            <div id="start-screen">
+                <h1>Doodle Jump</h1>
+                <p>Jump from platform to platform without falling!</p>
+                <p>Use LEFT and RIGHT arrows or A/D keys to move</p>
+                <button id="start-button">Start Game</button>
+                <button id="debug-toggle">Toggle Debug Info</button>
+            </div>
+            
+            <div id="game-over-screen">
+                <h2>Game Over!</h2>
+                <p id="final-score">Your score: 0</p>
+                <button id="restart-button">Play Again</button>
+                <button id="debug-toggle-2">Toggle Debug Info</button>
+            </div>
+            
+            <div id="controls-info">
+                Use LEFT/RIGHT arrows or A/D keys to move
+            </div>
+            
+            <div id="mobile-controls">
+                <div class="mobile-btn" id="left-btn">←</div>
+                <div class="mobile-btn" id="right-btn">→</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const highScoreDisplay = document.getElementById('high-score-display');
+        const debugInfo = document.getElementById('debug-info');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const debugToggle = document.getElementById('debug-toggle');
+        const debugToggle2 = document.getElementById('debug-toggle-2');
+        const leftBtn = document.getElementById('left-btn');
+        const rightBtn = document.getElementById('right-btn');
+
+        // Game constants
+        const GRAVITY = 0.5;
+        const JUMP_FORCE = -12;
+        const PLAYER_SPEED = 6;
+        const PLATFORM_WIDTH = 70;
+        const PLATFORM_HEIGHT = 15;
+        const PLATFORM_COUNT = 8;
+        const INITIAL_PLATFORM_SPACING = 100;
+
+        // Game state
+        let gameActive = false;
+        let score = 0;
+        let highScore = localStorage.getItem('doodleJumpHighScore') || 0;
+        let platforms = [];
+        let player;
+        let keys = {};
+        let scrollOffset = 0;
+        let cameraY = 0;
+        let showDebug = false;
+
+        // Platform types
+        const PLATFORM_TYPES = {
+            NORMAL: { color: '#2E8B57', bounce: JUMP_FORCE },
+            MOVING: { color: '#4682B4', bounce: JUMP_FORCE, moves: true },
+            BREAKABLE: { color: '#CD5C5C', bounce: JUMP_FORCE, breakable: true },
+            BOUNCY: { color: '#FFD700', bounce: JUMP_FORCE * 1.5 }
+        };
+
+        // Player class
+        class Player {
+            constructor() {
+                this.width = 40;
+                this.height = 40;
+                this.reset();
+            }
+            
+            reset() {
+                this.x = canvas.width / 2 - this.width / 2;
+                this.y = canvas.height - 150; // Start above the first platform
+                this.dx = 0;
+                this.dy = 0;
+                this.jumping = true;
+                this.facingRight = true;
+                this.onPlatform = false;
+            }
+            
+            update() {
+                // Apply gravity if not on a platform
+                if (this.jumping) {
+                    this.dy += GRAVITY;
+                }
+                
+                // Update position
+                this.x += this.dx;
+                this.y += this.dy;
+                
+                // Horizontal boundaries (wrap around)
+                if (this.x > canvas.width) {
+                    this.x = -this.width;
+                } else if (this.x < -this.width) {
+                    this.x = canvas.width;
+                }
+                
+                // Check if player is falling below the screen
+                if (this.y > canvas.height) {
+                    gameOver();
+                }
+            }
+            
+            draw() {
+                // Draw player as a simple character with face
+                ctx.fillStyle = '#FF6347';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Draw face
+                ctx.fillStyle = 'white';
+                ctx.fillRect(this.facingRight ? this.x + 25 : this.x + 5, this.y + 10, 10, 10);
+                
+                // Draw eyes
+                ctx.fillStyle = 'black';
+                ctx.fillRect(this.facingRight ? this.x + 28 : this.x + 8, this.y + 12, 4, 4);
+                
+                // Draw mouth (smile or straight based on jumping)
+                ctx.beginPath();
+                if (this.jumping) {
+                    ctx.moveTo(this.facingRight ? this.x + 25 : this.x + 15, this.y + 25);
+                    ctx.lineTo(this.facingRight ? this.x + 35 : this.x + 5, this.y + 25);
+                } else {
+                    ctx.arc(this.facingRight ? this.x + 30 : this.x + 10, this.y + 25, 5, 0, Math.PI);
+                }
+                ctx.stroke();
+                
+                // Draw debug info if enabled
+                if (showDebug) {
+                    ctx.strokeStyle = 'red';
+                    ctx.strokeRect(this.x, this.y, this.width, this.height);
+                }
+            }
+            
+            jump(force = JUMP_FORCE) {
+                this.dy = force;
+                this.jumping = true;
+                this.onPlatform = false;
+            }
+        }
+
+        // Platform class
+        class Platform {
+            constructor(x, y, type = 'NORMAL') {
+                this.x = x;
+                this.y = y;
+                this.width = PLATFORM_WIDTH;
+                this.height = PLATFORM_HEIGHT;
+                this.type = type;
+                this.properties = PLATFORM_TYPES[type];
+                this.dx = type === 'MOVING' ? (Math.random() > 0.5 ? 2 : -2) : 0;
+                this.breaking = false;
+                this.breakProgress = 0;
+                this.scored = false;
+            }
+            
+            update() {
+                // Move moving platforms
+                if (this.properties.moves) {
+                    this.x += this.dx;
+                    
+                    // Reverse direction at edges
+                    if (this.x <= 0 || this.x + this.width >= canvas.width) {
+                        this.dx *= -1;
+                    }
+                }
+                
+                // Handle breaking platforms
+                if (this.breaking) {
+                    this.breakProgress += 0.1;
+                    if (this.breakProgress >= 1) {
+                        this.y = -100; // Move off screen
+                    }
+                }
+            }
+            
+            draw() {
+                if (this.breaking) {
+                    // Draw breaking animation
+                    ctx.fillStyle = this.properties.color;
+                    ctx.globalAlpha = 1 - this.breakProgress;
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                    
+                    // Draw cracks
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 1 - this.breakProgress;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + this.width * 0.3, this.y);
+                    ctx.lineTo(this.x + this.width * 0.3, this.y + this.height);
+                    ctx.moveTo(this.x + this.width * 0.7, this.y);
+                    ctx.lineTo(this.x + this.width * 0.7, this.y + this.height);
+                    ctx.stroke();
+                    
+                    ctx.globalAlpha = 1;
+                } else {
+                    // Draw normal platform
+                    ctx.fillStyle = this.properties.color;
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                    
+                    // Draw pattern based on type
+                    if (this.type === 'BOUNCY') {
+                        ctx.fillStyle = 'white';
+                        for (let i = 0; i < 3; i++) {
+                            ctx.fillRect(this.x + 10 + i * 20, this.y + 5, 10, 5);
+                        }
+                    } else if (this.type === 'MOVING') {
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(this.x + 5, this.y + 5, 10, 5);
+                        ctx.fillRect(this.x + this.width - 15, this.y + 5, 10, 5);
+                    }
+                }
+                
+                // Draw debug info if enabled
+                if (showDebug) {
+                    ctx.strokeStyle = 'blue';
+                    ctx.strokeRect(this.x, this.y, this.width, this.height);
+                }
+            }
+        }
+
+        // Initialize game
+        function init() {
+            // Reset game state
+            gameActive = true;
+            score = 0;
+            scrollOffset = 0;
+            cameraY = 0;
+            platforms = [];
+            player = new Player();
+            
+            // Create initial platforms - ensure one is directly under the player
+            platforms.push(new Platform(
+                canvas.width / 2 - PLATFORM_WIDTH / 2,
+                canvas.height - 100,
+                'NORMAL'
+            ));
+            
+            // Create additional platforms
+            for (let i = 1; i < PLATFORM_COUNT; i++) {
+                let type = 'NORMAL';
+                // Randomly assign platform types (more variety as game progresses)
+                if (i > 3) {
+                    const rand = Math.random();
+                    if (rand < 0.1) type = 'BREAKABLE';
+                    else if (rand < 0.2) type = 'MOVING';
+                    else if (rand < 0.3) type = 'BOUNCY';
+                }
+                
+                platforms.push(new Platform(
+                    Math.random() * (canvas.width - PLATFORM_WIDTH),
+                    canvas.height - i * INITIAL_PLATFORM_SPACING - 100,
+                    type
+                ));
+            }
+            
+            // Update UI
+            scoreDisplay.textContent = `Score: ${score}`;
+            highScoreDisplay.textContent = `High Score: ${highScore}`;
+            
+            // Hide start screen, show game
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            
+            // Start game loop
+            gameLoop();
+        }
+
+        // Game loop
+        function gameLoop() {
+            if (!gameActive) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            drawBackground();
+            
+            // Update and draw platforms
+            platforms.forEach(platform => {
+                platform.update();
+                platform.draw();
+            });
+            
+            // Update and draw player
+            player.update();
+            player.draw();
+            
+            // Handle platform collisions
+            checkPlatformCollisions();
+            
+            // Handle camera scrolling
+            handleCameraScroll();
+            
+            // Update debug info
+            if (showDebug) {
+                debugInfo.innerHTML = `
+                    Player: (${Math.round(player.x)}, ${Math.round(player.y)})<br>
+                    Velocity: (${player.dx.toFixed(1)}, ${player.dy.toFixed(1)})<br>
+                    On Platform: ${player.onPlatform}<br>
+                    Camera Y: ${Math.round(cameraY)}<br>
+                    Platforms: ${platforms.length}
+                `;
+                debugInfo.style.display = 'block';
+            } else {
+                debugInfo.style.display = 'none';
+            }
+            
+            // Continue game loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Draw parallax background
+        function drawBackground() {
+            // Sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#E0F7FF');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Clouds (parallax effect)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            for (let i = 0; i < 5; i++) {
+                const cloudX = (i * 200 + scrollOffset * 0.2) % (canvas.width + 200) - 100;
+                const cloudY = 100 + i * 60;
+                drawCloud(cloudX, cloudY, 80, 40);
+            }
+        }
+
+        // Draw a cloud
+        function drawCloud(x, y, width, height) {
+            ctx.beginPath();
+            ctx.arc(x, y, height/2, Math.PI, Math.PI*2);
+            ctx.arc(x + width/3, y - height/4, height/2, Math.PI, Math.PI*2);
+            ctx.arc(x + width*2/3, y, height/2, Math.PI, Math.PI*2);
+            ctx.arc(x + width, y, height/2, Math.PI, Math.PI*2);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Check collisions between player and platforms
+        function checkPlatformCollisions() {
+            player.onPlatform = false;
+            
+            platforms.forEach(platform => {
+                // Check if player is above platform and falling
+                if (player.dy > 0 && 
+                    player.x < platform.x + platform.width &&
+                    player.x + player.width > platform.x &&
+                    player.y + player.height > platform.y &&
+                    player.y + player.height < platform.y + platform.height + 10) { // Added tolerance
+                    
+                    // Land on platform
+                    player.jumping = false;
+                    player.onPlatform = true;
+                    player.y = platform.y - player.height;
+                    player.jump(platform.properties.bounce);
+                    
+                    // Handle special platform types
+                    if (platform.type === 'BREAKABLE' && !platform.breaking) {
+                        platform.breaking = true;
+                    }
+                    
+                    // Add score if this is a new platform
+                    if (platform.y < cameraY && !platform.scored) {
+                        platform.scored = true;
+                        score += 10;
+                        scoreDisplay.textContent = `Score: ${score}`;
+                    }
+                }
+            });
+        }
+
+        // Handle camera scrolling when player reaches top of screen
+        function handleCameraScroll() {
+            // Scroll when player is above the middle of the screen
+            if (player.y < canvas.height / 3) {
+                const deltaY = canvas.height / 3 - player.y;
+                cameraY += deltaY;
+                scrollOffset += deltaY;
+                
+                // Move player down to simulate camera moving up
+                player.y += deltaY;
+                
+                // Move platforms down
+                platforms.forEach(platform => {
+                    platform.y += deltaY;
+                    
+                    // Replace platforms that go off screen
+                    if (platform.y > canvas.height) {
+                        platform.y = -PLATFORM_HEIGHT;
+                        platform.x = Math.random() * (canvas.width - PLATFORM_WIDTH);
+                        
+                        // Reset platform state
+                        platform.breaking = false;
+                        platform.breakProgress = 0;
+                        platform.scored = false;
+                        
+                        // Randomize platform type based on score
+                        const rand = Math.random();
+                        let type = 'NORMAL';
+                        if (score > 500 && rand < 0.15) {
+                            type = 'BREAKABLE';
+                        } else if (score > 300 && rand < 0.25) {
+                            type = 'MOVING';
+                        } else if (score > 200 && rand < 0.35) {
+                            type = 'BOUNCY';
+                        }
+                        platform.type = type;
+                        platform.properties = PLATFORM_TYPES[type];
+                        platform.dx = type === 'MOVING' ? (Math.random() > 0.5 ? 2 : -2) : 0;
+                    }
+                });
+            }
+        }
+
+        // Game over function
+        function gameOver() {
+            gameActive = false;
+            
+            // Update high score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('doodleJumpHighScore', highScore);
+                highScoreDisplay.textContent = `High Score: ${highScore}`;
+            }
+            
+            // Show game over screen
+            finalScoreDisplay.textContent = `Your score: ${score}`;
+            gameOverScreen.style.display = 'flex';
+        }
+
+        // Event listeners for keyboard controls
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            
+            // Update player direction
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                player.facingRight = true;
+                player.dx = PLAYER_SPEED;
+            } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                player.facingRight = false;
+                player.dx = -PLAYER_SPEED;
+            }
+            
+            // Restart game with spacebar
+            if (e.key === ' ' && !gameActive) {
+                init();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+            
+            // Stop horizontal movement when keys are released
+            if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && 
+                !(keys['ArrowLeft'] || keys['a'] || keys['A'])) {
+                player.dx = 0;
+            } else if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && 
+                       !(keys['ArrowRight'] || keys['d'] || keys['D'])) {
+                player.dx = 0;
+            }
+            
+            // If both keys are pressed, maintain direction
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                player.facingRight = true;
+                player.dx = PLAYER_SPEED;
+            } else if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                player.facingRight = false;
+                player.dx = -PLAYER_SPEED;
+            }
+        });
+
+        // Mobile controls
+        leftBtn.addEventListener('touchstart', () => {
+            player.facingRight = false;
+            player.dx = -PLAYER_SPEED;
+            leftBtn.touched = true;
+        });
+
+        leftBtn.addEventListener('touchend', () => {
+            leftBtn.touched = false;
+            if (!rightBtn.touched) player.dx = 0;
+        });
+
+        rightBtn.addEventListener('touchstart', () => {
+            player.facingRight = true;
+            player.dx = PLAYER_SPEED;
+            rightBtn.touched = true;
+        });
+
+        rightBtn.addEventListener('touchend', () => {
+            rightBtn.touched = false;
+            if (!leftBtn.touched) player.dx = 0;
+        });
+
+        // Prevent context menu on mobile
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // Button event listeners
+        startButton.addEventListener('click', init);
+        restartButton.addEventListener('click', init);
+        
+        // Debug toggle
+        debugToggle.addEventListener('click', () => {
+            showDebug = !showDebug;
+        });
+        
+        debugToggle2.addEventListener('click', () => {
+            showDebug = !showDebug;
+        });
+
+        // Initialize high score display
+        highScoreDisplay.textContent = `High Score: ${highScore}`;
+    </script>
+</body>
+</html>
