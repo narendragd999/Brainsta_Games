@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bottle Flip Challenge</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(to bottom, #6a11cb, #ffffff);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 400px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            height: 100%;
+            width: 100%;
+            text-align: center;
+        }
+
+        .active {
+            display: flex;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: #2c3e50;
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #555;
+            font-size: 1rem;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 50px;
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 140px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            box-shadow: 0 4px 0 #2980b9;
+        }
+
+        .btn-primary:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #2980b9;
+        }
+
+        .btn-secondary {
+            background: #6a11cb;
+            color: white;
+            box-shadow: 0 4px 0 #4d0a9c;
+        }
+
+        .btn-secondary:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #4d0a9c;
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .stat {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            flex: 1;
+            margin: 0 5px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #777;
+        }
+
+        #game-area {
+            width: 100%;
+            height: 60%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            margin: 10px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #bottle {
+            width: 30px;
+            height: 80px;
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            border-radius: 5px 5px 15px 15px;
+            position: relative;
+            transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            transform-origin: center bottom;
+        }
+
+        #bottle::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 5px;
+            width: 20px;
+            height: 15px;
+            background: #e74c3c;
+            border-radius: 5px 5px 0 0;
+        }
+
+        #bottle::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 12px;
+            width: 6px;
+            height: 10px;
+            background: #f1c40f;
+            border-radius: 3px;
+        }
+
+        #platform {
+            width: 120px;
+            height: 10px;
+            background: #7f8c8d;
+            border-radius: 5px;
+            position: absolute;
+            bottom: 20px;
+        }
+
+        .flipping {
+            animation: flip 1.2s ease-in-out;
+        }
+
+        @keyframes flip {
+            0% { transform: rotate(0); }
+            30% { transform: rotate(360deg); }
+            70% { transform: rotate(720deg); }
+            100% { transform: rotate(1080deg); }
+        }
+
+        .landed {
+            transform: rotate(1080deg);
+        }
+
+        .success {
+            box-shadow: 0 0 20px #2ecc71;
+        }
+
+        .fail {
+            box-shadow: 0 0 20px #e74c3c;
+        }
+
+        #controls {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        #flip-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #3498db;
+            color: white;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #2980b9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        #flip-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #2980b9;
+        }
+
+        #flip-btn:disabled {
+            background: #95a5a6;
+            box-shadow: 0 6px 0 #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        #flip-btn:disabled:active {
+            transform: none;
+            box-shadow: 0 6px 0 #7f8c8d;
+        }
+
+        .loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            border-radius: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .result-message {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 10px;
+            width: 100%;
+        }
+
+        .success-message {
+            background: rgba(46, 204, 113, 0.2);
+            color: #27ae60;
+        }
+
+        .fail-message {
+            background: rgba(231, 76, 60, 0.2);
+            color: #c0392b;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .difficulty-btn {
+            padding: 8px 15px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 20px;
+            background: #ecf0f1;
+            color: #7f8c8d;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .difficulty-btn.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .icon-large {
+            font-size: 3rem;
+            margin: 15px 0;
+            color: #3498db;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .leaderboard-name {
+            font-weight: 600;
+        }
+
+        .leaderboard-score {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .name-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            font-size: 1rem;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .name-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <div class="card">
+                <i class="fas fa-wine-bottle-alt icon-large"></i>
+                <h1>Bottle Flip Challenge</h1>
+                <p>Test your timing skills! Flip the bottle and try to land it upright on the platform.</p>
+                
+                <div class="difficulty-selector">
+                    <button id="easy-btn" class="difficulty-btn active">Easy</button>
+                    <button id="medium-btn" class="difficulty-btn">Medium</button>
+                    <button id="hard-btn" class="difficulty-btn">Hard</button>
+                </div>
+                
+                <input type="text" id="player-name" class="name-input" placeholder="Enter your name" maxlength="12">
+            </div>
+            
+            <div class="card">
+                <h2>Leaderboard</h2>
+                <div id="leaderboard">
+                    <!-- Leaderboard items will be inserted here -->
+                </div>
+            </div>
+            
+            <div>
+                <button id="start-btn" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Start Game
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="stats-container">
+                <div class="stat">
+                    <div class="stat-value" id="score">0</div>
+                    <div class="stat-label">Score</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="attempts">0</div>
+                    <div class="stat-label">Attempts</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="success-rate">0%</div>
+                    <div class="stat-label">Success</div>
+                </div>
+            </div>
+            
+            <div id="game-area">
+                <div id="platform"></div>
+                <div id="bottle"></div>
+            </div>
+            
+            <div id="controls">
+                <button id="flip-btn">
+                    <i class="fas fa-redo-alt"></i>
+                </button>
+            </div>
+            
+            <div>
+                <button id="back-btn" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="screen">
+            <div class="card">
+                <h1>Round Complete!</h1>
+                
+                <div id="result-message" class="result-message">
+                    <!-- Result message will be inserted here -->
+                </div>
+                
+                <div class="stats-container">
+                    <div class="stat">
+                        <div class="stat-value" id="final-score">0</div>
+                        <div class="stat-label">Score</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="final-attempts">0</div>
+                        <div class="stat-label">Attempts</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="final-success-rate">0%</div>
+                        <div class="stat-label">Success</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <button id="play-again-btn" class="btn btn-primary">
+                    <i class="fas fa-redo"></i> Play Again
+                </button>
+                <button id="menu-btn" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> Main Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="loader hidden">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let score = 0;
+        let attempts = 0;
+        let successfulFlips = 0;
+        let currentDifficulty = 'easy';
+        let playerName = '';
+        let isFlipping = false;
+        
+        // Difficulty settings (success probability)
+        const difficultySettings = {
+            easy: 0.7,    // 70% success rate
+            medium: 0.5,  // 50% success rate
+            hard: 0.3     // 30% success rate
+        };
+        
+        // DOM elements
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const loader = document.getElementById('loader');
+        
+        const startBtn = document.getElementById('start-btn');
+        const backBtn = document.getElementById('back-btn');
+        const flipBtn = document.getElementById('flip-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const menuBtn = document.getElementById('menu-btn');
+        
+        const scoreElement = document.getElementById('score');
+        const attemptsElement = document.getElementById('attempts');
+        const successRateElement = document.getElementById('success-rate');
+        
+        const finalScoreElement = document.getElementById('final-score');
+        const finalAttemptsElement = document.getElementById('final-attempts');
+        const finalSuccessRateElement = document.getElementById('final-success-rate');
+        
+        const resultMessageElement = document.getElementById('result-message');
+        
+        const bottle = document.getElementById('bottle');
+        const playerNameInput = document.getElementById('player-name');
+        const leaderboardElement = document.getElementById('leaderboard');
+        
+        const easyBtn = document.getElementById('easy-btn');
+        const mediumBtn = document.getElementById('medium-btn');
+        const hardBtn = document.getElementById('hard-btn');
+        
+        // Event listeners
+        startBtn.addEventListener('click', startGame);
+        backBtn.addEventListener('click', goToMenu);
+        flipBtn.addEventListener('click', flipBottle);
+        playAgainBtn.addEventListener('click', playAgain);
+        menuBtn.addEventListener('click', goToMenu);
+        
+        easyBtn.addEventListener('click', () => setDifficulty('easy'));
+        mediumBtn.addEventListener('click', () => setDifficulty('medium'));
+        hardBtn.addEventListener('click', () => setDifficulty('hard'));
+        
+        // Initialize leaderboard
+        initializeLeaderboard();
+        
+        // Set difficulty function
+        function setDifficulty(difficulty) {
+            currentDifficulty = difficulty;
+            
+            // Update active button
+            easyBtn.classList.remove('active');
+            mediumBtn.classList.remove('active');
+            hardBtn.classList.remove('active');
+            
+            if (difficulty === 'easy') {
+                easyBtn.classList.add('active');
+            } else if (difficulty === 'medium') {
+                mediumBtn.classList.add('active');
+            } else {
+                hardBtn.classList.add('active');
+            }
+        }
+        
+        // Initialize leaderboard from localStorage
+        function initializeLeaderboard() {
+            const leaderboard = JSON.parse(localStorage.getItem('bottleFlipLeaderboard')) || [];
+            updateLeaderboardDisplay(leaderboard);
+        }
+        
+        // Update leaderboard display
+        function updateLeaderboardDisplay(leaderboard) {
+            leaderboardElement.innerHTML = '';
+            
+            if (leaderboard.length === 0) {
+                leaderboardElement.innerHTML = '<p>No scores yet. Be the first!</p>';
+                return;
+            }
+            
+            // Sort by score (descending)
+            leaderboard.sort((a, b) => b.score - a.score);
+            
+            // Display top 5
+            for (let i = 0; i < Math.min(5, leaderboard.length); i++) {
+                const item = leaderboard[i];
+                const leaderboardItem = document.createElement('div');
+                leaderboardItem.className = 'leaderboard-item';
+                leaderboardItem.innerHTML = `
+                    <span class="leaderboard-name">${item.name}</span>
+                    <span class="leaderboard-score">${item.score}</span>
+                `;
+                leaderboardElement.appendChild(leaderboardItem);
+            }
+        }
+        
+        // Start game function
+        function startGame() {
+            playerName = playerNameInput.value.trim() || 'Player';
+            if (playerName.length > 12) {
+                playerName = playerName.substring(0, 12);
+            }
+            
+            // Reset game stats
+            score = 0;
+            attempts = 0;
+            successfulFlips = 0;
+            updateStats();
+            
+            // Show loading screen briefly
+            loader.classList.remove('hidden');
+            
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                startScreen.classList.remove('active');
+                gameScreen.classList.add('active');
+            }, 800);
+        }
+        
+        // Flip bottle function
+        function flipBottle() {
+            if (isFlipping) return;
+            
+            isFlipping = true;
+            flipBtn.disabled = true;
+            attempts++;
+            
+            // Add flipping animation
+            bottle.classList.add('flipping');
+            
+            // Determine if flip is successful based on difficulty
+            const successProbability = difficultySettings[currentDifficulty];
+            const isSuccessful = Math.random() < successProbability;
+            
+            // Wait for animation to complete
+            setTimeout(() => {
+                bottle.classList.remove('flipping');
+                
+                if (isSuccessful) {
+                    // Successful flip
+                    bottle.classList.add('landed', 'success');
+                    score += 10 * (currentDifficulty === 'hard' ? 3 : currentDifficulty === 'medium' ? 2 : 1);
+                    successfulFlips++;
+                } else {
+                    // Failed flip
+                    bottle.classList.add('fail');
+                }
+                
+                updateStats();
+                
+                // Check if game should end (after 10 attempts)
+                if (attempts >= 10) {
+                    endGame();
+                } else {
+                    // Enable flip button after a delay
+                    setTimeout(() => {
+                        bottle.classList.remove('landed', 'success', 'fail');
+                        isFlipping = false;
+                        flipBtn.disabled = false;
+                    }, 1000);
+                }
+            }, 1200);
+        }
+        
+        // Update game stats
+        function updateStats() {
+            scoreElement.textContent = score;
+            attemptsElement.textContent = attempts;
+            
+            const successRate = attempts > 0 ? Math.round((successfulFlips / attempts) * 100) : 0;
+            successRateElement.textContent = `${successRate}%`;
+        }
+        
+        // End game function
+        function endGame() {
+            // Calculate final stats
+            const successRate = attempts > 0 ? Math.round((successfulFlips / attempts) * 100) : 0;
+            
+            // Update final stats display
+            finalScoreElement.textContent = score;
+            finalAttemptsElement.textContent = attempts;
+            finalSuccessRateElement.textContent = `${successRate}%`;
+            
+            // Set result message
+            let message = '';
+            let messageClass = '';
+            
+            if (successRate >= 80) {
+                message = 'Amazing! You\'re a bottle flip master!';
+                messageClass = 'success-message';
+            } else if (successRate >= 60) {
+                message = 'Great job! You\'ve got some skills!';
+                messageClass = 'success-message';
+            } else if (successRate >= 40) {
+                message = 'Good effort! Keep practicing!';
+                messageClass = 'success-message';
+            } else {
+                message = 'Better luck next time! Practice makes perfect!';
+                messageClass = 'fail-message';
+            }
+            
+            resultMessageElement.textContent = message;
+            resultMessageElement.className = `result-message ${messageClass}`;
+            
+            // Save to leaderboard
+            saveToLeaderboard(playerName, score);
+            
+            // Show result screen after a delay
+            setTimeout(() => {
+                gameScreen.classList.remove('active');
+                resultScreen.classList.add('active');
+            }, 1500);
+        }
+        
+        // Save score to leaderboard
+        function saveToLeaderboard(name, score) {
+            const leaderboard = JSON.parse(localStorage.getItem('bottleFlipLeaderboard')) || [];
+            leaderboard.push({ name, score, date: new Date().toISOString() });
+            
+            // Sort by score and keep top 10
+            leaderboard.sort((a, b) => b.score - a.score);
+            if (leaderboard.length > 10) {
+                leaderboard.splice(10);
+            }
+            
+            localStorage.setItem('bottleFlipLeaderboard', JSON.stringify(leaderboard));
+            updateLeaderboardDisplay(leaderboard);
+        }
+        
+        // Play again function
+        function playAgain() {
+            // Reset game stats
+            score = 0;
+            attempts = 0;
+            successfulFlips = 0;
+            updateStats();
+            
+            // Reset bottle
+            bottle.classList.remove('landed', 'success', 'fail');
+            isFlipping = false;
+            flipBtn.disabled = false;
+            
+            // Go back to game screen
+            resultScreen.classList.remove('active');
+            gameScreen.classList.add('active');
+        }
+        
+        // Go to menu function
+        function goToMenu() {
+            // Reset bottle
+            bottle.classList.remove('landed', 'success', 'fail');
+            isFlipping = false;
+            flipBtn.disabled = false;
+            
+            // Go to start screen
+            gameScreen.classList.remove('active');
+            resultScreen.classList.remove('active');
+            startScreen.classList.add('active');
+        }
+    </script>
+</body>
+</html>
