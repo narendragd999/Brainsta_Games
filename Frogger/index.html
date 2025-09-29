@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purple Frogger Crosser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6a0dad, #a057d7);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            margin: 0 auto;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #game-canvas {
+            background: linear-gradient(to bottom, #6a0dad, #a057d7);
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #score {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(75, 0, 130, 0.7);
+            padding: 8px 20px;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        #level {
+            position: absolute;
+            top: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(75, 0, 130, 0.7);
+            padding: 8px 20px;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        #instructions-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(75, 0, 130, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+        }
+        
+        #instructions-btn:active {
+            transform: scale(0.9);
+            background: rgba(75, 0, 130, 0.9);
+        }
+        
+        #instructions-popup {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(75, 0, 130, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 280px;
+            z-index: 100;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+        }
+        
+        #instructions-popup p {
+            font-size: 14px;
+            margin: 0 0 10px 0;
+            line-height: 1.4;
+        }
+        
+        #close-instructions {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            pointer-events: auto;
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            font-weight: bold;
+            background: rgba(75, 0, 130, 0.9);
+            padding: 30px 50px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            display: none;
+            pointer-events: auto;
+            width: 80%;
+            max-width: 400px;
+            z-index: 100;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+        
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(75, 0, 130, 0.7);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.9);
+            background: rgba(75, 0, 130, 0.9);
+        }
+        
+        #restart-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(75, 0, 130, 0.7);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            pointer-events: auto;
+            display: none;
+            z-index: 101;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                justify-content: stretch;
+                align-items: stretch;
+            }
+            
+            #game-container {
+                width: 100vw !important;
+                height: 100vh !important;
+                max-width: none;
+                border-radius: 0;
+                margin: 0;
+                position: fixed;
+                top: 0;
+                left: 0;
+            }
+            
+            #controls {
+                bottom: 50px;
+            }
+            
+            .control-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+            
+            #score, #level {
+                font-size: 18px;
+                padding: 6px 16px;
+            }
+            
+            #instructions-btn {
+                top: 10px;
+                right: 10px;
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+            }
+            
+            #instructions-popup {
+                max-width: 260px;
+                padding: 15px;
+            }
+            
+            #instructions-popup p {
+                font-size: 13px;
+            }
+            
+            #message {
+                font-size: 28px;
+                padding: 20px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="score">Score: 0</div>
+            <div id="level">Level: 1</div>
+            <button id="instructions-btn">?</button>
+            <div id="instructions-popup">
+                <p>Use arrow keys or touch controls to move the frog.<br>Reach the top to complete the level!</p>
+                <button id="close-instructions">Close</button>
+            </div>
+            <div id="message"></div>
+            <button id="restart-btn">Restart Game</button>
+            
+            <div id="controls">
+                <div class="control-btn" id="left-btn">←</div>                
+                <div class="control-btn" id="down-btn">↓</div>
+                <div class="control-btn" id="up-btn">↑</div>
+                <div class="control-btn" id="right-btn">→</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Easing function for smooth animation
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+        
+        // Audio context for sound effects
+        let audioContext = null;
+        let audioUnlocked = false;
+        
+        function unlockAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioContext.resume().then(() => {
+                    console.log('Audio context resumed');
+                }).catch(e => console.log('Audio resume failed:', e));
+            }
+            audioUnlocked = true;
+        }
+        
+        function playTone(frequency, duration, type = 'sine', volume = 0.1) {
+            if (!audioUnlocked || !audioContext || audioContext.state === 'suspended') return;
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.frequency.value = frequency;
+                oscillator.type = type;
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            } catch (e) {
+                console.log('Audio play error:', e);
+            }
+        }
+        
+        function playJumpSound() {
+            playTone(800, 0.1, 'sine', 0.1);
+        }
+        
+        function playCollisionSound() {
+            playTone(200, 0.3, 'square', 0.1);
+        }
+        
+        function playLevelCompleteSound() {
+            playTone(600, 0.1, 'sine', 0.2);
+            setTimeout(() => playTone(700, 0.1, 'sine', 0.2), 100);
+            setTimeout(() => playTone(800, 0.2, 'sine', 0.2), 200);
+        }
+        
+        // Game variables
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const messageElement = document.getElementById('message');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        // Game state
+        let gameState = {
+            score: 0,
+            level: 1,
+            gameOver: false,
+            won: false,
+            frog: {
+                x: 0,
+                y: 0,
+                width: 40,
+                height: 40,
+                color: '#4CAF50'
+            },
+            cars: [],
+            lanes: [],
+            safeZoneHeight: 60,
+            lastFrogMoveTime: 0,
+            moveCooldown: 200, // milliseconds
+            lastFrameTime: 0,
+            lastCarSpawnTime: 0,
+            carSpawnInterval: 4500, // milliseconds
+            animating: false,
+            willScore: false,
+            animStartTime: 0,
+            animDuration: 200,
+            startX: 0,
+            startY: 0,
+            targetX: 0,
+            targetY: 0,
+            controlX: 0,
+            controlY: 0
+        };
+        
+        // Update level display
+        function updateLevelDisplay() {
+            levelElement.textContent = `Level: ${gameState.level}`;
+        }
+        
+        // Update difficulty based on level
+        function updateDifficulty() {
+            gameState.lanes.forEach((lane, i) => {
+                lane.speed = 40 + gameState.level * 10 + i * 12;
+            });
+            gameState.carSpawnInterval = Math.max(1500, 4500 - (gameState.level - 1) * 300);
+        }
+        
+        // Initialize game
+        function initGame() {
+            // Set up lanes
+            const numLanes = 5;
+            const laneHeight = (canvas.height - gameState.safeZoneHeight * 2) / numLanes;
+            
+            gameState.lanes = [];
+            for (let i = 0; i < numLanes; i++) {
+                gameState.lanes.push({
+                    index: i,
+                    y: gameState.safeZoneHeight + i * laneHeight + laneHeight / 2,
+                    speed: 40 + gameState.level * 10 + i * 12,
+                    direction: i % 2 === 0 ? 1 : -1, // Alternate directions
+                    carWidth: 70,
+                    carHeight: 45,
+                    color: '#8A2BE2'
+                });
+            }
+            
+            // Reset cars
+            gameState.cars = [];
+            
+            // Spawn initial cars for each lane
+            gameState.lanes.forEach(lane => {
+                const numInitialCars = Math.min(1 + Math.floor((gameState.level - 1) / 2), 3); // Increase with level
+                for (let j = 0; j < numInitialCars; j++) {
+                    const xPos = lane.direction > 0 ?
+                        Math.random() * (canvas.width + 200) - 200 :  // from -200 to canvas.width
+                        Math.random() * (canvas.width + 200) - 200;
+                    gameState.cars.push({
+                        x: xPos,
+                        y: lane.y,
+                        width: lane.carWidth,
+                        height: lane.carHeight,
+                        speed: lane.speed,
+                        direction: lane.direction,
+                        color: lane.color
+                    });
+                }
+            });
+            
+            // Reset game state
+            gameState.score = 0;
+            gameState.level = 1;
+            gameState.gameOver = false;
+            gameState.won = false;
+            gameState.frog.x = canvas.width / 2;
+            gameState.frog.y = canvas.height - 50;
+            gameState.lastFrogMoveTime = performance.now();
+            gameState.lastFrameTime = performance.now();
+            gameState.lastCarSpawnTime = performance.now();
+            gameState.animating = false;
+            gameState.willScore = false;
+            gameState.animStartTime = 0;
+            gameState.startX = 0;
+            gameState.startY = 0;
+            gameState.targetX = 0;
+            gameState.targetY = 0;
+            gameState.controlX = 0;
+            gameState.controlY = 0;
+            
+            scoreElement.textContent = `Score: ${gameState.score}`;
+            updateLevelDisplay();
+            messageElement.style.display = 'none';
+            restartBtn.style.display = 'none';
+            document.getElementById('instructions-popup').style.display = 'none';
+            
+            // Reset canvas filter
+            canvas.style.filter = 'none';
+        }
+        
+        // Draw game elements
+        function draw() {
+            // Clear canvas with gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#6a0dad');
+            gradient.addColorStop(1, '#a057d7');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw safe zones
+            ctx.fillStyle = 'rgba(106, 13, 173, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, gameState.safeZoneHeight);
+            ctx.fillRect(0, canvas.height - gameState.safeZoneHeight, canvas.width, gameState.safeZoneHeight);
+            
+            // Draw lane dividers
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 15]);
+            
+            gameState.lanes.forEach(lane => {
+                ctx.beginPath();
+                ctx.moveTo(0, lane.y);
+                ctx.lineTo(canvas.width, lane.y);
+                ctx.stroke();
+            });
+            
+            ctx.setLineDash([]);
+            
+            // Draw cars
+            gameState.cars.forEach(car => {
+                ctx.fillStyle = car.color;
+                ctx.fillRect(car.x - car.width/2, car.y - car.height/2, car.width, car.height);
+                
+                // Add car details
+                ctx.fillStyle = '#4B0082';
+                ctx.fillRect(car.x - car.width/2 + 5, car.y - car.height/2 + 5, car.width - 10, car.height - 10);
+                
+                // Windows
+                ctx.fillStyle = '#9370DB';
+                ctx.fillRect(car.x - car.width/2 + 10, car.y - car.height/2 + 10, 15, car.height - 20);
+                ctx.fillRect(car.x + car.width/2 - 25, car.y - car.height/2 + 10, 15, car.height - 20);
+                
+                // Headlights
+                ctx.fillStyle = '#FFD700';
+                if (car.direction > 0) {
+                    // Facing right - headlight on right
+                    ctx.fillRect(car.x + car.width/2 - 10, car.y - 5, 5, 10);
+                } else {
+                    // Facing left - headlight on left
+                    ctx.fillRect(car.x - car.width/2 + 5, car.y - 5, 5, 10);
+                }
+            });
+            
+            // Draw frog
+            ctx.fillStyle = gameState.frog.color;
+            ctx.beginPath();
+            ctx.arc(gameState.frog.x, gameState.frog.y, gameState.frog.width/2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Frog eyes
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(gameState.frog.x - 10, gameState.frog.y - 10, 5, 0, Math.PI * 2);
+            ctx.arc(gameState.frog.x + 10, gameState.frog.y - 10, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(gameState.frog.x - 10, gameState.frog.y - 10, 2, 0, Math.PI * 2);
+            ctx.arc(gameState.frog.x + 10, gameState.frog.y - 10, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Frog mouth
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(gameState.frog.x, gameState.frog.y + 5, 8, 0.1 * Math.PI, 0.9 * Math.PI);
+            ctx.stroke();
+        }
+        
+        // Update game state
+        function update(timestamp) {
+            if (gameState.gameOver) return;
+            
+            // Handle frog animation
+            if (gameState.animating) {
+                const progress = (timestamp - gameState.animStartTime) / gameState.animDuration;
+                const t = easeInOutCubic(Math.min(progress, 1));
+                
+                if (progress >= 1) {
+                    gameState.frog.x = gameState.targetX;
+                    gameState.frog.y = gameState.targetY;
+                    gameState.animating = false;
+                    gameState.lastFrogMoveTime = timestamp;
+                    
+                    if (gameState.willScore) {
+                        gameState.score += 10;
+                        scoreElement.textContent = `Score: ${gameState.score}`;
+                        gameState.willScore = false;
+                    }
+                    
+                    // Check for level complete
+                    if (gameState.frog.y < gameState.safeZoneHeight) {
+                        // Level up
+                        playLevelCompleteSound();
+                        gameState.level++;
+                        updateLevelDisplay();
+                        updateDifficulty();
+                        // Bonus score for level complete
+                        gameState.score += 50;
+                        scoreElement.textContent = `Score: ${gameState.score}`;
+                        // Reset frog to bottom
+                        gameState.frog.x = canvas.width / 2;
+                        gameState.frog.y = canvas.height - 50;
+                        // Show message briefly
+                        showMessage(`Level ${gameState.level - 1} Complete!<br>Next Level Starting...`);
+                        setTimeout(() => {
+                            messageElement.style.display = 'none';
+                        }, 2000);
+                    }
+                } else {
+                    // Quadratic Bezier curve
+                    const mt = 1 - t;
+                    const mt2 = mt * mt;
+                    const t2 = t * t;
+                    gameState.frog.x = mt2 * gameState.startX + 2 * mt * t * gameState.controlX + t2 * gameState.targetX;
+                    gameState.frog.y = mt2 * gameState.startY + 2 * mt * t * gameState.controlY + t2 * gameState.targetY;
+                }
+            }
+            
+            // Spawn new cars periodically
+            if (timestamp - gameState.lastCarSpawnTime > gameState.carSpawnInterval) {
+                spawnCars();
+                gameState.lastCarSpawnTime = timestamp;
+            }
+            
+            // Move cars
+            const deltaTime = Math.min(50, timestamp - gameState.lastFrameTime) / 1000; // Cap deltaTime to prevent large jumps
+            gameState.cars.forEach(car => {
+                car.x += car.speed * car.direction * deltaTime;
+                
+                // Reset car position when it goes off screen
+                if (car.direction > 0 && car.x > canvas.width + 100) {
+                    car.x = -100;
+                } else if (car.direction < 0 && car.x < -100) {
+                    car.x = canvas.width + 100;
+                }
+            });
+            
+            // Check for collisions
+            gameState.cars.forEach(car => {
+                if (isColliding(gameState.frog, car)) {
+                    handleCollision();
+                    return;
+                }
+            });
+            
+            gameState.lastFrameTime = timestamp;
+        }
+        
+        // Spawn cars in all lanes
+        function spawnCars() {
+            gameState.lanes.forEach(lane => {
+                // Spawn chance increases with level for more density
+                const spawnChance = Math.min(0.9, 0.6 + (gameState.level - 1) * 0.05);
+                if (Math.random() < spawnChance) {
+                    const offset = Math.random() * 800; // Larger spread for gaps
+                    const xStart = lane.direction > 0 ? -100 - offset : canvas.width + 100 + offset;
+                    
+                    gameState.cars.push({
+                        x: xStart,
+                        y: lane.y,
+                        width: lane.carWidth,
+                        height: lane.carHeight,
+                        speed: lane.speed,
+                        direction: lane.direction,
+                        color: lane.color
+                    });
+                }
+            });
+        }
+        
+        // Check collision between two objects
+        function isColliding(obj1, obj2) {
+            return obj1.x < obj2.x + obj2.width/2 &&
+                   obj1.x > obj2.x - obj2.width/2 &&
+                   obj1.y < obj2.y + obj2.height/2 &&
+                   obj1.y > obj2.y - obj2.height/2;
+        }
+        
+        // Handle collision
+        function handleCollision() {
+            playCollisionSound();
+            gameState.score = Math.max(0, gameState.score - 15);
+            scoreElement.textContent = `Score: ${gameState.score}`;
+            
+            if (gameState.score <= 0) {
+                gameState.gameOver = true;
+                showMessage("Game Over!<br>Final Score: " + gameState.score + "<br><br>Tap Restart to play again");
+                restartBtn.style.display = 'block';
+                return;
+            }
+            
+            // Reset frog position
+            gameState.frog.x = canvas.width / 2;
+            gameState.frog.y = canvas.height - 50;
+            gameState.animating = false;
+            gameState.willScore = false;
+            
+            // Visual feedback for collision
+            canvas.style.filter = 'brightness(1.5)';
+            setTimeout(() => {
+                canvas.style.filter = 'brightness(1)';
+            }, 100);
+        }
+        
+        // Move frog
+        function moveFrog(dx, dy) {
+            if (gameState.gameOver || gameState.animating) return;
+            
+            const now = performance.now();
+            if (now - gameState.lastFrogMoveTime < gameState.moveCooldown) return;
+            
+            let targetX = gameState.frog.x + dx * gameState.frog.width;
+            let targetY = gameState.frog.y + dy * gameState.frog.height;
+            
+            // Boundary checking
+            targetX = Math.max(gameState.frog.width / 2, Math.min(canvas.width - gameState.frog.width / 2, targetX));
+            targetY = Math.max(gameState.frog.width / 2, Math.min(canvas.height - gameState.frog.width / 2, targetY));
+            
+            if (targetX === gameState.frog.x && targetY === gameState.frog.y) return;
+            
+            gameState.startX = gameState.frog.x;
+            gameState.startY = gameState.frog.y;
+            gameState.targetX = targetX;
+            gameState.targetY = targetY;
+            
+            // Calculate control point for Bezier curve (arc upward)
+            gameState.controlX = (gameState.startX + gameState.targetX) / 2;
+            gameState.controlY = Math.min(gameState.startY, gameState.targetY) - 20;
+            
+            gameState.animStartTime = now;
+            gameState.animating = true;
+            gameState.willScore = dy < 0;
+            
+            playJumpSound();
+        }
+        
+        // Show message
+        function showMessage(text) {
+            messageElement.innerHTML = text;
+            messageElement.style.display = 'block';
+        }
+        
+        // Event listeners for keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (gameState.gameOver && e.key.toLowerCase() === 'r') {
+                initGame();
+                return;
+            }
+            
+            if (gameState.gameOver) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    moveFrog(-1, 0);
+                    break;
+                case 'ArrowRight':
+                    moveFrog(1, 0);
+                    break;
+                case 'ArrowUp':
+                    moveFrog(0, -1);
+                    break;
+                case 'ArrowDown':
+                    moveFrog(0, 1);
+                    break;
+            }
+        });
+        
+        // Event listeners for touch controls - fixed with proper event handling
+        function setupButton(id, dx, dy) {
+            const btn = document.getElementById(id);
+            
+            // Use both click and touch events for maximum compatibility
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                moveFrog(dx, dy);
+            });
+            
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                moveFrog(dx, dy);
+            });
+        }
+        
+        setupButton('left-btn', -1, 0);
+        setupButton('right-btn', 1, 0);
+        setupButton('up-btn', 0, -1);
+        setupButton('down-btn', 0, 1);
+        
+        // Instructions button
+        document.getElementById('instructions-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            unlockAudio(); // Unlock audio on interaction
+            document.getElementById('instructions-popup').style.display = 'block';
+        });
+        
+        document.getElementById('close-instructions').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('instructions-popup').style.display = 'none';
+        });
+        
+        // Also close popup on outside click
+        document.getElementById('instructions-popup').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('instructions-popup')) {
+                document.getElementById('instructions-popup').style.display = 'none';
+            }
+        });
+        
+        // Restart button
+        restartBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            initGame();
+        });
+        
+        // Handle window resize
+        function handleResize() {
+            const container = document.getElementById('game-container');
+            if (window.innerWidth <= 600) {
+                container.style.width = '100vw';
+                container.style.height = '100vh';
+            } else {
+                const aspectRatio = canvas.width / canvas.height;
+                if (window.innerWidth / window.innerHeight > aspectRatio) {
+                    // Window is wider than game aspect ratio
+                    container.style.width = `${window.innerHeight * aspectRatio}px`;
+                    container.style.height = `${window.innerHeight}px`;
+                } else {
+                    // Window is taller than game aspect ratio
+                    container.style.width = `${window.innerWidth}px`;
+                    container.style.height = `${window.innerWidth / aspectRatio}px`;
+                }
+            }
+        }
+        
+        // Initialize and start the game
+        window.addEventListener('load', () => {
+            initGame();
+            handleResize();
+            window.addEventListener('resize', handleResize);
+            
+            // Start game loop with fixed timing
+            let lastTimestamp = 0;
+            function gameLoop(timestamp) {
+                // Calculate time elapsed since last frame
+                const elapsed = timestamp - lastTimestamp;
+                
+                // Only update if enough time has passed (cap at 60fps)
+                if (elapsed > 16) { // ~60fps
+                    update(timestamp);
+                    draw();
+                    lastTimestamp = timestamp;
+                }
+                
+                requestAnimationFrame(gameLoop);
+            }
+            
+            requestAnimationFrame(gameLoop);
+        });
+        
+        // Prevent default touch behaviors that might interfere
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('control-btn')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', function(e) {
+            if (e.target.classList.contains('control-btn')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>
