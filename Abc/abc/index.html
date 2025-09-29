@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Stack</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <script>
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'GameScene' });
+            }
+
+            preload() {
+                // Load sound effects
+                this.load.audio('drop', 'https://www.soundjay.com/misc/sounds/ice-block-drop-01.mp3');
+                this.load.audio('stack', 'https://www.soundjay.com/misc/sounds/wood-chop-axe-hit-01.mp3');
+                this.load.audio('fall', 'https://www.soundjay.com/misc/sounds/bomb-falling-02.mp3');
+            }
+
+            create() {
+                this.width = 400;
+                this.height = 800;
+                this.cameras.main.setBackgroundColor('#87CEEB'); // Sky blue
+
+                // Physics setup
+                this.physics.world.setBounds(0, 0, this.width, this.height);
+                this.physics.world.gravity.y = 500;
+
+                // Game state
+                this.tower = []; // Array of tower blocks {x, y, rect}
+                this.platform = { x: 100, width: 200 }; // Initial platform
+                this.currentBlock = null;
+                this.blockSpeed = 2;
+                this.direction = 1;
+                this.dropHeight = 50; // Space between blocks
+                this.score = 0;
+                this.gameOver = false;
+                this.level = 1;
+                this.stackedCount = 0;
+
+                // Colors cycle
+                this.colors = [0xff0000, 0x0000ff, 0x00ff00];
+                this.colorIndex = 0;
+
+                // Sounds
+                this.dropSound = this.sound.add('drop');
+                this.stackSound = this.sound.add('stack');
+                this.fallSound = this.sound.add('fall');
+
+                // Score text
+                this.scoreText = this.add.text(10, 10, 'Score: 0\nLevel: 1', { fontSize: '20px', fill: '#000' }).setOrigin(0);
+
+                // Create initial ground block
+                const groundY = this.height - 40;
+                const groundRect = this.add.rectangle(200, groundY, this.width, 40, 0x8B4513).setOrigin(0.5);
+                this.tower.push({ x: 100, y: groundY, rect: groundRect });
+                this.topY = groundY - this.dropHeight;
+
+                // Create first moving block
+                this.createMovingBlock();
+
+                // Input for drop
+                this.input.on('pointerdown', this.dropBlock, this);
+
+                // Restart text (initially hidden)
+                this.restartText = this.add.text(this.width / 2, this.height / 2, 'Game Over!\nTap to Restart', { 
+                    fontSize: '24px', fill: '#ff0000', align: 'center' 
+                }).setOrigin(0.5).setVisible(false);
+
+                // Handle restart on tap when game over
+                this.input.on('pointerdown', () => {
+                    if (this.gameOver) {
+                        this.scene.restart();
+                    }
+                });
+            }
+
+            update() {
+                if (this.gameOver || !this.currentBlock) return;
+
+                // Move current block left-right
+                this.currentBlock.x += this.blockSpeed * this.direction;
+                if (this.currentBlock.x <= 100 || this.currentBlock.x >= this.width - 100) { // Adjusted bounds for 200px block
+                    this.direction *= -1;
+                }
+            }
+
+            createMovingBlock() {
+                const color = this.colors[this.colorIndex];
+                this.colorIndex = (this.colorIndex + 1) % this.colors.length;
+                this.currentBlock = this.add.rectangle(200, this.topY, 200, 40, color).setOrigin(0.5);
+                this.physics.add.existing(this.currentBlock); // Add physics body without assignment
+                this.currentBlock.body.setAllowGravity(false);
+                this.currentBlock.body.setBounce(0);
+                this.currentBlock.body.setCollideWorldBounds(false);
+            }
+
+            dropBlock() {
+                if (this.gameOver || !this.currentBlock) return;
+
+                // Play drop sound
+                if (this.dropSound) {
+                    this.dropSound.play();
+                }
+
+                // Enable gravity to drop
+                this.currentBlock.body.setAllowGravity(true);
+                this.currentBlock.body.setVelocityY(200); // Gentle drop
+
+                // Wait for it to land (simple timer approximation, or use events)
+                this.time.delayedCall(500, () => {
+                    this.checkLanding();
+                });
+            }
+
+            checkLanding() {
+                if (!this.currentBlock) return;
+
+                const blockX = this.currentBlock.x;
+                const blockLeft = blockX - 100;
+                const blockRight = blockX + 100;
+
+                const platLeft = this.platform.x;
+                const platRight = this.platform.x + this.platform.width;
+
+                const overlapLeft = Math.max(blockLeft, platLeft);
+                const overlapRight = Math.min(blockRight, platRight);
+                const overlapWidth = overlapRight - overlapLeft;
+
+                if (overlapWidth < 100) { // Less than half overlap, game over
+                    this.gameOver = true;
+                    // Play fall sound
+                    if (this.fallSound) {
+                        this.fallSound.play();
+                    }
+                    // Make block fall faster
+                    this.currentBlock.body.setVelocityY(300);
+                    // Make tower fall
+                    this.tower.forEach(block => {
+                        if (block.rect.body) {
+                            block.rect.body.setAllowGravity(true);
+                            block.rect.body.setVelocityY(0);
+                        }
+                    });
+                    this.restartText.setVisible(true);
+                } else {
+                    // Successful stack
+                    // Play stack sound
+                    if (this.stackSound) {
+                        this.stackSound.play();
+                    }
+                    // Position exactly on top
+                    this.currentBlock.y = this.topY;
+                    this.currentBlock.body.setVelocity(0);
+                    this.currentBlock.body.setAllowGravity(false);
+                    this.tower.push({ x: blockX, y: this.topY, rect: this.currentBlock });
+
+                    // Update platform to overlap
+                    this.platform.x = overlapLeft;
+                    this.platform.width = overlapWidth;
+
+                    // Update top Y
+                    this.topY -= this.dropHeight;
+
+                    // Progressive difficulty: every 5 stacks, increase level and speed
+                    this.stackedCount += 1;
+                    if (this.stackedCount % 5 === 0) {
+                        this.level += 1;
+                        this.blockSpeed += 0.5; // Increase speed for next block
+                    }
+
+                    // Update score
+                    this.score += Math.floor(overlapWidth / 10); // Arbitrary scoring
+                    this.scoreText.setText(`Score: ${this.score}\nLevel: ${this.level}`);
+
+                    // Create new block
+                    this.currentBlock = null;
+                    this.time.delayedCall(200, () => {
+                        this.createMovingBlock();
+                    });
+                }
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 400,
+            height: 800,
+            parent: 'game-container',
+            scene: GameScene,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    debug: false
+                }
+            },
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH
+            }
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>
