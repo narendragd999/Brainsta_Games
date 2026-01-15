@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frog Quest: River Crossing Adventure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            margin: 0 auto;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #1a2b3c;
+        }
+        
+        #game-canvas {
+            background: linear-gradient(to bottom, #1a3a4a, #2c5d7a);
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: linear-gradient(to bottom, rgba(15, 32, 39, 0.9), transparent);
+        }
+        
+        .stat-box {
+            background: rgba(15, 32, 39, 0.8);
+            padding: 8px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            font-weight: bold;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat-icon {
+            font-size: 18px;
+        }
+        
+        #instructions-btn {
+            background: rgba(15, 32, 39, 0.8);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #instructions-btn:active {
+            transform: scale(0.9);
+            background: rgba(15, 32, 39, 0.9);
+        }
+        
+        #instructions-popup {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 32, 39, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 320px;
+            z-index: 100;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #instructions-popup h3 {
+            margin-bottom: 15px;
+            color: #4ecdc4;
+            font-size: 20px;
+        }
+        
+        #instructions-popup p {
+            font-size: 14px;
+            margin: 0 0 15px 0;
+            line-height: 1.5;
+            color: #e0f7fa;
+        }
+        
+        #close-instructions {
+            background: linear-gradient(to right, #4ecdc4, #44a08d);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: auto;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        #close-instructions:active {
+            transform: scale(0.95);
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: bold;
+            background: rgba(15, 32, 39, 0.95);
+            padding: 30px 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            display: none;
+            pointer-events: auto;
+            width: 80%;
+            max-width: 400px;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            line-height: 1.4;
+        }
+        
+        #message h2 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+        
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(to bottom, #4ecdc4, #44a08d);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .control-btn:active {
+            transform: scale(0.9);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        #restart-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, #4ecdc4, #44a08d);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            pointer-events: auto;
+            display: none;
+            z-index: 101;
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+        }
+        
+        #restart-btn:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+        
+        #lives {
+            position: absolute;
+            top: 15px;
+            right: 70px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .life {
+            width: 25px;
+            height: 25px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(255, 107, 107, 0.7);
+        }
+        
+        .power-up {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px currentColor;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        #level-indicator {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 32, 39, 0.8);
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            color: #4ecdc4;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                justify-content: stretch;
+                align-items: stretch;
+            }
+            
+            #game-container {
+                width: 100vw !important;
+                height: 100vh !important;
+                max-width: none;
+                border-radius: 0;
+                margin: 0;
+                position: fixed;
+                top: 0;
+                left: 0;
+            }
+            
+            #header {
+                padding: 10px 15px;
+            }
+            
+            .stat-box {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+            
+            #controls {
+                bottom: 50px;
+            }
+            
+            .control-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+            
+            #instructions-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 22px;
+            }
+            
+            #instructions-popup {
+                max-width: 280px;
+                padding: 20px;
+            }
+            
+            #instructions-popup h3 {
+                font-size: 18px;
+            }
+            
+            #instructions-popup p {
+                font-size: 13px;
+            }
+            
+            #message {
+                font-size: 24px;
+                padding: 20px 30px;
+            }
+            
+            #message h2 {
+                font-size: 22px;
+            }
+            
+            #level-indicator {
+                font-size: 14px;
+                padding: 6px 15px;
+            }
+            
+            #lives {
+                top: 10px;
+                right: 60px;
+            }
+            
+            .life {
+                width: 20px;
+                height: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="header">
+                <div class="stat-box">
+                    <span class="stat-icon">⭐</span>
+                    <span id="score">0</span>
+                </div>
+                <button id="instructions-btn">?</button>
+            </div>
+            
+            <div id="level-indicator">Level 1</div>
+            
+            <div id="lives">
+                <div class="life"></div>
+                <div class="life"></div>
+                <div class="life"></div>
+            </div>
+            
+            <div id="instructions-popup">
+                <h3>Frog Quest Adventure</h3>
+                <p>Navigate through treacherous waters and avoid dangerous obstacles. Collect power-ups for special abilities and reach the golden lily pads to advance!</p>
+                <p>Use arrow keys or touch controls to move your frog adventurer.</p>
+                <button id="close-instructions">Begin Adventure</button>
+            </div>
+            
+            <div id="message"></div>
+            <button id="restart-btn">Restart Adventure</button>
+            
+            <div id="controls">
+                <div class="control-btn" id="left-btn">←</div>                
+                <div class="control-btn" id="down-btn">↓</div>
+                <div class="control-btn" id="up-btn">↑</div>
+                <div class="control-btn" id="right-btn">→</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optimized Image Placeholders -->
+    <div id="image-assets" style="display: none;">
+        <!-- Replace these src attributes with your actual image paths -->
+        <!-- Optimized sizes: frog 30x30, obstacles 60x35, power-ups 30x30, lily pads 50x50 -->
+        <img id="frog-img" src="frogger.png" alt="Frog" />
+        <img id="log-img" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iMzUiIHZpZXdCb3g9IjAgMCA2MCAzNSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjM1IiBmaWxsPSIjOEI0NTEzIi8+CjxyZWN0IHg9IjUiIHk9IjUiIHdpZHRoPSI1MCIgaGVpZ2h0PSIyNSIgZmlsbD0iIzVENDAzNyIvPgo8cmVjdCB4PSI4IiB5PSI4IiB3aWR0aD0iNDQiIGhlaWdodD0iNCIgZmlsbD0iIzVENDAzNyIvPgo8cmVjdCB4PSI4IiB5PSIxNiIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjQiIGZpbGw9IiM1RDQwMzciLz4KPHJlY3QgeD0iOCIgeT0iMjQiIHdpZHRoPSI0NCIgaGVpZ2h0PSI0IiBmaWxsPSIjNUQ0MDM3Ii8+Cjwvc3ZnPgo=" alt="Log" />
+        <img id="crocodile-img" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iMzUiIHZpZXdCb3g9IjAgMCA2MCAzNSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjM1IiBmaWxsPSIjMjI4QjIyIi8+CjxyZWN0IHg9IjUiIHk9IjUiIHdpZHRoPSI1MCIgaGVpZ2h0PSIyNSIgZmlsbD0iIzAwNjQwMCIvPgo8Y2lyY2xlIGN4PSI0OCIgY3k9IjEyIiByPSI0IiBmaWxsPSJ5ZWxsb3ciLz4KPHJlY3QgeD0iNTEiIHk9IjkiIHdpZHRoPSI0IiBoZWlnaHQ9IjIuNSIgZmlsbD0id2hpdGUiLz4KPHJlY3QgeD0iNTEiIHk9IjEzIiB3aWR0aD0iNCIgaGVpZ2h0PSIyLjUiIGZpbGw9IndoaXRlIi8+CjxyZWN0IHg9IjUxIiB5PSIxNyIgd2lkdGg9IjQiIGhlaWdodD0iMi41IiBmaWxsPSJ3aGl0ZSIvPgo8cmVjdCB4PSI1MSIgeT0iMjEiIHdpZHRoPSI0IiBoZWlnaHQ9IjIuNSIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==" alt="Crocodile" />
+        <img id="shield-powerup-img" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTUiIGZpbGw9IiMyMTk2RjMiLz4KPHN2Zz4KPHN2ZyB4PSI3IiB5PSI3IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMEM5LjMzMzMzIDAgMTAuNjY2NjcgMCAxMiAwQzEyIDIuNjY2NjcgMTIgNS4zMzMzMyAxMiA4QzE0LjY2NjY3IDggMTcuMzMzMzMgOCAyMCA4QzIwIDkuMzMzMzMgMjAgMTAuNjY2NjcgMjAgMTJDMTcuMzMzMzMgMTIgMTQuNjY2NjcgMTIgMTIgMTJDMTIgMTQuNjY2NjcgMTIgMTcuMzMzMzMgMTIgMjBDMTAuNjY2NjcgMjAgOS4zMzMzMyAyMCA4IDIwQzggMTcuMzMzMzMgOCAxNC42NjY2NyA4IDEyQzUuMzMzMzMgMTIgMi42NjY2NyAxMiAwIDEyQzAgMTAuNjY2NjcgMCA5LjMzMzMzIDAgOEMyLjY2NjY3IDggNS4zMzMzMyA4IDggOFYwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cjwvc3ZnPgo8L3N2Zz4K" alt="Shield Power-up" />
+        <img id="star-powerup-img" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTUiIGZpbGw9IiNGRkQ3MDAiLz4KPHN2Zz4KPHN2ZyB4PSI3IiB5PSI3IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMEwxMC4xMTYgNS4wODhMMTUuNjA4IDUuODc4TDEyLjEwNCA5LjgxMkwxMi45NDQgMTUuMzEyTDggMTIuOTZMMy4wNTYgMTUuMzEyTDMuODk2IDkuODEyTDAuMzkyIDUuODc4TDUuODg0IDUuMDg4TDggMFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo8L3N2Zz4K" alt="Star Power-up" />
+        <img id="lilypad-img" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMjUiIGZpbGw9IiM0Q0FGNTAiLz4KPGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMjAiIHN0cm9rZT0iIzJFN0QzMiIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo=" alt="Lily Pad" />
+    </div>
+
+    <script>
+        // Enhanced audio system
+        let audioContext = null;
+        let audioUnlocked = false;
+        
+        function unlockAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioContext.resume().then(() => {
+                    console.log('Audio context resumed');
+                }).catch(e => console.log('Audio resume failed:', e));
+            }
+            audioUnlocked = true;
+        }
+        
+        function playTone(frequency, duration, type = 'sine', volume = 0.1) {
+            if (!audioUnlocked || !audioContext || audioContext.state === 'suspended') return;
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.frequency.value = frequency;
+                oscillator.type = type;
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            } catch (e) {
+                console.log('Audio play error:', e);
+            }
+        }
+        
+        function playJumpSound() {
+            playTone(800, 0.1, 'sine', 0.1);
+        }
+        
+        function playCollisionSound() {
+            playTone(200, 0.3, 'square', 0.1);
+        }
+        
+        function playPowerUpSound() {
+            playTone(1000, 0.2, 'sine', 0.2);
+            setTimeout(() => playTone(1200, 0.2, 'sine', 0.2), 200);
+        }
+        
+        function playLevelCompleteSound() {
+            playTone(600, 0.1, 'sine', 0.2);
+            setTimeout(() => playTone(700, 0.1, 'sine', 0.2), 100);
+            setTimeout(() => playTone(800, 0.2, 'sine', 0.2), 200);
+        }
+        
+        // Game variables
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level-indicator');
+        const messageElement = document.getElementById('message');
+        const restartBtn = document.getElementById('restart-btn');
+        const livesContainer = document.getElementById('lives');
+        
+        // Image loading system with fallbacks
+        const gameImages = {
+            frog: {
+                img: null,
+                loaded: false,
+                fallbackColor: '#4CAF50'
+            },
+            log: {
+                img: null,
+                loaded: false,
+                fallbackColor: '#8B4513'
+            },
+            crocodile: {
+                img: null,
+                loaded: false,
+                fallbackColor: '#228B22'
+            },
+            shieldPowerUp: {
+                img: null,
+                loaded: false,
+                fallbackColor: '#2196F3'
+            },
+            starPowerUp: {
+                img: null,
+                loaded: false,
+                fallbackColor: '#FFD700'
+            },
+            lilyPad: {
+                img: null,
+                loaded: false,
+                fallbackColor: '#4CAF50'
+            }
+        };
+        
+        // Load images with fallback mechanism
+        function loadGameImages() {
+            const imageSources = {
+                frog: document.getElementById('frog-img').src,
+                log: document.getElementById('log-img').src,
+                crocodile: document.getElementById('crocodile-img').src,
+                shieldPowerUp: document.getElementById('shield-powerup-img').src,
+                starPowerUp: document.getElementById('star-powerup-img').src,
+                lilyPad: document.getElementById('lilypad-img').src
+            };
+            
+            Object.keys(imageSources).forEach(key => {
+                const img = new Image();
+                img.onload = () => {
+                    gameImages[key].img = img;
+                    gameImages[key].loaded = true;
+                    console.log(`Image loaded: ${key}`);
+                };
+                img.onerror = () => {
+                    console.warn(`Failed to load image: ${key}, using fallback`);
+                    gameImages[key].loaded = false;
+                };
+                img.src = imageSources[key];
+            });
+        }
+        
+        // Game state
+        let gameState = {
+            score: 0,
+            level: 1,
+            lives: 3,
+            gameOver: false,
+            won: false,
+            frog: {
+                x: 0,
+                y: 0,
+                width: 30, // Optimized size
+                height: 30,
+                color: '#4CAF50',
+                hasShield: false,
+                shieldTimer: 0,
+                isOnLog: false,
+                currentLane: -1
+            },
+            obstacles: [],
+            powerUps: [],
+            lanes: [],
+            safeZoneHeight: 60,
+            lastFrogMoveTime: 0,
+            moveCooldown: 200,
+            lastFrameTime: 0,
+            lastObstacleSpawnTime: 0,
+            obstacleSpawnInterval: 4500,
+            lastPowerUpSpawnTime: 0,
+            powerUpSpawnInterval: 10000,
+            animating: false,
+            willScore: false,
+            animStartTime: 0,
+            animDuration: 200,
+            startX: 0,
+            startY: 0,
+            targetX: 0,
+            targetY: 0,
+            controlX: 0,
+            controlY: 0
+        };
+        
+        // Update level display
+        function updateLevelDisplay() {
+            levelElement.textContent = `Level ${gameState.level}`;
+        }
+        
+        // Update lives display
+        function updateLivesDisplay() {
+            const lives = document.querySelectorAll('.life');
+            lives.forEach((life, index) => {
+                life.style.background = index < gameState.lives ? '#ff6b6b' : '#555';
+                life.style.boxShadow = index < gameState.lives ? '0 0 5px rgba(255, 107, 107, 0.7)' : 'none';
+            });
+        }
+        
+        // Update difficulty based on level
+        function updateDifficulty() {
+            gameState.lanes.forEach((lane, i) => {
+                lane.speed = 40 + gameState.level * 10 + i * 12;
+            });
+            gameState.obstacleSpawnInterval = Math.max(1500, 4500 - (gameState.level - 1) * 300);
+        }
+        
+        // Initialize game
+        function initGame() {
+            // Load game images
+            loadGameImages();
+            
+            // Set up lanes
+            const numLanes = 5;
+            const laneHeight = (canvas.height - gameState.safeZoneHeight * 2) / numLanes;
+            
+            gameState.lanes = [];
+            for (let i = 0; i < numLanes; i++) {
+                gameState.lanes.push({
+                    index: i,
+                    y: gameState.safeZoneHeight + i * laneHeight + laneHeight / 2,
+                    speed: 40 + gameState.level * 10 + i * 12,
+                    direction: i % 2 === 0 ? 1 : -1,
+                    obstacleWidth: 60, // Optimized size
+                    obstacleHeight: 35,
+                    color: i % 2 === 0 ? '#8B4513' : '#A0522D'
+                });
+            }
+            
+            // Reset obstacles and power-ups
+            gameState.obstacles = [];
+            gameState.powerUps = [];
+            
+            // Spawn initial obstacles for each lane
+            gameState.lanes.forEach(lane => {
+                const numInitialObstacles = Math.min(1 + Math.floor((gameState.level - 1) / 2), 3);
+                for (let j = 0; j < numInitialObstacles; j++) {
+                    const xPos = lane.direction > 0 ?
+                        Math.random() * (canvas.width + 200) - 200 :
+                        Math.random() * (canvas.width + 200) - 200;
+                    gameState.obstacles.push({
+                        x: xPos,
+                        y: lane.y,
+                        width: lane.obstacleWidth,
+                        height: lane.obstacleHeight,
+                        speed: lane.speed,
+                        direction: lane.direction,
+                        color: lane.color,
+                        type: Math.random() > 0.7 ? 'crocodile' : 'log'
+                    });
+                }
+            });
+            
+            // Reset game state
+            gameState.score = 0;
+            gameState.level = 1;
+            gameState.lives = 3;
+            gameState.gameOver = false;
+            gameState.won = false;
+            gameState.frog.x = canvas.width / 2;
+            gameState.frog.y = canvas.height - 50;
+            gameState.frog.hasShield = false;
+            gameState.frog.shieldTimer = 0;
+            gameState.frog.isOnLog = false;
+            gameState.frog.currentLane = -1;
+            gameState.lastFrogMoveTime = performance.now();
+            gameState.lastFrameTime = performance.now();
+            gameState.lastObstacleSpawnTime = performance.now();
+            gameState.lastPowerUpSpawnTime = performance.now();
+            gameState.animating = false;
+            gameState.willScore = false;
+            gameState.animStartTime = 0;
+            gameState.startX = 0;
+            gameState.startY = 0;
+            gameState.targetX = 0;
+            gameState.targetY = 0;
+            gameState.controlX = 0;
+            gameState.controlY = 0;
+            
+            scoreElement.textContent = gameState.score;
+            updateLevelDisplay();
+            updateLivesDisplay();
+            messageElement.style.display = 'none';
+            restartBtn.style.display = 'none';
+            document.getElementById('instructions-popup').style.display = 'block';
+            
+            // Reset canvas filter
+            canvas.style.filter = 'none';
+        }
+        
+        // Draw game elements with image fallbacks
+        function draw() {
+            // Clear canvas with gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a3a4a');
+            gradient.addColorStop(1, '#2c5d7a');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw safe zones (river banks)
+            ctx.fillStyle = '#8B7355';
+            ctx.fillRect(0, 0, canvas.width, gameState.safeZoneHeight);
+            ctx.fillRect(0, canvas.height - gameState.safeZoneHeight, canvas.width, gameState.safeZoneHeight);
+            
+            // Draw water texture in lanes
+            gameState.lanes.forEach(lane => {
+                ctx.fillStyle = 'rgba(26, 117, 159, 0.3)';
+                ctx.fillRect(0, lane.y - 30, canvas.width, 60);
+            });
+            
+            // Draw lane dividers (water ripples)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 10]);
+            
+            gameState.lanes.forEach(lane => {
+                ctx.beginPath();
+                ctx.moveTo(0, lane.y);
+                ctx.lineTo(canvas.width, lane.y);
+                ctx.stroke();
+            });
+            
+            ctx.setLineDash([]);
+            
+            // Draw destination lily pads at top
+            for (let i = 0; i < 3; i++) {
+                const x = 150 + i * 250;
+                const y = 30;
+                const radius = 25;
+                
+                if (gameImages.lilyPad.loaded) {
+                    ctx.drawImage(gameImages.lilyPad.img, x - radius, y - radius, radius * 2, radius * 2);
+                } else {
+                    // Fallback drawing
+                    ctx.fillStyle = gameImages.lilyPad.fallbackColor;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Lily pad details
+                    ctx.strokeStyle = '#2E7D32';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius - 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw obstacles
+            gameState.obstacles.forEach(obstacle => {
+                if (obstacle.type === 'crocodile' && gameImages.crocodile.loaded) {
+                    // Draw crocodile image
+                    ctx.save();
+                    if (obstacle.direction < 0) {
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(gameImages.crocodile.img, -obstacle.x - obstacle.width/2, obstacle.y - obstacle.height/2, obstacle.width, obstacle.height);
+                    } else {
+                        ctx.drawImage(gameImages.crocodile.img, obstacle.x - obstacle.width/2, obstacle.y - obstacle.height/2, obstacle.width, obstacle.height);
+                    }
+                    ctx.restore();
+                } else if (obstacle.type === 'log' && gameImages.log.loaded) {
+                    // Draw log image
+                    ctx.drawImage(gameImages.log.img, obstacle.x - obstacle.width/2, obstacle.y - obstacle.height/2, obstacle.width, obstacle.height);
+                } else {
+                    // Fallback drawing for obstacles
+                    if (obstacle.type === 'crocodile') {
+                        // Draw crocodile fallback
+                        ctx.fillStyle = gameImages.crocodile.fallbackColor;
+                        ctx.fillRect(obstacle.x - obstacle.width/2, obstacle.y - obstacle.height/2, obstacle.width, obstacle.height);
+                        
+                        // Crocodile details
+                        ctx.fillStyle = '#006400';
+                        ctx.fillRect(obstacle.x - obstacle.width/2 + 5, obstacle.y - obstacle.height/2 + 5, obstacle.width - 10, obstacle.height - 10);
+                        
+                        // Eyes
+                        ctx.fillStyle = 'yellow';
+                        ctx.beginPath();
+                        if (obstacle.direction > 0) {
+                            ctx.arc(obstacle.x + obstacle.width/2 - 10, obstacle.y - 10, 5, 0, Math.PI * 2);
+                        } else {
+                            ctx.arc(obstacle.x - obstacle.width/2 + 10, obstacle.y - 10, 5, 0, Math.PI * 2);
+                        }
+                        ctx.fill();
+                        
+                        // Teeth
+                        ctx.fillStyle = 'white';
+                        for (let i = 0; i < 4; i++) {
+                            if (obstacle.direction > 0) {
+                                ctx.fillRect(obstacle.x + obstacle.width/2 - 5, obstacle.y - 15 + i*5, 5, 3);
+                            } else {
+                                ctx.fillRect(obstacle.x - obstacle.width/2, obstacle.y - 15 + i*5, 5, 3);
+                            }
+                        }
+                    } else {
+                        // Draw log fallback
+                        ctx.fillStyle = gameImages.log.fallbackColor;
+                        ctx.fillRect(obstacle.x - obstacle.width/2, obstacle.y - obstacle.height/2, obstacle.width, obstacle.height);
+                        
+                        // Log texture
+                        ctx.fillStyle = '#5D4037';
+                        for (let i = 0; i < 3; i++) {
+                            ctx.fillRect(
+                                obstacle.x - obstacle.width/2 + 5, 
+                                obstacle.y - obstacle.height/2 + 5 + i*12, 
+                                obstacle.width - 10, 
+                                5
+                            );
+                        }
+                    }
+                }
+            });
+            
+            // Draw power-ups
+            gameState.powerUps.forEach(powerUp => {
+                if (powerUp.type === 'shield' && gameImages.shieldPowerUp.loaded) {
+                    ctx.drawImage(gameImages.shieldPowerUp.img, powerUp.x - 15, powerUp.y - 15, 30, 30);
+                } else if (powerUp.type === 'star' && gameImages.starPowerUp.loaded) {
+                    ctx.drawImage(gameImages.starPowerUp.img, powerUp.x - 15, powerUp.y - 15, 30, 30);
+                } else {
+                    // Fallback drawing for power-ups
+                    ctx.fillStyle = powerUp.type === 'shield' ? gameImages.shieldPowerUp.fallbackColor : gameImages.starPowerUp.fallbackColor;
+                    ctx.beginPath();
+                    ctx.arc(powerUp.x, powerUp.y, 15, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Power-up icon
+                    ctx.fillStyle = 'white';
+                    ctx.font = '20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(powerUp.type === 'shield' ? '🛡️' : '⭐', powerUp.x, powerUp.y);
+                }
+            });
+            
+            // Draw frog
+            if (gameState.frog.hasShield) {
+                // Draw shield effect
+                ctx.fillStyle = 'rgba(0, 150, 255, 0.3)';
+                ctx.beginPath();
+                ctx.arc(gameState.frog.x, gameState.frog.y, gameState.frog.width/2 + 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            if (gameImages.frog.loaded) {
+                // Draw frog image
+                ctx.drawImage(gameImages.frog.img, gameState.frog.x - gameState.frog.width/2, gameState.frog.y - gameState.frog.height/2, gameState.frog.width, gameState.frog.height);
+            } else {
+                // Fallback drawing for frog
+                ctx.fillStyle = gameImages.frog.fallbackColor;
+                ctx.beginPath();
+                ctx.arc(gameState.frog.x, gameState.frog.y, gameState.frog.width/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Frog details
+                ctx.fillStyle = '#2E7D32';
+                ctx.beginPath();
+                ctx.arc(gameState.frog.x, gameState.frog.y, gameState.frog.width/2 - 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Frog eyes
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(gameState.frog.x - 8, gameState.frog.y - 8, 5, 0, Math.PI * 2);
+                ctx.arc(gameState.frog.x + 8, gameState.frog.y - 8, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(gameState.frog.x - 8, gameState.frog.y - 8, 2, 0, Math.PI * 2);
+                ctx.arc(gameState.frog.x + 8, gameState.frog.y - 8, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Update game state
+        function update(timestamp) {
+            if (gameState.gameOver) return;
+            
+            const deltaTime = Math.min(50, timestamp - gameState.lastFrameTime) / 1000;
+            
+            // Handle frog animation
+            if (gameState.animating) {
+                const progress = (timestamp - gameState.animStartTime) / gameState.animDuration;
+                const t = easeInOutCubic(Math.min(progress, 1));
+                
+                if (progress >= 1) {
+                    gameState.frog.x = gameState.targetX;
+                    gameState.frog.y = gameState.targetY;
+                    gameState.animating = false;
+                    gameState.lastFrogMoveTime = timestamp;
+                    
+                    if (gameState.willScore) {
+                        gameState.score += 10;
+                        scoreElement.textContent = gameState.score;
+                        gameState.willScore = false;
+                    }
+                    
+                    // Check for level complete
+                    if (gameState.frog.y < gameState.safeZoneHeight) {
+                        // Level up
+                        playLevelCompleteSound();
+                        gameState.level++;
+                        updateLevelDisplay();
+                        updateDifficulty();
+                        // Bonus score for level complete
+                        gameState.score += 50;
+                        scoreElement.textContent = gameState.score;
+                        // Reset frog to bottom
+                        gameState.frog.x = canvas.width / 2;
+                        gameState.frog.y = canvas.height - 50;
+                        // Show message briefly
+                        showMessage(`<h2>Level ${gameState.level - 1} Complete!</h2>Well done! Get ready for the next challenge.`);
+                        setTimeout(() => {
+                            messageElement.style.display = 'none';
+                        }, 2000);
+                    }
+                } else {
+                    // Quadratic Bezier curve
+                    const mt = 1 - t;
+                    const mt2 = mt * mt;
+                    const t2 = t * t;
+                    gameState.frog.x = mt2 * gameState.startX + 2 * mt * t * gameState.controlX + t2 * gameState.targetX;
+                    gameState.frog.y = mt2 * gameState.startY + 2 * mt * t * gameState.controlY + t2 * gameState.targetY;
+                }
+            }
+            
+            // Update shield timer
+            if (gameState.frog.hasShield) {
+                gameState.frog.shieldTimer -= deltaTime;
+                if (gameState.frog.shieldTimer <= 0) {
+                    gameState.frog.hasShield = false;
+                }
+            }
+            
+            // Spawn new obstacles periodically
+            if (timestamp - gameState.lastObstacleSpawnTime > gameState.obstacleSpawnInterval) {
+                spawnObstacles();
+                gameState.lastObstacleSpawnTime = timestamp;
+            }
+            
+            // Spawn power-ups periodically
+            if (timestamp - gameState.lastPowerUpSpawnTime > gameState.powerUpSpawnInterval) {
+                spawnPowerUp();
+                gameState.lastPowerUpSpawnTime = timestamp;
+            }
+            
+            // Move obstacles
+            gameState.obstacles.forEach(obstacle => {
+                obstacle.x += obstacle.speed * obstacle.direction * deltaTime;
+                
+                // Reset obstacle position when it goes off screen
+                if (obstacle.direction > 0 && obstacle.x > canvas.width + 100) {
+                    obstacle.x = -100;
+                } else if (obstacle.direction < 0 && obstacle.x < -100) {
+                    obstacle.x = canvas.width + 100;
+                }
+            });
+            
+            // Move power-ups with the lanes they're in
+            gameState.powerUps.forEach(powerUp => {
+                const lane = gameState.lanes.find(l => Math.abs(l.y - powerUp.y) < 30);
+                if (lane) {
+                    powerUp.x += lane.speed * lane.direction * deltaTime;
+                    
+                    // Remove power-up if it goes off screen
+                    if (powerUp.x < -50 || powerUp.x > canvas.width + 50) {
+                        gameState.powerUps = gameState.powerUps.filter(p => p !== powerUp);
+                    }
+                }
+            });
+            
+            // Check if frog is in safe zone
+            const isInSafeZone = gameState.frog.y < gameState.safeZoneHeight || 
+                                gameState.frog.y > canvas.height - gameState.safeZoneHeight;
+            
+            // Find which lane the frog is in
+            let currentLane = -1;
+            if (!isInSafeZone) {
+                for (let i = 0; i < gameState.lanes.length; i++) {
+                    if (Math.abs(gameState.frog.y - gameState.lanes[i].y) < 30) {
+                        currentLane = i;
+                        break;
+                    }
+                }
+            }
+            
+            // Update frog's current lane
+            gameState.frog.currentLane = currentLane;
+            
+            // Check if frog is on a log
+            gameState.frog.isOnLog = false;
+            if (!isInSafeZone && currentLane !== -1) {
+                gameState.obstacles.forEach(obstacle => {
+                    if (obstacle.type === 'log' && 
+                        Math.abs(obstacle.y - gameState.frog.y) < 30 && 
+                        isColliding(gameState.frog, obstacle)) {
+                        gameState.frog.isOnLog = true;
+                        // Move frog with the log
+                        gameState.frog.x += obstacle.speed * obstacle.direction * deltaTime;
+                    }
+                });
+            }
+            
+            // Check for collisions with obstacles
+            // Only check if frog is not in safe zone and not on a log
+            if (!gameState.frog.hasShield && !isInSafeZone && !gameState.frog.isOnLog) {
+                gameState.obstacles.forEach(obstacle => {
+                    if (isColliding(gameState.frog, obstacle)) {
+                        handleCollision();
+                        return;
+                    }
+                });
+            }
+            
+            // Check for power-up collection
+            gameState.powerUps.forEach((powerUp, index) => {
+                if (isColliding(gameState.frog, powerUp)) {
+                    collectPowerUp(powerUp, index);
+                }
+            });
+            
+            gameState.lastFrameTime = timestamp;
+        }
+        
+        // Easing function for smooth animation
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+        
+        // Spawn obstacles in all lanes
+        function spawnObstacles() {
+            gameState.lanes.forEach(lane => {
+                // Spawn chance increases with level for more density
+                const spawnChance = Math.min(0.9, 0.6 + (gameState.level - 1) * 0.05);
+                if (Math.random() < spawnChance) {
+                    const offset = Math.random() * 800;
+                    const xStart = lane.direction > 0 ? -100 - offset : canvas.width + 100 + offset;
+                    
+                    gameState.obstacles.push({
+                        x: xStart,
+                        y: lane.y,
+                        width: lane.obstacleWidth,
+                        height: lane.obstacleHeight,
+                        speed: lane.speed,
+                        direction: lane.direction,
+                        color: lane.color,
+                        type: Math.random() > 0.7 ? 'crocodile' : 'log'
+                    });
+                }
+            });
+        }
+        
+        // Spawn a power-up
+        function spawnPowerUp() {
+            const lane = gameState.lanes[Math.floor(Math.random() * gameState.lanes.length)];
+            const xPos = Math.random() * (canvas.width - 100) + 50;
+            
+            const powerUpType = Math.random() > 0.5 ? 'shield' : 'star';
+            
+            gameState.powerUps.push({
+                x: xPos,
+                y: lane.y,
+                type: powerUpType,
+                color: powerUpType === 'shield' ? '#2196F3' : '#FFD700',
+                radius: 15
+            });
+        }
+        
+        // Check collision between two objects - IMPROVED with optimized hitboxes
+        function isColliding(obj1, obj2) {
+            // Use smaller hitboxes for more forgiving collision detection
+            const obj1Width = obj1.width * 0.7;
+            const obj1Height = obj1.height * 0.7;
+            const obj2Width = obj2.width * 0.7;
+            const obj2Height = obj2.height * 0.7;
+            
+            return obj1.x - obj1Width/2 < obj2.x + obj2Width/2 &&
+                   obj1.x + obj1Width/2 > obj2.x - obj2Width/2 &&
+                   obj1.y - obj1Height/2 < obj2.y + obj2Height/2 &&
+                   obj1.y + obj1Height/2 > obj2.y - obj2Height/2;
+        }
+        
+        // Handle collision
+        function handleCollision() {
+            playCollisionSound();
+            gameState.lives--;
+            updateLivesDisplay();
+            
+            if (gameState.lives <= 0) {
+                gameState.gameOver = true;
+                showMessage("<h2>Adventure Over!</h2>Your frog couldn't make it.<br>Final Score: " + gameState.score);
+                restartBtn.style.display = 'block';
+                return;
+            }
+            
+            // Reset frog position
+            gameState.frog.x = canvas.width / 2;
+            gameState.frog.y = canvas.height - 50;
+            gameState.animating = false;
+            gameState.willScore = false;
+            
+            // Visual feedback for collision
+            canvas.style.filter = 'brightness(1.5)';
+            setTimeout(() => {
+                canvas.style.filter = 'brightness(1)';
+            }, 100);
+        }
+        
+        // Collect power-up
+        function collectPowerUp(powerUp, index) {
+            playPowerUpSound();
+            gameState.powerUps.splice(index, 1);
+            
+            if (powerUp.type === 'shield') {
+                gameState.frog.hasShield = true;
+                gameState.frog.shieldTimer = 5; // 5 seconds of shield
+                showMessage("<h2>Shield Activated!</h2>You're protected for 5 seconds.");
+                setTimeout(() => {
+                    if (messageElement.innerHTML.includes("Shield Activated")) {
+                        messageElement.style.display = 'none';
+                    }
+                }, 1500);
+            } else if (powerUp.type === 'star') {
+                gameState.score += 25;
+                scoreElement.textContent = gameState.score;
+                showMessage("<h2>Bonus Points!</h2>+25 points collected!");
+                setTimeout(() => {
+                    if (messageElement.innerHTML.includes("Bonus Points")) {
+                        messageElement.style.display = 'none';
+                    }
+                }, 1500);
+            }
+        }
+        
+        // Move frog
+        function moveFrog(dx, dy) {
+            if (gameState.gameOver || gameState.animating) return;
+            
+            const now = performance.now();
+            if (now - gameState.lastFrogMoveTime < gameState.moveCooldown) return;
+            
+            let targetX = gameState.frog.x + dx * gameState.frog.width;
+            let targetY = gameState.frog.y + dy * gameState.frog.height;
+            
+            // Boundary checking
+            targetX = Math.max(gameState.frog.width / 2, Math.min(canvas.width - gameState.frog.width / 2, targetX));
+            targetY = Math.max(gameState.frog.width / 2, Math.min(canvas.height - gameState.frog.width / 2, targetY));
+            
+            if (targetX === gameState.frog.x && targetY === gameState.frog.y) return;
+            
+            gameState.startX = gameState.frog.x;
+            gameState.startY = gameState.frog.y;
+            gameState.targetX = targetX;
+            gameState.targetY = targetY;
+            
+            // Calculate control point for Bezier curve (arc upward)
+            gameState.controlX = (gameState.startX + gameState.targetX) / 2;
+            gameState.controlY = Math.min(gameState.startY, gameState.targetY) - 20;
+            
+            gameState.animStartTime = now;
+            gameState.animating = true;
+            gameState.willScore = dy < 0;
+            
+            playJumpSound();
+        }
+        
+        // Show message
+        function showMessage(text) {
+            messageElement.innerHTML = text;
+            messageElement.style.display = 'block';
+        }
+        
+        // Event listeners for keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (gameState.gameOver && e.key.toLowerCase() === 'r') {
+                initGame();
+                return;
+            }
+            
+            if (gameState.gameOver) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    moveFrog(-1, 0);
+                    break;
+                case 'ArrowRight':
+                    moveFrog(1, 0);
+                    break;
+                case 'ArrowUp':
+                    moveFrog(0, -1);
+                    break;
+                case 'ArrowDown':
+                    moveFrog(0, 1);
+                    break;
+            }
+        });
+        
+        // Event listeners for touch controls
+        function setupButton(id, dx, dy) {
+            const btn = document.getElementById(id);
+            
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                moveFrog(dx, dy);
+            });
+            
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                moveFrog(dx, dy);
+            });
+        }
+        
+        setupButton('left-btn', -1, 0);
+        setupButton('right-btn', 1, 0);
+        setupButton('up-btn', 0, -1);
+        setupButton('down-btn', 0, 1);
+        
+        // Instructions button
+        document.getElementById('instructions-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            unlockAudio();
+            document.getElementById('instructions-popup').style.display = 'block';
+        });
+        
+        document.getElementById('close-instructions').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('instructions-popup').style.display = 'none';
+        });
+        
+        // Also close popup on outside click
+        document.getElementById('instructions-popup').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('instructions-popup')) {
+                document.getElementById('instructions-popup').style.display = 'none';
+            }
+        });
+        
+        // Restart button
+        restartBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            initGame();
+        });
+        
+        // Handle window resize
+        function handleResize() {
+            const container = document.getElementById('game-container');
+            if (window.innerWidth <= 600) {
+                container.style.width = '100vw';
+                container.style.height = '100vh';
+            } else {
+                const aspectRatio = canvas.width / canvas.height;
+                if (window.innerWidth / window.innerHeight > aspectRatio) {
+                    container.style.width = `${window.innerHeight * aspectRatio}px`;
+                    container.style.height = `${window.innerHeight}px`;
+                } else {
+                    container.style.width = `${window.innerWidth}px`;
+                    container.style.height = `${window.innerWidth / aspectRatio}px`;
+                }
+            }
+        }
+        
+        // Initialize and start the game
+        window.addEventListener('load', () => {
+            initGame();
+            handleResize();
+            window.addEventListener('resize', handleResize);
+            
+            // Start game loop with fixed timing
+            let lastTimestamp = 0;
+            function gameLoop(timestamp) {
+                const elapsed = timestamp - lastTimestamp;
+                
+                if (elapsed > 16) {
+                    update(timestamp);
+                    draw();
+                    lastTimestamp = timestamp;
+                }
+                
+                requestAnimationFrame(gameLoop);
+            }
+            
+            requestAnimationFrame(gameLoop);
+        });
+        
+        // Prevent default touch behaviors that might interfere
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('control-btn')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', function(e) {
+            if (e.target.classList.contains('control-btn')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>

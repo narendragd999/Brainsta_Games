@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Helix Jump Clone</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(180deg, #6a11cb 0%, #ffffff 100%);
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* UI Overlay */
+    .ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .ui-overlay > * {
+      pointer-events: auto;
+    }
+
+    /* Top UI */
+    .top-ui {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .score-card {
+      background: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      color: #333;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .info-btn {
+      background: rgba(255,255,255,0.9);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      color: #6a11cb;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+
+    .info-btn:hover {
+      background: white;
+      transform: scale(1.05);
+    }
+
+    /* Bottom UI */
+    .bottom-ui {
+      position: absolute;
+      bottom: 15px;
+      left: 15px;
+      right: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 120px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .btn-primary {
+      background: #3498db;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2980b9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #6a11cb;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #5a0fb8;
+      transform: translateY(-1px);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 320px;
+      margin: 20px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from { 
+        opacity: 0;
+        transform: scale(0.8) translateY(-20px);
+      }
+      to { 
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .modal h2 {
+      color: #333;
+      margin-bottom: 16px;
+      font-size: 22px;
+    }
+
+    .modal p {
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.4;
+      font-size: 14px;
+    }
+
+    .modal .controls {
+      display: flex;
+      gap: 12px;
+      margin: 16px 0;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .control-item {
+      background: #f8f9fa;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    /* Game Over Screen */
+    .game-over {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 200;
+    }
+
+    .game-over h2 {
+      color: #e74c3c;
+      margin-bottom: 12px;
+      font-size: 20px;
+    }
+
+    .game-over .final-score {
+      color: #333;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+
+    .game-over .buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    /* Start Screen */
+    .start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #6a11cb 0%, #ffffff 100%);
+      z-index: 300;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .start-screen h1 {
+      color: white;
+      font-size: 28px;
+      margin-bottom: 12px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .start-screen p {
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 40px;
+      font-size: 16px;
+    }
+
+    .game-icon {
+      font-size: 60px;
+      color: white;
+      margin-bottom: 20px;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+      60% { transform: translateY(-5px); }
+    }
+
+    /* Responsive adjustments */
+    @media (max-height: 600px) {
+      .modal {
+        max-width: 280px;
+        padding: 20px;
+      }
+      .start-screen h1 { font-size: 24px; }
+      .game-icon { font-size: 50px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <!-- Start Screen -->
+    <div class="start-screen" id="start-screen">
+      <div class="game-icon">🌪️</div>
+      <h1>Helix Jump</h1>
+      <p>Guide the ball through the spiral tower!</p>
+      <button class="btn btn-primary" id="start-btn">
+        <i class="fas fa-play"></i> Start Game
+      </button>
+    </div>
+
+    <!-- UI Overlay -->
+    <div class="ui-overlay">
+      <!-- Top UI -->
+      <div class="top-ui">
+        <div class="score-card">
+          <i class="fas fa-trophy"></i> Level: <span id="level-display">1</span>
+        </div>
+        <button class="info-btn" id="info-btn">
+          <i class="fas fa-question"></i>
+        </button>
+      </div>
+
+      <!-- Bottom UI -->
+      <div class="bottom-ui">
+        <button class="btn btn-secondary" id="new-game-btn" style="display: none;">
+          <i class="fas fa-redo"></i> New Game
+        </button>
+      </div>
+    </div>
+
+    <!-- Instructions Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal">
+        <h2><i class="fas fa-gamepad"></i> How to Play</h2>
+        <p>Tap and hold the left or right side of the screen to rotate the helix tower. Guide the bouncing ball through the gaps while avoiding the colored obstacles!</p>
+        
+        <div class="controls">
+          <div class="control-item">
+            <i class="fas fa-hand-pointer"></i> Tap Left
+          </div>
+          <div class="control-item">
+            <i class="fas fa-hand-pointer"></i> Tap Right
+          </div>
+        </div>
+        
+        <p><strong>Tips:</strong> Build momentum by bouncing through multiple levels. Avoid colored platforms - only pass through the gaps!</p>
+        
+        <button class="btn btn-primary" id="close-modal">
+          <i class="fas fa-check"></i> Got it!
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div class="game-over" id="game-over">
+      <h2><i class="fas fa-skull"></i> Game Over!</h2>
+      <div class="final-score">
+        You reached level <span id="final-level">1</span>
+      </div>
+      <div class="buttons">
+        <button class="btn btn-primary" id="restart-btn">
+          <i class="fas fa-redo"></i> Try Again
+        </button>
+        <button class="btn btn-secondary" id="menu-btn">
+          <i class="fas fa-home"></i> Menu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class HelixJumpGame extends Phaser.Scene {
+      constructor() {
+        super({ key: 'HelixJumpGame' });
+        this.ball = null;
+        this.platforms = [];
+        this.tower = null;
+        this.level = 1;
+        this.rotationSpeed = 0;
+        this.isRotating = false;
+        this.ballSpeed = 0;
+        this.gameStarted = false;
+        this.colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xfeca57, 0xff9ff3];
+      }
+
+      preload() {
+        // Create textures programmatically to avoid data URI issues
+        this.createTextures();
+      }
+
+      createTextures() {
+        // Create ball texture
+        const ballGraphics = this.add.graphics();
+        ballGraphics.fillGradientStyle(0x3498db, 0x2980b9, 0x5dade2, 0x3498db, 1);
+        ballGraphics.fillCircle(15, 15, 14);
+        ballGraphics.lineStyle(2, 0x2980b9);
+        ballGraphics.strokeCircle(15, 15, 14);
+        ballGraphics.generateTexture('ball', 30, 30);
+        ballGraphics.destroy();
+
+        // Create obstacle platform texture
+        const platformGraphics = this.add.graphics();
+        platformGraphics.fillStyle(0xe74c3c);
+        platformGraphics.fillRoundedRect(0, 0, 80, 15, 7);
+        platformGraphics.fillStyle(0xc0392b);
+        platformGraphics.fillRoundedRect(2, 2, 76, 11, 5);
+        platformGraphics.generateTexture('platform', 80, 15);
+        platformGraphics.destroy();
+
+        // Create safe platform texture
+        const safePlatformGraphics = this.add.graphics();
+        safePlatformGraphics.fillStyle(0x2ecc71);
+        safePlatformGraphics.fillRoundedRect(0, 0, 80, 15, 7);
+        safePlatformGraphics.fillStyle(0x27ae60);
+        safePlatformGraphics.fillRoundedRect(2, 2, 76, 11, 5);
+        safePlatformGraphics.generateTexture('safe-platform', 80, 15);
+        safePlatformGraphics.destroy();
+
+        // Create center pole texture
+        const poleGraphics = this.add.graphics();
+        poleGraphics.fillStyle(0x34495e);
+        poleGraphics.fillRect(0, 0, 20, 100);
+        poleGraphics.fillStyle(0x2c3e50);
+        poleGraphics.fillRect(2, 0, 16, 100);
+        poleGraphics.generateTexture('pole', 20, 100);
+        poleGraphics.destroy();
+      }
+
+      create() {
+        const { width, height } = this.cameras.main;
+        
+        // Create physics groups
+        this.tower = this.physics.add.staticGroup();
+        this.safePlatforms = this.physics.add.staticGroup();
+        
+        // Create initial tower
+        this.createTower();
+        
+        // Create ball
+        this.ball = this.physics.add.image(width / 2, height * 0.2, 'ball');
+        this.ball.setCollideWorldBounds(true);
+        this.ball.setBounce(0.8);
+        this.ball.setGravityY(300);
+        this.ball.setDepth(100);
+        this.ball.setCircle(14);
+        
+        // Add colliders
+        this.physics.add.collider(this.ball, this.tower, this.hitObstacle, null, this);
+        this.physics.add.collider(this.ball, this.safePlatforms, this.hitSafePlatform, null, this);
+        
+        // Input handling
+        this.input.on('pointerdown', this.startRotating, this);
+        this.input.on('pointerup', this.stopRotating, this);
+        this.input.on('pointermove', this.handleRotation, this);
+        
+        // Start game
+        this.gameStarted = true;
+      }
+
+      createTower() {
+        const { width, height } = this.cameras.main;
+        const centerX = width / 2;
+        const levels = 15;
+        const levelHeight = 80;
+        
+        this.tower.clear(true, true);
+        this.safePlatforms.clear(true, true);
+        this.platforms = [];
+        
+        for (let i = 0; i < levels; i++) {
+          const y = height * 0.3 + i * levelHeight;
+          this.createLevel(centerX, y, i);
+        }
+      }
+
+      createLevel(centerX, y, levelIndex) {
+        const radius = 100;
+        const segments = 8;
+        const gapSize = 2; // Number of segments to skip for gap
+        const gapStart = Phaser.Math.Between(0, segments - gapSize - 1);
+        
+        // Add center pole
+        const pole = this.physics.add.image(centerX, y, 'pole');
+        pole.setImmovable(true);
+        this.tower.add(pole);
+        
+        for (let seg = 0; seg < segments; seg++) {
+          // Skip segments for gap
+          if (seg >= gapStart && seg < gapStart + gapSize) continue;
+          
+          const angle = (seg / segments) * Math.PI * 2;
+          const x = centerX + Math.cos(angle) * radius;
+          const platformY = y;
+          
+          // Randomly make some platforms safe (passable)
+          const isSafe = Math.random() < 0.3 && levelIndex > 2; // 30% chance, only after level 2
+          
+          const platform = this.physics.add.image(x, platformY, isSafe ? 'safe-platform' : 'platform');
+          platform.setImmovable(true);
+          platform.setRotation(angle + Math.PI / 2);
+          platform.levelIndex = levelIndex;
+          platform.angle = angle;
+          platform.isSafe = isSafe;
+          
+          if (isSafe) {
+            this.safePlatforms.add(platform);
+          } else {
+            this.tower.add(platform);
+          }
+          
+          this.platforms.push(platform);
+        }
+      }
+
+      startRotating(pointer) {
+        this.isRotating = true;
+        this.handleRotation(pointer);
+      }
+
+      stopRotating() {
+        this.isRotating = false;
+        this.rotationSpeed *= 0.95; // Gradual slowdown
+      }
+
+      handleRotation(pointer) {
+        if (!this.isRotating || !this.gameStarted) return;
+        
+        const centerX = this.cameras.main.width / 2;
+        const targetSpeed = pointer.x < centerX ? 0.02 : -0.02;
+        this.rotationSpeed = Phaser.Math.Linear(this.rotationSpeed, targetSpeed, 0.1);
+      }
+
+      update() {
+        if (!this.gameStarted) return;
+        
+        // Rotate platforms
+        if (Math.abs(this.rotationSpeed) > 0.001) {
+          this.platforms.forEach(platform => {
+            if (!platform.active) return;
+            
+            platform.angle += this.rotationSpeed;
+            const centerX = this.cameras.main.width / 2;
+            const radius = 100;
+            
+            const newX = centerX + Math.cos(platform.angle) * radius;
+            platform.x = newX;
+            platform.setRotation(platform.angle + Math.PI / 2);
+          });
+          
+          // Apply friction if not actively rotating
+          if (!this.isRotating) {
+            this.rotationSpeed *= 0.98;
+          }
+        }
+        
+        // Check if ball has progressed to next level
+        if (this.ball.y > this.cameras.main.height * 0.3 + this.level * 80) {
+          this.nextLevel();
+        }
+        
+        // Check if ball fell off screen
+        if (this.ball.y > this.cameras.main.height + 100) {
+          this.gameOver();
+        }
+        
+        // Add more levels if needed
+        if (this.ball.y > this.cameras.main.height * 0.3 + (this.level + 10) * 80) {
+          this.addMoreLevels();
+        }
+      }
+
+      hitObstacle(ball, platform) {
+        // Only trigger game over if ball hits from above (falling down)
+        if (ball.body.velocity.y > 0) {
+          this.gameOver();
+        }
+      }
+
+      hitSafePlatform(ball, platform) {
+        // Ball can pass through safe platforms, but they still provide bounce
+        if (ball.body.velocity.y > 100) {
+          ball.setVelocityY(ball.body.velocity.y * -0.5); // Reduced bounce
+        }
+      }
+
+      nextLevel() {
+        this.level++;
+        document.getElementById('level-display').textContent = this.level;
+        
+        // Small camera shake for feedback
+        this.cameras.main.shake(100, 0.01);
+      }
+
+      addMoreLevels() {
+        const { width, height } = this.cameras.main;
+        const centerX = width / 2;
+        const currentLevels = this.platforms.length / 6; // Approximate
+        
+        for (let i = 0; i < 5; i++) {
+          const levelIndex = currentLevels + i;
+          const y = height * 0.3 + levelIndex * 80;
+          this.createLevel(centerX, y, levelIndex);
+        }
+      }
+
+      gameOver() {
+        this.gameStarted = false;
+        document.getElementById('final-level').textContent = this.level;
+        document.getElementById('game-over').style.display = 'block';
+        document.getElementById('new-game-btn').style.display = 'block';
+      }
+
+      restartGame() {
+        this.level = 1;
+        this.rotationSpeed = 0;
+        this.gameStarted = false;
+        document.getElementById('level-display').textContent = this.level;
+        document.getElementById('game-over').style.display = 'none';
+        
+        // Reset ball
+        this.ball.setPosition(this.cameras.main.width / 2, this.cameras.main.height * 0.2);
+        this.ball.setVelocity(0, 0);
+        
+        // Recreate tower
+        this.createTower();
+        this.gameStarted = true;
+      }
+    }
+
+    // Game configuration
+    const config = {
+      type: Phaser.AUTO,
+      parent: 'game-container',
+      width: window.innerWidth > 400 ? 400 : window.innerWidth,
+      height: window.innerHeight,
+      backgroundColor: 'transparent',
+      scene: HelixJumpGame,
+      physics: {
+        default: 'arcade',
+        arcade: {
+          gravity: { y: 0 },
+          debug: false
+        }
+      },
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+      }
+    };
+
+    let game;
+    let gameScene;
+
+    // UI Event Handlers
+    document.getElementById('start-btn').onclick = () => {
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('new-game-btn').style.display = 'block';
+      
+      // Initialize game
+      game = new Phaser.Game(config);
+      game.scene.start('HelixJumpGame');
+      gameScene = game.scene.getScene('HelixJumpGame');
+    };
+
+    document.getElementById('info-btn').onclick = () => {
+      document.getElementById('modal-overlay').style.display = 'flex';
+    };
+
+    document.getElementById('close-modal').onclick = () => {
+      document.getElementById('modal-overlay').style.display = 'none';
+    };
+
+    document.getElementById('new-game-btn').onclick = () => {
+      if (gameScene) {
+        gameScene.restartGame();
+      }
+    };
+
+    document.getElementById('restart-btn').onclick = () => {
+      if (gameScene) {
+        gameScene.restartGame();
+      }
+    };
+
+    document.getElementById('menu-btn').onclick = () => {
+      document.getElementById('game-over').style.display = 'none';
+      document.getElementById('start-screen').style.display = 'flex';
+      document.getElementById('new-game-btn').style.display = 'none';
+      
+      if (game) {
+        game.destroy(true);
+        game = null;
+        gameScene = null;
+      }
+    };
+
+    // Close modal when clicking outside
+    document.getElementById('modal-overlay').onclick = (e) => {
+      if (e.target.id === 'modal-overlay') {
+        document.getElementById('modal-overlay').style.display = 'none';
+      }
+    };
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (game && game.scale) {
+        game.scale.resize(
+          window.innerWidth > 400 ? 400 : window.innerWidth, 
+          window.innerHeight
+        );
+      }
+    });
+
+    // Prevent default touch behaviors
+    document.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+  </script>
+</body>
+</html>

@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
+<title>Liquid Physics Puzzle — Complete</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{
+    height:100vh;width:100vw;overflow:hidden;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(135deg,#2d1b69 0%,#1a1033 100%);
+    color: #fff;
+    user-select: none;
+  }
+  #gameContainer{width:100%;height:100vh;position:relative;overflow:hidden;}
+  .help-icon{position:absolute;right:14px;top:14px;background:#9d7aff;border-radius:50%;width:40px;height:40px;z-index:20;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:all 0.2s ease;}
+  .help-icon:hover{transform:scale(1.1);background:#b59aff;}
+  .ui-panel{position:absolute;left:14px;top:14px;z-index:20;background:rgba(10,8,25,0.6);padding:12px 16px;border-radius:12px;border:1px solid rgba(157,122,255,0.4);backdrop-filter:blur(4px);box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+  .control-buttons{position:absolute;right:14px;bottom:14px;z-index:20;display:flex;gap:8px}
+  button{padding:10px 16px;border-radius:10px;border:none;background:#ff6b9d;color:#fff;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);transition:all 0.2s ease;font-size:14px;}
+  button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+  button:active{transform:translateY(0);}
+  #nextBtn{background:#4cd964;}
+  #resetBtn{background:#6b5b95;}
+  .level-indicator{font-size:18px;font-weight:700;margin-bottom:6px;color:#ffd166;}
+  .liquid-indicator{font-size:14px;margin-bottom:4px;color:#9d7aff;}
+  .circuit-indicator{font-size:14px;color:#4cd964;}
+  .power-indicator{position:absolute;top:60px;left:14px;z-index:20;background:rgba(10,8,25,0.6);padding:8px 12px;border-radius:8px;border:1px solid rgba(157,122,255,0.4);display:flex;align-items:center;gap:6px;backdrop-filter:blur(4px);}
+  .power-icon{width:12px;height:12px;border-radius:50%;background:#ff6b9d;animation:pulse 1.5s infinite;}
+  .power-text{font-size:12px;color:#ff6b9d;}
+  @keyframes pulse {
+    0% {opacity: 0.4;}
+    50% {opacity: 1;}
+    100% {opacity: 0.4;}
+  }
+  .tutorial-overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:30;background:rgba(10,8,25,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;backdrop-filter:blur(4px);}
+  .tutorial-content{max-width:500px;background:rgba(26,16,51,0.9);padding:30px;border-radius:16px;border:2px solid rgba(157,122,255,0.5);box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+  .tutorial-title{font-size:24px;font-weight:700;margin-bottom:16px;color:#ffd166;}
+  .tutorial-text{font-size:16px;line-height:1.5;margin-bottom:20px;color:#e0e0e0;}
+  .tutorial-close{background:#9d7aff;padding:10px 20px;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s ease;}
+  .tutorial-close:hover{background:#b59aff;transform:scale(1.05);}
+</style>
+</head>
+<body>
+  <div id="gameContainer"></div>
+  <div class="help-icon" id="help">?</div>
+  <div class="ui-panel" id="uipanel">
+    <div class="level-indicator" id="levelText">LEVEL 1</div>
+    <div class="liquid-indicator" id="liquidText">LIQUID: 0 ml</div>
+    <div class="circuit-indicator" id="circuitText">CIRCUIT: 0%</div>
+  </div>
+  <div class="power-indicator" id="powerIndicator" style="display:none">
+    <div class="power-icon"></div>
+    <div class="power-text">PANTHER POWER ACTIVE!</div>
+  </div>
+  <div class="control-buttons">
+    <button id="resetBtn">RESET</button>
+    <button id="nextBtn" style="display:none;background:#4cd964">NEXT</button>
+  </div>
+  <div class="tutorial-overlay" id="tutorialOverlay" style="display:none">
+    <div class="tutorial-content">
+      <div class="tutorial-title">HOW TO PLAY</div>
+      <div class="tutorial-text">
+        <p>1. Touch and drag on the left side of the screen to aim the liquid cannon.</p>
+        <p>2. Release to shoot liquid into the container.</p>
+        <p>3. Draw a roughly circular shape while aiming to activate <span style="color:#ff6b9d">PANTHER POWER</span> for stronger shots.</p>
+        <p>4. Fill the container to connect the electrodes and complete the circuit.</p>
+        <p>5. Light up the bulb to complete the level!</p>
+      </div>
+      <div class="tutorial-close" id="tutorialClose">GOT IT!</div>
+    </div>
+  </div>
+
+<script>
+class LiquidPhysicsGame extends Phaser.Scene {
+  constructor(){ super({ key: 'LiquidPhysicsGame' }); }
+
+  preload(){ /* no external assets required */ }
+
+  create(){
+    // screen
+    this.w = this.sys.game.config.width;
+    this.h = this.sys.game.config.height;
+
+    // physics world
+    this.matter.world.setBounds(0,0,this.w,this.h);
+    // lighter gravity so drops travel further
+    this.matter.world.setGravity(0,0.6);
+
+    // game state
+    this.level = 1;
+    this.liquidUsed = 0;
+    this.circuitProgress = 0;
+    this.levelComplete = false;
+    this.liquidParticles = [];
+    this.pantherTrail = [];
+    this.pantherPowerActive = false;
+    this.isAiming = false;
+    this.aimX = 0; this.aimY = 0;
+    this.lastFireTime = 0;
+    this.fireRate = 320; // ms
+    this.aimPower = 1.0;
+    this.showingDemo = false;
+
+    // graphics groups
+    this.createBackground();
+    
+    // create game elements
+    this.createCannon();
+    this.createContainer();
+    this.createFloatingObjects();
+    this.createCircuit();
+    this.createLightbulb();
+
+    // UI elements and guides
+    this.aimGuide = this.add.graphics();
+    this.pantherPattern = this.add.graphics();
+    this.createUI();
+
+    // input
+    this.setupInput();
+
+    // demo (first time)
+    if (this.level === 1) { 
+      this.time.delayedCall(800,()=>this.showTutorial(),[],this); 
+    }
+  }
+
+  // ---------- Create visual game pieces ----------
+  createBackground(){
+    // Create a solid background with the primary color
+    this.bg = this.add.graphics(); 
+    this.bg.fillStyle(0x2d1b69, 1);
+    this.bg.fillRect(0, 0, this.w, this.h);
+    
+    // Add subtle background pattern
+    this.bgPattern = this.add.graphics();
+    this.bgPattern.lineStyle(1, 0x3a2675, 0.15);
+    for(let i = 0; i < this.w; i += 40) {
+      this.bgPattern.moveTo(i, 0);
+      this.bgPattern.lineTo(i, this.h);
+    }
+    for(let i = 0; i < this.h; i += 40) {
+      this.bgPattern.moveTo(0, i);
+      this.bgPattern.lineTo(this.w, i);
+    }
+    this.bgPattern.strokePath();
+  }
+
+  createCannon(){
+    // Improved cannon with better visuals
+    this.cannonX = this.w * 0.18;
+    this.cannonY = this.h * 0.75;
+    
+    // Cannon base with gradient
+    this.cannonBase = this.add.graphics();
+    this.cannonBase.fillStyle(0x6b5b95, 1);
+    this.cannonBase.fillRoundedRect(this.cannonX - 35, this.cannonY - 17.5, 70, 35, 8);
+    this.cannonBase.lineStyle(2, 0x8a7bb0, 1);
+    this.cannonBase.strokeRoundedRect(this.cannonX - 35, this.cannonY - 17.5, 70, 35, 8);
+    
+    // Cannon barrel with gradient and rounded end
+    this.cannonBarrel = this.add.graphics();
+    this.cannonBarrel.fillStyle(0x4a3c6e, 1);
+    this.cannonBarrel.fillRoundedRect(this.cannonX, this.cannonY - 13, 100, 26, 13);
+    this.cannonBarrel.lineStyle(2, 0x6b5b95, 1);
+    this.cannonBarrel.strokeRoundedRect(this.cannonX, this.cannonY - 13, 100, 26, 13);
+    
+    // Add a nozzle at the end
+    this.cannonNozzle = this.add.graphics();
+    this.cannonNozzle.fillStyle(0x3a2d56, 1);
+    this.cannonNozzle.fillCircle(this.cannonX + 100, this.cannonY, 10);
+    
+    // Store barrel properties for rotation
+    this.cannonBarrelOrigin = { x: this.cannonX, y: this.cannonY };
+    this.cannonBarrelLength = 100;
+    
+    // Panther power glow effect
+    this.cannonGlow = this.add.graphics();
+  }
+
+  createContainer(){
+    // Improved container with better visuals
+    const cx = this.w * 0.55;
+    const cy = this.h * 0.75;
+    const cW = this.w * 0.25;
+    const cH = this.h * 0.32;
+
+    // Container base and sides with gradient
+    this.containerBase = this.matter.add.rectangle(cx, cy + cH/2, cW, 26, { 
+      isStatic: true, 
+      render: { 
+        fillStyle: '#6b5b95',
+        strokeStyle: '#8a7bb0',
+        lineWidth: 2
+      }
+    });
+    
+    // Container sides (invisible physics bodies)
+    this.containerLeft = this.matter.add.rectangle(cx - cW/2 + 12, cy, 24, cH, { isStatic: true, render: { visible: false } });
+    this.containerRight = this.matter.add.rectangle(cx + cW/2 - 12, cy, 24, cH, { isStatic: true, render: { visible: false } });
+    
+    // Visual container sides
+    this.containerVisual = this.add.graphics();
+    this.containerVisual.lineStyle(3, 0x8a7bb0, 0.8);
+    this.containerVisual.strokeRoundedRect(cx - cW/2, cy - cH/2, cW, cH, 12);
+    
+    // Water level indicator (visual only)
+    this.waterLevelVisual = this.add.graphics();
+    
+    // Store bounds for checks
+    this.containerBounds = {
+      x: cx, y: cy, width: cW, height: cH,
+      left: cx - cW/2 + 12, right: cx + cW/2 - 12,
+      top: cy - cH/2, bottom: cy + cH/2
+    };
+  }
+
+  createFloatingObjects(){
+    this.floatingObjects = [];
+    const cx = this.containerBounds.x;
+    const cy = this.containerBounds.y;
+    const count = Math.min(3, 2 + this.level - 1);
+
+    for(let i=0;i<count;i++){
+      const sx = cx - 40 + (i*40);
+      const sy = cy - 20;
+      let g;
+      if (i % 3 === 0) {
+        // Square
+        g = this.add.graphics();
+        g.fillStyle(0xff6b9d, 1);
+        g.fillRoundedRect(sx - 17, sy - 17, 34, 34, 6);
+        g.lineStyle(2, 0xff8bb0, 1);
+        g.strokeRoundedRect(sx - 17, sy - 17, 34, 34, 6);
+      } else if (i % 3 === 1) {
+        // Circle
+        g = this.add.graphics();
+        g.fillStyle(0xffb74d, 1);
+        g.fillCircle(sx, sy, 18);
+        g.lineStyle(2, 0xffcc80, 1);
+        g.strokeCircle(sx, sy, 18);
+      } else {
+        // Rectangle
+        g = this.add.graphics();
+        g.fillStyle(0x4cd964, 1);
+        g.fillRoundedRect(sx - 22.5, sy - 12, 45, 24, 4);
+        g.lineStyle(2, 0x6de983, 1);
+        g.strokeRoundedRect(sx - 22.5, sy - 12, 45, 24, 4);
+      }
+      this.matter.add.gameObject(g, { restitution: 0.1, friction: 0.05, density: 0.4 });
+      this.floatingObjects.push(g);
+    }
+  }
+
+  createCircuit(){
+    const cx = this.containerBounds.x;
+    const cy = this.containerBounds.y;
+    const w = this.containerBounds.width;
+    const h = this.containerBounds.height;
+    
+    // electrodes with improved visuals
+    const eY = cy - h/3;
+    this.electrodeY = eY;
+    
+    // Left electrode
+    this.leftElectrode = this.add.graphics();
+    this.leftElectrode.fillStyle(0xffd166, 1);
+    this.leftElectrode.fillRoundedRect(cx - w/3 - 6, eY - 26, 12, 52, 6);
+    this.leftElectrode.lineStyle(2, 0xffdf99, 1);
+    this.leftElectrode.strokeRoundedRect(cx - w/3 - 6, eY - 26, 12, 52, 6);
+    
+    // Right electrode
+    this.rightElectrode = this.add.graphics();
+    this.rightElectrode.fillStyle(0xffd166, 1);
+    this.rightElectrode.fillRoundedRect(cx + w/3 - 6, eY - 26, 12, 52, 6);
+    this.rightElectrode.lineStyle(2, 0xffdf99, 1);
+    this.rightElectrode.strokeRoundedRect(cx + w/3 - 6, eY - 26, 12, 52, 6);
+    
+    // wires (visual)
+    const g = this.add.graphics(); 
+    g.lineStyle(4, 0xffd166, 0.85);
+    g.lineBetween(cx - w/3, eY - 25, cx - w/2 - 25, eY - 25);
+    g.lineBetween(cx - w/2 - 25, eY - 25, cx - w/2 - 25, cy - h/2 - 25);
+    g.lineBetween(cx - w/2 - 25, cy - h/2 - 25, cx + w/2 + 25, cy - h/2 - 25);
+    g.lineBetween(cx + w/3, eY - 25, cx + w/2 + 25, eY - 25);
+    
+    // Add spark effect graphics
+    this.sparkGraphics = this.add.graphics();
+  }
+
+  createLightbulb(){
+    const bx = this.containerBounds.x + this.containerBounds.width/2 + 25;
+    const by = this.h * 0.24;
+    
+    // Lightbulb base
+    this.lightbulb = this.add.graphics();
+    this.lightbulb.fillStyle(0x6b5b95, 1);
+    this.lightbulb.fillCircle(bx, by, 28);
+    this.lightbulb.lineStyle(2, 0x8a7bb0, 1);
+    this.lightbulb.strokeCircle(bx, by, 28);
+    
+    // Lightbulb filament (off state)
+    this.lightbulbFilament = this.add.graphics();
+    this.lightbulbFilament.lineStyle(3, 0x4a3c6e, 1);
+    this.lightbulbFilament.lineBetween(bx - 10, by - 5, bx + 10, by + 5);
+    this.lightbulbFilament.lineBetween(bx - 10, by + 5, bx + 10, by - 5);
+    
+    // Light glow
+    this.lightGlow = this.add.graphics();
+    
+    // Light rays
+    this.lightRays = this.add.graphics();
+  }
+
+  createUI(){
+    // UI already in DOM; keep references and update from Phaser
+    this.levelTextDOM = document.getElementById('levelText');
+    this.liquidTextDOM = document.getElementById('liquidText');
+    this.circuitTextDOM = document.getElementById('circuitText');
+    this.powerIndicatorDOM = document.getElementById('powerIndicator');
+
+    document.getElementById('resetBtn').onclick = ()=>this.resetLevel();
+    document.getElementById('nextBtn').onclick = ()=>this.nextLevel();
+    document.getElementById('help').onclick = ()=> this.showTutorial();
+    document.getElementById('tutorialClose').onclick = ()=> this.hideTutorial();
+  }
+
+  showTutorial(){
+    document.getElementById('tutorialOverlay').style.display = 'flex';
+  }
+
+  hideTutorial(){
+    document.getElementById('tutorialOverlay').style.display = 'none';
+    if (this.level === 1) {
+      this.time.delayedCall(600,()=>this.startDemo(),[],this);
+    }
+  }
+
+  // ---------- Input & aiming ----------
+  setupInput(){
+    // pointer down: only start aiming if pointer on left half for cannon
+    this.input.on('pointerdown', (pointer) => {
+      // stop demo if running
+      if (this.showingDemo) { this.stopDemo(); }
+      if (pointer.x < this.w * 0.65) { // allow a bit of right-side aiming
+        this.isAiming = true;
+        this.aimX = pointer.x; this.aimY = pointer.y;
+        this.pantherTrail = [{x:pointer.x,y:pointer.y}];
+      }
+    });
+
+    this.input.on('pointermove', (pointer) => {
+      if (this.isAiming) {
+        this.aimX = pointer.x; this.aimY = pointer.y;
+        // collect panther trail for pattern detection
+        this.pantherTrail.push({x:pointer.x,y:pointer.y});
+        if (this.pantherTrail.length > 60) this.pantherTrail.shift();
+        this.checkPantherPattern();
+      }
+    });
+
+    this.input.on('pointerup', (pointer) => {
+      if (this.isAiming && !this.levelComplete) {
+        this.fireLiquid();
+        this.isAiming = false;
+        this.pantherTrail = [];
+        this.pantherPattern.clear();
+      }
+    });
+  }
+
+  // ---------- Panther power detection ----------
+  checkPantherPattern(){
+    if (this.pantherTrail.length < 12) return;
+    // compute centroid and radius variance
+    let sumX = 0, sumY = 0;
+    for (let p of this.pantherTrail){ sumX += p.x; sumY += p.y; }
+    const cx = sumX / this.pantherTrail.length;
+    const cy = sumY / this.pantherTrail.length;
+
+    let minD = Infinity, maxD = 0, total = 0;
+    for (let p of this.pantherTrail){
+      const d = Phaser.Math.Distance.Between(cx,cy,p.x,p.y);
+      total += d;
+      minD = Math.min(minD, d);
+      maxD = Math.max(maxD, d);
+    }
+    const avg = total / this.pantherTrail.length;
+    const variance = maxD - minD;
+
+    // if roughly circular and big enough -> activate power
+    if (!this.pantherPowerActive && variance < 60 && avg > 35) {
+      this.activatePantherPower();
+    }
+
+    // draw pattern
+    this.pantherPattern.clear();
+    if (this.pantherTrail.length > 1) {
+      this.pantherPattern.lineStyle(3, this.pantherPowerActive ? 0xff6b9d : 0xffd166, 0.9);
+      this.pantherPattern.beginPath();
+      this.pantherPattern.moveTo(this.pantherTrail[0].x, this.pantherTrail[0].y);
+      for (let i=1;i<this.pantherTrail.length;i++){
+        this.pantherPattern.lineTo(this.pantherTrail[i].x,this.pantherTrail[i].y);
+      }
+      this.pantherPattern.strokePath();
+    }
+  }
+
+  activatePantherPower(){
+    this.pantherPowerActive = true;
+    this.powerIndicatorDOM.style.display = 'flex';
+    
+    // visual feedback
+    this.cameras.main.flash(300, 255, 100, 160, false);
+    
+    // cannon glow effect
+    this.cannonGlow.clear();
+    this.cannonGlow.fillStyle(0xff6b9d, 0.3);
+    this.cannonGlow.fillCircle(this.cannonX, this.cannonY, 60);
+    
+    // simple sound: use WebAudio oscillator if available
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 260;
+      g.gain.value = 0.12;
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.6);
+      osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.6);
+      g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+    } catch(e){}
+    
+    // lasts 5 seconds
+    this.time.delayedCall(5000, ()=> { 
+      this.pantherPowerActive = false; 
+      this.powerIndicatorDOM.style.display = 'none';
+      this.cannonGlow.clear();
+    }, [], this);
+  }
+
+  // ---------- Firing logic (fixed direction) ----------
+  fireLiquid(){
+    const now = Date.now();
+    if (now - this.lastFireTime < this.fireRate) return;
+    this.lastFireTime = now;
+
+    // compute direction from cannon barrel origin toward pointer but force it forward
+    const cannonOrigin = this.getCannonNozzle();
+    // raw direction vector
+    let dx = this.aimX - this.cannonX;
+    let dy = this.aimY - this.cannonY;
+    if (dx === 0 && dy === 0) { dx = 1; dy = -0.2; }
+
+    // compute angle and clamp to reasonable forward cone (avoid backward shots)
+    let angle = Math.atan2(dy, dx);
+    // allow mostly forward-right-ish range from -70deg (up) to +30deg (down-right)
+    const minA = Phaser.Math.DegToRad(-70);
+    const maxA = Phaser.Math.DegToRad(30);
+    angle = Phaser.Math.Clamp(angle, minA, maxA);
+
+    // barrel rotation visual
+    this.rotateCannonBarrel(angle);
+
+    // base force
+    const baseForce = this.pantherPowerActive ? 0.45 : 0.28; // stronger with panther
+    const particleCount = this.pantherPowerActive ? 16 : 10;
+
+    // Muzzle flash effect
+    this.createMuzzleFlash(cannonOrigin.x, cannonOrigin.y);
+
+    for (let i=0;i<particleCount;i++){
+      this.time.delayedCall(i * (this.pantherPowerActive ? 30 : 45), ()=>{
+        const size = Phaser.Math.Between(this.pantherPowerActive ? 8 : 6, this.pantherPowerActive ? 14 : 10);
+        // create physics body (Matter)
+        const body = this.matter.add.circle(cannonOrigin.x + Math.cos(angle)*6, cannonOrigin.y + Math.sin(angle)*6, size, {
+          restitution: 0.18,
+          friction: 0.005,
+          density: 0.65,
+          frictionAir: 0.0008
+        });
+
+        // visual - improved liquid particles with gradient
+        const color = this.pantherPowerActive ? 0xff6b9d : 0x9d7aff;
+        const visual = this.add.graphics();
+        visual.fillStyle(color, 1);
+        visual.fillCircle(0, 0, size);
+        visual.lineStyle(1, this.pantherPowerActive ? 0xff8bb0 : 0xb59aff, 0.8);
+        visual.strokeCircle(0, 0, size);
+        
+        // Add a highlight to make it look more liquid-like
+        visual.fillStyle(0xffffff, 0.3);
+        visual.fillCircle(-size/3, -size/3, size/3);
+        
+        visual.setPosition(body.position.x, body.position.y);
+        visual.setDepth(2);
+        
+        // store pointer to body
+        visual.__body = body;
+
+        // apply force at body center in direction of angle
+        const jitter = (Math.random() - 0.5) * 0.08;
+        const force = baseForce * (1 + jitter);
+        const fx = Math.cos(angle) * force;
+        const fy = Math.sin(angle) * force;
+        this.matter.body.applyForce(body, { x: body.position.x, y: body.position.y }, { x: fx, y: fy });
+
+        // keep track for syncing & cleanup
+        this.liquidParticles.push({ body, visual });
+
+        // cleanup later if they miss
+        this.time.delayedCall(8000, ()=> {
+          // remove body + visual if still present
+          try { if (body && body.id) this.matter.world.remove(body); } catch(e){}
+          if (visual && visual.active) visual.destroy();
+          // remove from array
+          for (let j = this.liquidParticles.length - 1; j >= 0; j--) {
+            if (this.liquidParticles[j].visual === visual) this.liquidParticles.splice(j,1);
+          }
+        }, [], this);
+      }, [], this);
+    }
+
+    // update liquid used
+    this.liquidUsed += (this.pantherPowerActive ? 80 : 50);
+    this.updateUI();
+  }
+
+  rotateCannonBarrel(angle) {
+    // Clear previous barrel
+    this.cannonBarrel.clear();
+    
+    // Redraw barrel at new angle
+    this.cannonBarrel.save();
+    this.cannonBarrel.translateCanvas(this.cannonBarrelOrigin.x, this.cannonBarrelOrigin.y);
+    this.cannonBarrel.rotateCanvas(angle);
+    
+    this.cannonBarrel.fillStyle(0x4a3c6e, 1);
+    this.cannonBarrel.fillRoundedRect(0, -13, this.cannonBarrelLength, 26, 13);
+    this.cannonBarrel.lineStyle(2, 0x6b5b95, 1);
+    this.cannonBarrel.strokeRoundedRect(0, -13, this.cannonBarrelLength, 26, 13);
+    
+    this.cannonBarrel.restore();
+    
+    // Update nozzle position
+    this.cannonNozzle.clear();
+    this.cannonNozzle.fillStyle(0x3a2d56, 1);
+    const nozzleX = this.cannonBarrelOrigin.x + Math.cos(angle) * this.cannonBarrelLength;
+    const nozzleY = this.cannonBarrelOrigin.y + Math.sin(angle) * this.cannonBarrelLength;
+    this.cannonNozzle.fillCircle(nozzleX, nozzleY, 10);
+  }
+
+  createMuzzleFlash(x, y) {
+    const flash = this.add.graphics();
+    flash.fillStyle(0xffffff, 1);
+    flash.fillCircle(x, y, 15);
+    
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      scaleX: 1.5,
+      scaleY: 1.5,
+      duration: 150,
+      onComplete: () => {
+        flash.destroy();
+      }
+    });
+  }
+
+  // compute nozzle position from barrel rotation & origin
+  getCannonNozzle(){
+    const angle = this.cannonBarrel.rotation || 0;
+    const nozzleX = this.cannonBarrelOrigin.x + Math.cos(angle) * this.cannonBarrelLength;
+    const nozzleY = this.cannonBarrelOrigin.y + Math.sin(angle) * this.cannonBarrelLength;
+    return { x: nozzleX, y: nozzleY };
+  }
+
+  // ---------- Update loop ----------
+  update(time, delta){
+    // update barrel rotation to follow pointer when aiming (visual)
+    if (this.isAiming) {
+      // compute angle from cannon center to aim point but clamp
+      let angle = Math.atan2(this.aimY - this.cannonY, this.aimX - this.cannonX);
+      const minA = Phaser.Math.DegToRad(-80), maxA = Phaser.Math.DegToRad(35);
+      angle = Phaser.Math.Clamp(angle, minA, maxA);
+      // smoothly rotate barrel a bit (lerp)
+      const targetRotation = Phaser.Math.Angle.RotateTo(this.cannonBarrel.rotation || 0, angle, 0.15);
+      this.rotateCannonBarrel(targetRotation);
+    } else {
+      // slowly return to neutral angle
+      const targetRotation = Phaser.Math.Angle.RotateTo(this.cannonBarrel.rotation || 0, Phaser.Math.DegToRad(-12), 0.02);
+      this.rotateCannonBarrel(targetRotation);
+    }
+
+    // draw aim guide
+    this.aimGuide.clear();
+    if (this.isAiming) {
+      let angle = Math.atan2(this.aimY - this.cannonY, this.aimX - this.cannonX);
+      const minA = Phaser.Math.DegToRad(-80), maxA = Phaser.Math.DegToRad(35);
+      angle = Phaser.Math.Clamp(angle, minA, maxA);
+      // trajectory preview dots
+      const powerFactor = this.pantherPowerActive ? 1.3 : 1.0;
+      const force = (this.pantherPowerActive ? 0.45 : 0.28) * powerFactor;
+      const dotCount = 14;
+      for (let i=1;i<=dotCount;i++){
+        const t = i * 0.16;
+        // simulate ballistic-like sample (approx)
+        const x = this.cannonX + Math.cos(angle) * force * 110 * t;
+        const y = this.cannonY + Math.sin(angle) * force * 110 * t + 0.5 * 0.6 * (t * t) * 100;
+        const alpha = 0.9 - i*0.06;
+        if (alpha > 0.05) {
+          this.aimGuide.fillStyle(this.pantherPowerActive ? 0xff6b9d : 0x9d7aff, alpha);
+          this.aimGuide.fillCircle(x, y, 5);
+        }
+      }
+    }
+
+    // draw panther pattern (already handled in checkPantherPattern via pantherPattern)
+
+    // sync visuals with physics bodies
+    for (let i = this.liquidParticles.length - 1; i >= 0; i--){
+      const p = this.liquidParticles[i];
+      if (!p || !p.body) { this.liquidParticles.splice(i,1); continue; }
+      if (p.visual && p.visual.active){
+        p.visual.x = p.body.position.x;
+        p.visual.y = p.body.position.y;
+        // Add a slight rotation to make particles look more dynamic
+        p.visual.rotation += 0.02;
+      } else {
+        // remove if visual destroyed
+        try { this.matter.world.remove(p.body); } catch(e){}
+        this.liquidParticles.splice(i,1);
+      }
+    }
+
+    // update water level based on particles in container
+    this.updateWaterLevel();
+
+    // circuit checks & lightbulb
+    this.updateCircuit();
+
+    // update UI
+    this.updateUI();
+  }
+
+  updateWaterLevel(){
+    const b = this.containerBounds;
+    let minY = this.h, count = 0;
+    for (let p of this.liquidParticles){
+      const x = p.body.position.x, y = p.body.position.y;
+      if (x > b.left && x < b.right && y > b.top && y < b.bottom){
+        count++; if (y < minY) minY = y;
+      }
+    }
+    
+    this.waterLevelVisual.clear();
+    if (count > 0){
+      const waterTop = Phaser.Math.Clamp(b.bottom - (b.bottom - minY) * 1.5, b.top, b.bottom);
+      const waterHeight = b.bottom - waterTop;
+      
+      // Draw water with gradient
+      this.waterLevelVisual.fillStyle(0x9d7aff, 1);
+      this.waterLevelVisual.fillRoundedRect(
+        b.x - b.width/2 + 12, 
+        waterTop, 
+        b.width - 24, 
+        waterHeight, 
+        8
+      );
+      
+      // Add water surface effect
+      this.waterLevelVisual.lineStyle(2, 0xb59aff, 0.7);
+      this.waterLevelVisual.lineBetween(b.x - b.width/2 + 12, waterTop, b.x + b.width/2 - 12, waterTop);
+      
+      this.currentWaterTopY = waterTop;
+      // buoyancy for floating objects
+      for (let obj of this.floatingObjects){
+        if (obj.x > b.left && obj.x < b.right && obj.y < waterTop - 8){
+          // apply small upward force
+          const body = obj.body;
+          if (body) this.matter.body.applyForce(body, {x: body.position.x, y: body.position.y}, { x: 0, y: -0.015 });
+        }
+      }
+    } else {
+      this.currentWaterTopY = null;
+    }
+  }
+
+  updateCircuit(){
+    if (this.levelComplete) return;
+    const b = this.containerBounds;
+    let leftTouch = false, rightTouch = false;
+    for (let p of this.liquidParticles){
+      const x = p.body.position.x, y = p.body.position.y;
+      if (x > b.x - b.width/3 - 15 && x < b.x - b.width/3 + 15 && y > this.electrodeY - 25 && y < this.electrodeY + 25) leftTouch = true;
+      if (x > b.x + b.width/3 - 15 && x < b.x + b.width/3 + 15 && y > this.electrodeY - 25 && y < this.electrodeY + 25) rightTouch = true;
+    }
+    
+    // Update circuit progress
+    if (leftTouch && rightTouch) this.circuitProgress = Math.min(100, (this.circuitProgress || 0) + 1.6);
+    else this.circuitProgress = Math.max(0, (this.circuitProgress || 0) - 0.35);
+    this.circuitTextDOM && (this.circuitTextDOM.innerText = `CIRCUIT: ${Math.round(this.circuitProgress || 0)}%`);
+
+    // Draw spark effect between electrodes when circuit is active
+    this.sparkGraphics.clear();
+    if (leftTouch && rightTouch && this.circuitProgress > 10) {
+      const sparkCount = Math.floor(this.circuitProgress / 20);
+      for (let i = 0; i < sparkCount; i++) {
+        const sparkX = Phaser.Math.Between(b.x - b.width/3, b.x + b.width/3);
+        const sparkY = this.electrodeY + Phaser.Math.Between(-10, 10);
+        
+        this.sparkGraphics.lineStyle(2, 0xffd166, 0.7);
+        this.sparkGraphics.lineBetween(b.x - b.width/3, this.electrodeY, sparkX, sparkY);
+        this.sparkGraphics.lineBetween(sparkX, sparkY, b.x + b.width/3, this.electrodeY);
+      }
+    }
+
+    // Update lightbulb
+    this.updateLightbulb((this.circuitProgress || 0) / 100);
+
+    // level complete
+    if ((this.circuitProgress || 0) >= 100 && !this.levelComplete){
+      this.levelComplete = true;
+      this.onLevelComplete();
+    }
+  }
+
+  updateLightbulb(progress) {
+    // Update lightbulb filament
+    this.lightbulbFilament.clear();
+    if (progress > 0) {
+      this.lightbulbFilament.lineStyle(3, 0xffd166, progress);
+      this.lightbulbFilament.lineBetween(this.lightbulb.x - 10, this.lightbulb.y - 5, this.lightbulb.x + 10, this.lightbulb.y + 5);
+      this.lightbulbFilament.lineBetween(this.lightbulb.x - 10, this.lightbulb.y + 5, this.lightbulb.x + 10, this.lightbulb.y - 5);
+    }
+    
+    // Update light glow
+    this.lightGlow.clear();
+    if (progress > 0) {
+      this.lightGlow.fillStyle(0x4cd964, progress * 0.3);
+      this.lightGlow.fillCircle(this.lightbulb.x, this.lightbulb.y, 42);
+    }
+    
+    // Update light rays
+    this.lightRays.clear();
+    if (progress > 0.5) {
+      this.lightRays.lineStyle(2, 0x4cd964, progress * 0.5);
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const length = 30 + Math.sin(Date.now() / 200 + i) * 10;
+        this.lightRays.lineBetween(
+          this.lightbulb.x + Math.cos(angle) * 28,
+          this.lightbulb.y + Math.sin(angle) * 28,
+          this.lightbulb.x + Math.cos(angle) * (28 + length),
+          this.lightbulb.y + Math.sin(angle) * (28 + length)
+        );
+      }
+    }
+  }
+
+  onLevelComplete(){
+    // show next button
+    document.getElementById('nextBtn').style.display = 'inline-block';
+    
+    // celebration particles
+    for (let i=0;i<20;i++){
+      this.time.delayedCall(i*80, ()=>{
+        const px = this.lightbulb.x + (Math.random()-0.5)*40;
+        const py = this.lightbulb.y + (Math.random()-0.5)*20;
+        const s = Phaser.Math.Between(4,10);
+        const part = this.add.graphics();
+        part.fillStyle(Phaser.Display.Color.RandomRGB().color, 1);
+        part.fillCircle(0, 0, s);
+        part.setPosition(px, py);
+        this.matter.add.gameObject(part, { restitution: 0.8, friction: 0.01 });
+        part.applyForce({ x: (Math.random()-0.5)*0.07, y: (Math.random()-0.6)*0.07 });
+        this.time.delayedCall(1800, ()=>{ if (part && part.active) part.destroy(); }, [], this);
+      }, [], this);
+    }
+    
+    // Play success sound
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 523.25; // C5
+      g.gain.value = 0.1;
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+      
+      const osc2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      osc2.connect(g2); g2.connect(ctx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.value = 659.25; // E5
+      g2.gain.value = 0.1;
+      osc2.start(ctx.currentTime + 0.2); osc2.stop(ctx.currentTime + 0.5);
+      
+      const osc3 = ctx.createOscillator();
+      const g3 = ctx.createGain();
+      osc3.connect(g3); g3.connect(ctx.destination);
+      osc3.type = 'sine';
+      osc3.frequency.value = 783.99; // G5
+      g3.gain.value = 0.1;
+      osc3.start(ctx.currentTime + 0.4); osc3.stop(ctx.currentTime + 0.7);
+    } catch(e){}
+  }
+
+  updateUI(){
+    this.levelTextDOM && (this.levelTextDOM.innerText = `LEVEL ${this.level}`);
+    this.liquidTextDOM && (this.liquidTextDOM.innerText = `LIQUID: ${this.liquidUsed} ml`);
+    // circuit updated elsewhere
+  }
+
+  resetLevel(){
+    // restart scene (quick and clean)
+    this.scene.restart();
+  }
+
+  nextLevel(){
+    if (!this.levelComplete) return;
+    this.level++;
+    document.getElementById('nextBtn').style.display = 'none';
+    this.scene.restart();
+  }
+
+  // Demo: shows how panther power + firing works (non-blocking)
+  startDemo(){
+    this.showingDemo = true;
+    // simulate a panther draw then shot into container
+    this.time.delayedCall(500, ()=>{
+      // simulate drawing circle by pushing points into pantherTrail
+      const cx = this.w * 0.45, cy = this.h * 0.45, r = 70, steps = 22;
+      this.pantherTrail = [];
+      for (let i=0;i<=steps;i++){
+        const a = (i / steps) * Math.PI * 2;
+        this.pantherTrail.push({x: cx + Math.cos(a)*r, y: cy + Math.sin(a)*r});
+      }
+      this.checkPantherPattern(); // should activate
+    }, [], this);
+
+    this.time.delayedCall(1600, ()=>{
+      // simulate aim and fire
+      this.isAiming = true;
+      this.aimX = this.containerBounds.x;
+      this.aimY = this.containerBounds.y - 60;
+      this.fireLiquid();
+      this.isAiming = false;
+    }, [], this);
+
+    this.time.delayedCall(2400, ()=>{
+      // inject extra particles to show filling
+      for (let i=0;i<10;i++){
+        const px = this.containerBounds.x - this.containerBounds.width/3 + (Math.random()-0.5)*8;
+        const py = this.electrodeY + 6 + Math.random()*8;
+        const b = this.matter.add.circle(px, py, 8, { restitution:0.1, friction:0.02, density:0.9 });
+        const v = this.add.graphics();
+        v.fillStyle(0xff6b9d, 1);
+        v.fillCircle(0, 0, 8);
+        v.setPosition(px, py);
+        this.liquidParticles.push({ body: b, visual: v });
+      }
+      for (let i=0;i<10;i++){
+        const px = this.containerBounds.x + this.containerBounds.width/3 + (Math.random()-0.5)*8;
+        const py = this.electrodeY + 6 + Math.random()*8;
+        const b = this.matter.add.circle(px, py, 8, { restitution:0.1, friction:0.02, density:0.9 });
+        const v = this.add.graphics();
+        v.fillStyle(0xff6b9d, 1);
+        v.fillCircle(0, 0, 8);
+        v.setPosition(px, py);
+        this.liquidParticles.push({ body: b, visual: v });
+      }
+      // complete circuit quickly
+      this.circuitProgress = 100;
+      this.showingDemo = false;
+    }, [], this);
+  }
+
+  stopDemo(){ this.showingDemo = false; this.pantherTrail = []; this.pantherPattern.clear(); }
+}
+
+// ---------- game config ----------
+const config = {
+  type: Phaser.AUTO,
+  width: window.innerWidth,
+  height: window.innerHeight,
+  parent: 'gameContainer',
+  backgroundColor: '#111',
+  physics: {
+    default: 'matter',
+    matter: { 
+      gravity: { y: 0.6 }, 
+      debug: false,
+      enableSleeping: true
+    }
+  },
+  scene: LiquidPhysicsGame,
+  scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }
+};
+
+const game = new Phaser.Game(config);
+
+// handle window resize
+window.addEventListener('resize', ()=> { game.scale.resize(window.innerWidth, window.innerHeight); });
+
+// DOM buttons already wired in create()
+</script>
+</body>
+</html>

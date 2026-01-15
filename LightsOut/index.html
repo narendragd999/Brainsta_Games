@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Lights Out — Phaser.js</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <style>
+    /* Global styles */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Game container */
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header section */
+    .header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+      z-index: 10;
+    }
+    
+    .title-section h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .title-section p {
+      margin: 4px 0 0;
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 68px;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      transition: all 0.2s ease;
+    }
+    
+    .btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    
+    .btn-primary {
+      background: #3498db;
+      color: #fff;
+    }
+    
+    .btn-secondary {
+      background: #6a11cb;
+      color: #fff;
+    }
+    
+    /* Game area */
+    #game-area {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    #phaser-root {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    
+    /* Footer section */
+    .footer {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      z-index: 10;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .stat-pill {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    /* Dropdown */
+    select {
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      background: white;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    
+    /* Loader */
+    .loader-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      color: white;
+    }
+    
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.15);
+      border-top-color: #fff;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Confetti animation for win state */
+    @keyframes confetti-fall {
+      0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+    
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #ffd700;
+      opacity: 0;
+      z-index: 100;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .header {
+        padding: 10px 12px;
+      }
+      
+      .title-section h1 {
+        font-size: 1.3rem;
+      }
+      
+      .title-section p {
+        font-size: 0.8rem;
+      }
+      
+      .btn {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        min-width: 60px;
+      }
+      
+      select {
+        padding: 8px;
+      }
+      
+      .footer {
+        padding: 10px 12px;
+      }
+      
+      .stat-pill {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+      }
+    }
+    
+    @media (max-height: 600px) {
+      .header, .footer {
+        padding: 8px;
+      }
+      
+      .title-section h1 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div class="header">
+      <div class="title-section">
+        <h1>Lights Out</h1>
+        <p>Toggle tiles to turn all lights off</p>
+      </div>
+      
+      <div class="controls">
+        <select id="sizeSelect">
+          <option value="3">3×3</option>
+          <option value="4">4×4</option>
+          <option value="5" selected>5×5</option>
+          <option value="6">6×6</option>
+        </select>
+        <button id="shuffleBtn" class="btn btn-secondary">Shuffle</button>
+        <button id="resetBtn" class="btn btn-primary">Reset</button>
+      </div>
+    </div>
+    
+    <div id="game-area">
+      <div id="phaser-root"></div>
+      
+      <div id="loader" class="loader-overlay">
+        <div class="spinner"></div>
+        <p>Loading game...</p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div class="stats">
+        <div class="stat-pill">
+          <span>Moves:</span>
+          <span id="moves">0</span>
+        </div>
+        <div class="stat-pill">
+          <span>Status:</span>
+          <span id="status">Playing</span>
+        </div>
+      </div>
+      
+      <div class="hint">
+        <p style="color: white; margin: 0; font-size: 0.85rem;">Tap a tile to toggle it and its neighbors</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // Phaser game config and Lights Out implementation
+  (function(){
+    const container = document.getElementById('phaser-root');
+    const gameContainer = document.getElementById('game-container');
+
+    const config = {
+      type: Phaser.AUTO,
+      parent: 'phaser-root',
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+      },
+      backgroundColor: 0x000000,
+      scene: { preload, create, update },
+      audio: { disableWebAudio: false }
+    };
+
+    const game = new Phaser.Game(config);
+
+    let gridSize = 5;
+    let tileSize = 0;
+    let grid = [];
+    let tilesContainer;
+    let moves = 0;
+    let isWin = false;
+
+    // Simple oscillator-based sounds (WebAudio) via Phaser's audio context
+    function playBeep(freq=440,duration=0.06, type='sine'){
+      const ctx = game.sound.context;
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start(now);
+      o.stop(now + duration + 0.02);
+    }
+
+    function preload(){
+      // no external assets — show loader for a short while
+      this.load.on('complete', ()=>{
+        const loader = document.getElementById('loader');
+        loader.style.display='none';
+      });
+
+      // small startup delay so loader visible
+      this.time.delayedCall(800, () => {
+        this.load.image('dot','data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==');
+        this.load.start();
+      });
+    }
+
+    function create(){
+      const scene = this;
+      
+      // Create a container for all tiles
+      tilesContainer = this.add.container();
+      
+      // Handle orientation changes
+      window.addEventListener('resize', handleResize.bind(this));
+      handleResize.call(this);
+
+      // initial layout
+      buildGrid(scene, gridSize);
+
+      // UI hooks
+      document.getElementById('shuffleBtn').addEventListener('click', ()=>{
+        shuffleGrid(scene, Math.max(8, gridSize*3));
+      });
+      document.getElementById('resetBtn').addEventListener('click', ()=>{
+        resetGrid(scene);
+      });
+      document.getElementById('sizeSelect').addEventListener('change',(e)=>{
+        gridSize = parseInt(e.target.value,10);
+        resetGrid(scene);
+      });
+    }
+    
+    function handleResize() {
+      // Rebuild grid on resize
+      if (this.scene) {
+        buildGrid(this.scene, gridSize);
+      }
+    }
+
+    function update(){
+      // nothing heavy in update loop — Phaser handles rendering
+    }
+
+    function buildGrid(scene, size){
+      // destroy old tiles
+      if (tilesContainer) {
+        tilesContainer.removeAll(true);
+      }
+      grid = [];
+      moves = 0;
+      isWin = false;
+      updateMoves();
+      updateStatus('Playing');
+
+      // Calculate available space considering header and footer
+      const headerHeight = document.querySelector('.header').offsetHeight;
+      const footerHeight = document.querySelector('.footer').offsetHeight;
+      const availableH = window.innerHeight - headerHeight - footerHeight - 20;
+      
+      const margin = Math.min(window.innerWidth, availableH) * 0.04;
+      const availableW = window.innerWidth - margin * 2;
+      const best = Math.min(availableW, availableH);
+      tileSize = Math.floor(best / size);
+
+      // center start position
+      const offsetX = (window.innerWidth - (tileSize * size)) / 2;
+      const offsetY = headerHeight + (availableH - (tileSize * size)) / 2;
+
+      for(let r = 0; r < size; r++){
+        grid[r] = [];
+        for(let c = 0; c < size; c++){
+          const x = Math.round(offsetX + c * tileSize + tileSize / 2);
+          const y = Math.round(offsetY + r * tileSize + tileSize / 2);
+
+          // Create tile using graphics instead of rectangle
+          const tile = scene.add.graphics();
+          tile.fillStyle(0xffffff, 1);
+          tile.fillRoundedRect(-tileSize/2 + 3, -tileSize/2 + 3, tileSize - 6, tileSize - 6, 8);
+          tile.lineStyle(2, 0xeeeeee, 1);
+          tile.strokeRoundedRect(-tileSize/2 + 3, -tileSize/2 + 3, tileSize - 6, tileSize - 6, 8);
+          tile.setPosition(x, y);
+          
+          // Create light overlay (colored when ON)
+          const overlay = scene.add.graphics();
+          overlay.fillStyle(0xffeb3b, 0.9);
+          overlay.fillRoundedRect(-tileSize/2 + 6, -tileSize/2 + 6, tileSize - 12, tileSize - 12, 6);
+          overlay.setPosition(x, y);
+          overlay.visible = false;
+          
+          // Create subtle drop shadow
+          const shadow = scene.add.graphics();
+          shadow.fillStyle(0x000000, 0.1);
+          shadow.fillRoundedRect(-tileSize/2 + 3, -tileSize/2 + 3, tileSize - 6, tileSize - 6, 8);
+          shadow.setPosition(x + 2, y + 2);
+          shadow.setDepth(-1);
+
+          // Make tile interactive
+          tile.setInteractive(new Phaser.Geom.Rectangle(-tileSize/2, -tileSize/2, tileSize, tileSize), Phaser.Geom.Rectangle.Contains);
+          tile.row = r;
+          tile.col = c;
+
+          tile.on('pointerdown', ()=>{
+            if(isWin) return;
+            toggleAt(scene, r, c);
+            
+            // Add touch feedback
+            scene.tweens.add({
+              targets: tile,
+              scaleX: 0.95,
+              scaleY: 0.95,
+              duration: 80,
+              yoyo: true,
+              ease: 'Power2'
+            });
+          });
+
+          // Add all elements to the container
+          tilesContainer.add(shadow);
+          tilesContainer.add(tile);
+          tilesContainer.add(overlay);
+
+          grid[r][c] = {on: false, tile, overlay, shadow};
+        }
+      }
+
+      // initial shuffle to provide a solvable but random puzzle
+      shuffleGrid(scene, Math.max(6, size * 3));
+    }
+
+    function toggleAt(scene, r, c, countMove = true){
+      // flip tile and its 4-neighbors
+      const coords = [[r, c], [r-1, c], [r+1, c], [r, c-1], [r, c+1]];
+      coords.forEach(([rr, cc]) => {
+        if(rr >= 0 && rr < grid.length && cc >= 0 && cc < grid.length){
+          const cell = grid[rr][cc];
+          cell.on = !cell.on;
+          cell.overlay.visible = cell.on;
+          
+          // Visual feedback for toggling
+          if (cell.on) {
+            scene.tweens.add({
+              targets: cell.overlay,
+              scaleX: 1.1,
+              scaleY: 1.1,
+              duration: 100,
+              yoyo: true,
+              ease: 'Power2'
+            });
+          }
+          
+          // play small sound slightly detuned by coord for a pleasant chord
+          playBeep(440 + (rr * 20) + (cc * 8), 0.04, (cell.on ? 'sine' : 'triangle'));
+        }
+      });
+      
+      if(countMove){
+        moves++;
+        updateMoves();
+      }
+
+      // check win
+      if(checkWin()){
+        handleWin(scene);
+      }
+    }
+
+    function shuffleGrid(scene, steps = 15){
+      // start with all off then apply random toggles (guarantees solvable)
+      for(let r = 0; r < grid.length; r++) {
+        for(let c = 0; c < grid.length; c++){
+          grid[r][c].on = false;
+          grid[r][c].overlay.visible = false;
+        }
+      }
+      
+      moves = 0;
+      updateMoves();
+      updateStatus('Shuffling...');
+      
+      // perform random toggles with a small stagger so user sees movement
+      const actions = [];
+      for(let i = 0; i < steps; i++){
+        const rr = Phaser.Math.Between(0, grid.length - 1);
+        const cc = Phaser.Math.Between(0, grid.length - 1);
+        actions.push([rr, cc]);
+      }
+      
+      actions.forEach((p, idx) => {
+        scene.time.delayedCall(idx * 60, () => {
+          toggleAt(scene, p[0], p[1], false);
+          if(idx === actions.length - 1){ 
+            moves = 0; 
+            updateMoves(); 
+            updateStatus('Playing'); 
+          }
+        });
+      });
+    }
+
+    function resetGrid(scene){
+      for(let r = 0; r < grid.length; r++) {
+        for(let c = 0; c < grid.length; c++){
+          grid[r][c].on = false;
+          grid[r][c].overlay.visible = false;
+        }
+      }
+      
+      moves = 0;
+      isWin = false;
+      updateMoves();
+      updateStatus('Playing');
+      
+      // tiny beep to acknowledge
+      playBeep(320, 0.08, 'sine');
+    }
+
+    function checkWin(){
+      for(let r = 0; r < grid.length; r++) {
+        for(let c = 0; c < grid.length; c++){
+          if(grid[r][c].on) return false;
+        }
+      }
+      return true;
+    }
+
+    function handleWin(scene){
+      isWin = true;
+      updateStatus('You Win!');
+      
+      // celebration: chime sequence
+      const freqs = [660, 880, 990, 1320];
+      freqs.forEach((f, i) => {
+        scene.time.delayedCall(i * 120, () => playBeep(f, 0.14, 'sine'));
+      });
+
+      // Create confetti effect
+      createConfetti(scene);
+      
+      // Final chord after confetti
+      scene.time.delayedCall(350, () => playBeep(440, 0.18, 'triangle'));
+    }
+    
+    function createConfetti(scene) {
+      const colors = [0xFFC107, 0xE91E63, 0x9C27B0, 0x3F51B5, 0x03A9F4, 0x4CAF50];
+      
+      for (let i = 0; i < 50; i++) {
+        const x = Phaser.Math.Between(0, window.innerWidth);
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = Phaser.Math.Between(8, 16);
+        
+        const confetti = scene.add.graphics();
+        confetti.fillStyle(color, 1);
+        confetti.fillRect(-size/2, -size/2, size, size);
+        confetti.setPosition(x, -10);
+        confetti.setDepth(50);
+        
+        const duration = Phaser.Math.Between(2000, 4000);
+        const rotation = Phaser.Math.Between(-720, 720);
+        
+        scene.tweens.add({
+          targets: confetti,
+          y: window.innerHeight + 20,
+          rotation: rotation,
+          duration: duration,
+          ease: 'Cubic.easeIn',
+          onComplete: () => confetti.destroy()
+        });
+      }
+    }
+
+    function updateMoves(){ 
+      document.getElementById('moves').textContent = moves; 
+    }
+    
+    function updateStatus(s){ 
+      document.getElementById('status').textContent = s; 
+    }
+
+    // Ensure the phaser canvas sits properly in the container
+    const root = document.getElementById('phaser-root');
+    root.style.position = 'absolute';
+    root.style.inset = '0';
+    root.style.zIndex = '1';
+
+    // Prevent touch gestures from causing scroll on mobile
+    document.addEventListener('touchmove', function(e){ 
+      if (e.touches.length > 1) {
+        e.preventDefault(); 
+      }
+    }, { passive: false });
+
+    // Hide loader after a short time if still visible
+    setTimeout(() => {
+      const loader = document.getElementById('loader');
+      if (loader && loader.style.display !== 'none') {
+        loader.style.display = 'none';
+      }
+    }, 2000);
+  })();
+  </script>
+</body>
+</html>

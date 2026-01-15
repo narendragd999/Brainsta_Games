@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Flick Soccer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            font-family: 'Arial', sans-serif;
+        }
+
+        #gameContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #2c3e50;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Compact UI */
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 12px;
+            border-radius: 20px;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+
+        #powerBar {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            overflow: hidden;
+            z-index: 10;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        #powerFill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #00b894, #fdcb6e, #e17055);
+            transition: width 0.1s;
+            border-radius: 4px;
+        }
+
+        /* Help Button */
+        #helpBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #2c3e50;
+            border: none;
+            border-radius: 50%;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Instruction Popup */
+        #instructionPopup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .popup-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 320px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 3px solid #fdcb6e;
+        }
+
+        .popup-content h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #fdcb6e;
+        }
+
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .instruction-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .instruction-text {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        #startBtn {
+            background: #00b894;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        #startBtn:active {
+            transform: scale(0.95);
+        }
+
+        /* Restart Button */
+        #restartBtn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Goal Celebration */
+        .goal-celebration {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #fdcb6e;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+            z-index: 50;
+            animation: goalAnimation 1s ease-out;
+            display: none;
+        }
+
+        @keyframes goalAnimation {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 480px) {
+            #ui {
+                font-size: 14px;
+                padding: 6px 10px;
+            }
+            
+            #powerBar {
+                bottom: 50px;
+                width: 120px;
+                height: 10px;
+            }
+            
+            .popup-content {
+                padding: 20px;
+            }
+            
+            .popup-content h2 {
+                font-size: 20px;
+            }
+            
+            .instruction-item {
+                margin: 12px 0;
+            }
+            
+            .instruction-icon {
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+            }
+            
+            .instruction-text {
+                font-size: 13px;
+            }
+        }
+
+        /* Sound Toggle */
+        #soundToggle {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Loading Screen */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Prevent zoom on double-tap */
+        .no-zoom {
+            touch-action: manipulation;
+        }
+    </style>
+</head>
+<body class="no-zoom">
+    <div id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <h2>Loading Flick Soccer...</h2>
+        <p>Preparing the stadium</p>
+    </div>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui">
+            <div>Score: <span id="score">0</span> | Shots: <span id="shots">0</span></div>
+        </div>
+        
+        <div id="powerBar">
+            <div id="powerFill"></div>
+        </div>
+        
+        <button id="helpBtn">?</button>
+        <button id="soundToggle">🔊</button>
+        <button id="restartBtn">Restart</button>
+        
+        <div class="goal-celebration" id="goalText">GOAL!</div>
+        
+        <div id="instructionPopup">
+            <div class="popup-content">
+                <h2>⚽ Flick Soccer!</h2>
+                
+                <div class="instruction-item">
+                    <div class="instruction-icon">🎯</div>
+                    <div class="instruction-text">Drag the ball to aim and set power</div>
+                </div>
+                
+                <div class="instruction-item">
+                    <div class="instruction-icon">💨</div>
+                    <div class="instruction-text">Release to shoot - longer drag = more power</div>
+                </div>
+                
+                <div class="instruction-item">
+                    <div class="instruction-icon">🥅</div>
+                    <div class="instruction-text">Score by getting past the goalkeeper</div>
+                </div>
+                
+                <div class="instruction-item">
+                    <div class="instruction-icon">🔄</div>
+                    <div class="instruction-text">Curve shots by dragging at angles</div>
+                </div>
+
+                <div class="instruction-item">
+                    <div class="instruction-icon">🔊</div>
+                    <div class="instruction-text">Tap the sound icon to toggle audio</div>
+                </div>
+                
+                <button id="startBtn">Start Playing!</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FlickSoccer {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.loadingScreen = document.getElementById('loadingScreen');
+                
+                this.scoreElement = document.getElementById('score');
+                this.shotsElement = document.getElementById('shots');
+                this.powerFill = document.getElementById('powerFill');
+                this.instructionPopup = document.getElementById('instructionPopup');
+                this.helpBtn = document.getElementById('helpBtn');
+                this.startBtn = document.getElementById('startBtn');
+                this.restartBtn = document.getElementById('restartBtn');
+                this.goalText = document.getElementById('goalText');
+                this.soundToggle = document.getElementById('soundToggle');
+                
+                // Game assets
+                this.images = {};
+                this.sounds = {};
+                this.soundEnabled = true;
+                
+                this.assetsLoaded = 0;
+                this.totalAssets = 0;
+                
+                this.setupEventListeners();
+                this.loadAssets().then(() => {
+                    this.init();
+                    this.hideLoadingScreen();
+                    this.showInstructions();
+                    this.gameLoop();
+                });
+            }
+            
+            async loadAssets() {
+                // Define all assets to load
+                const assets = {
+                    images: {
+                        field: 'images/ground.webp',
+                        ball: 'images/football.png',
+                        goalkeeper: 'images/goalkeeper.png',
+                        goal: 'images/goal.png',
+                        //crowd: 'images/crowd.png'
+                    },
+                    sounds: {
+                        kick: 'audio/kick.mp3',
+                        goal: 'audio/goal.mp3',
+                        save: 'audio/save.mp3',
+                        whistle: 'audio/whistle.mp3',
+                        bounce: 'audio/bounce.mp3',
+                        goalpost: 'audio/goalpost.mp3',
+                        crossbar: 'audio/crossbar.mp3',
+                        squeak: 'audio/squeak.mp3',
+                        //crowdClap: 'audio/crowd_clap.mp3'
+                    }
+                };
+
+                this.totalAssets = Object.keys(assets.images).length + Object.keys(assets.sounds).length;
+
+                // Load images
+                for (const [name, src] of Object.entries(assets.images)) {
+                    await this.loadImage(name, src);
+                }
+
+                // Load sounds
+                for (const [name, src] of Object.entries(assets.sounds)) {
+                    await this.loadSound(name, src);
+                }
+            }
+
+            loadImage(name, src) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        this.images[name] = img;
+                        this.assetsLoaded++;
+                        this.updateLoadingProgress();
+                        resolve(img);
+                    };
+                    img.onerror = () => {
+                        console.warn(`Failed to load image: ${src}`);
+                        // Create a fallback colored rectangle
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 100;
+                        canvas.height = 100;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Different colors for different fallbacks
+                        const colors = {
+                            field: '#27ae60',
+                            ball: '#ffffff',
+                            goalkeeper: '#f39c12',
+                            goal: '#e74c3c',
+                            crowd: '#2c3e50'
+                        };
+                        
+                        ctx.fillStyle = colors[name] || '#cccccc';
+                        ctx.fillRect(0, 0, 100, 100);
+                        
+                        if (name === 'ball') {
+                            // Draw football pattern for ball fallback
+                            ctx.strokeStyle = '#2d3436';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(50, 50, 40, 0, Math.PI * 2);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(10, 50);
+                            ctx.lineTo(90, 50);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(50, 10);
+                            ctx.lineTo(50, 90);
+                            ctx.stroke();
+                        }
+                        
+                        this.images[name] = canvas;
+                        this.assetsLoaded++;
+                        this.updateLoadingProgress();
+                        resolve(canvas);
+                    };
+                    img.src = src;
+                });
+            }
+
+            async loadSound(name, src) {
+                const pathAttempts = [
+                    src,
+                    '../' + src,
+                    '../../' + src,
+                    '../../../' + src,
+                    '/audio/' + src.split('/').pop(),
+                    '/games/audio/' + src.split('/').pop()
+                ];
+
+                for (const path of pathAttempts) {
+                    try {
+                        const audio = new Audio();
+                        const loadPromise = new Promise((resolve, reject) => {
+                            audio.oncanplaythrough = () => resolve(audio);
+                            audio.onerror = () => reject(new Error(`Failed to load ${path}`));
+                            audio.src = path;
+                            audio.load();
+                        });
+
+                        const timeoutPromise = new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Timeout')), 2000)
+                        );
+
+                        const loadedAudio = await Promise.race([loadPromise, timeoutPromise]);
+                        this.sounds[name] = loadedAudio;
+                        this.assetsLoaded++;
+                        this.updateLoadingProgress();
+                        return;
+                    } catch (error) {
+                        continue;
+                    }
+                }
+                
+                // Create dummy audio if loading fails
+                this.sounds[name] = new Audio();
+                this.sounds[name].play = () => {};
+                this.assetsLoaded++;
+                this.updateLoadingProgress();
+            }
+
+            updateLoadingProgress() {
+                const progress = (this.assetsLoaded / this.totalAssets) * 100;
+                console.log(`Loading progress: ${progress.toFixed(0)}%`);
+            }
+
+            hideLoadingScreen() {
+                setTimeout(() => {
+                    this.loadingScreen.style.display = 'none';
+                }, 500);
+            }
+            
+            playSound(soundName) {
+                if (!this.soundEnabled || !this.sounds[soundName]) return;
+                
+                try {
+                    const sound = this.sounds[soundName].cloneNode();
+                    sound.volume = this.getSoundVolume(soundName);
+                    sound.currentTime = 0;
+                    const playPromise = sound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.catch(() => {});
+                    }
+                } catch (e) {
+                    // Silent fail
+                }
+            }
+            
+            getSoundVolume(soundName) {
+                const volumes = {
+                    kick: 0.7,
+                    goal: 0.8,
+                    save: 0.6,
+                    whistle: 0.5,
+                    bounce: 0.4,
+                    goalpost: 0.7,
+                    crossbar: 0.7,
+                    squeak: 0.3,
+                    crowdClap: 0.5
+                };
+                return volumes[soundName] || 0.5;
+            }
+            
+            toggleSound() {
+                this.soundEnabled = !this.soundEnabled;
+                this.soundToggle.textContent = this.soundEnabled ? '🔊' : '🔇';
+                
+                if (this.soundEnabled) {
+                    this.playSound('whistle');
+                }
+            }
+            
+            resizeCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+            
+            init() {
+                this.resizeCanvas();
+                
+                // Game state
+                this.score = 0;
+                this.shots = 0;
+                this.gameActive = false;
+                this.ballInPlay = false;
+                this.lastBounceTime = 0;
+                
+                // Scale factors for responsive design
+                const scale = Math.min(this.canvas.width, this.canvas.height);
+                this.ballRadius = scale * 0.03;
+                this.goalWidth = scale * 0.05;
+                this.goalHeight = scale * 0.2;
+                
+                // Ball properties
+                this.ball = {
+                    x: this.canvas.width * 0.15,
+                    y: this.canvas.height * 0.8,
+                    radius: this.ballRadius,
+                    vx: 0,
+                    vy: 0,
+                    rotation: 0
+                };
+                
+                // Goal properties
+                this.goal = {
+                    x: this.canvas.width - this.goalWidth - (this.canvas.width * 0.02),
+                    y: this.canvas.height / 2 - this.goalHeight / 2,
+                    width: this.goalWidth,
+                    height: this.goalHeight
+                };
+                
+                // Goalkeeper properties
+                this.keeper = {
+                    x: this.goal.x - (this.canvas.width * 0.06),
+                    y: this.canvas.height / 2,
+                    width: this.canvas.width * 0.04,
+                    height: this.canvas.height * 0.1,
+                    speed: 2 + (Math.random() * 2),
+                    direction: Math.random() > 0.5 ? 1 : -1,
+                    lastSqueak: 0
+                };
+                
+                // Drag properties
+                this.isDragging = false;
+                this.dragStart = { x: 0, y: 0 };
+                this.dragEnd = { x: 0, y: 0 };
+                this.power = 0;
+                
+                // Physics
+                this.gravity = 0.4;
+                this.friction = 0.99;
+                this.groundLevel = this.canvas.height * 0.88;
+            }
+            
+            setupEventListeners() {
+                // Mouse events
+                this.canvas.addEventListener('mousedown', this.startDrag.bind(this));
+                this.canvas.addEventListener('mousemove', this.drag.bind(this));
+                this.canvas.addEventListener('mouseup', this.release.bind(this));
+                
+                // Touch events for mobile
+                this.canvas.addEventListener('touchstart', this.startDrag.bind(this));
+                this.canvas.addEventListener('touchmove', this.drag.bind(this));
+                this.canvas.addEventListener('touchend', this.release.bind(this));
+                
+                // UI events
+                this.helpBtn.addEventListener('click', this.showInstructions.bind(this));
+                this.startBtn.addEventListener('click', this.hideInstructions.bind(this));
+                this.restartBtn.addEventListener('click', this.restart.bind(this));
+                this.soundToggle.addEventListener('click', this.toggleSound.bind(this));
+                
+                // Window resize
+                window.addEventListener('resize', this.handleResize.bind(this));
+                
+                // Prevent context menu on long press
+                this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            }
+            
+            handleResize() {
+                this.resizeCanvas();
+                this.init();
+            }
+            
+            startDrag(e) {
+                if (this.ballInPlay) return;
+                
+                e.preventDefault();
+                const pos = this.getMousePos(e);
+                const dist = Math.sqrt(
+                    Math.pow(pos.x - this.ball.x, 2) + 
+                    Math.pow(pos.y - this.ball.y, 2)
+                );
+                
+                if (dist <= this.ball.radius) {
+                    this.isDragging = true;
+                    this.dragStart.x = pos.x;
+                    this.dragStart.y = pos.y;
+                    this.gameActive = true;
+                    
+                    this.playSound('squeak');
+                }
+            }
+            
+            drag(e) {
+                if (!this.isDragging) return;
+                
+                e.preventDefault();
+                const pos = this.getMousePos(e);
+                this.dragEnd.x = pos.x;
+                this.dragEnd.y = pos.y;
+                
+                const dx = this.dragStart.x - this.dragEnd.x;
+                const dy = this.dragStart.y - this.dragEnd.y;
+                this.power = Math.min(Math.sqrt(dx * dx + dy * dy) / (this.canvas.width * 0.03), 100);
+                this.powerFill.style.width = this.power + '%';
+            }
+            
+            release() {
+                if (!this.isDragging) return;
+                
+                this.isDragging = false;
+                this.ballInPlay = true;
+                this.shots++;
+                this.updateUI();
+                
+                const dx = this.dragStart.x - this.dragEnd.x;
+                const dy = this.dragStart.y - this.dragEnd.y;
+                
+                this.ball.vx = dx * 0.25;
+                this.ball.vy = dy * 0.25;
+                
+                this.playSound('kick');
+                this.powerFill.style.width = '0%';
+            }
+            
+            getMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                let clientX, clientY;
+                
+                if (e.type.includes('touch')) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            }
+            
+            update() {
+                if (!this.ballInPlay) return;
+                
+                // Apply physics to ball
+                this.ball.vx *= this.friction;
+                this.ball.vy *= this.friction;
+                this.ball.vy += this.gravity;
+                
+                this.ball.x += this.ball.vx;
+                this.ball.y += this.ball.vy;
+                
+                // Rotate ball based on movement
+                this.ball.rotation += this.ball.vx * 0.1;
+                
+                // Ground collision and bounce sound
+                if (this.ball.y + this.ball.radius > this.groundLevel) {
+                    this.ball.y = this.groundLevel - this.ball.radius;
+                    this.ball.vy = -this.ball.vy * 0.6;
+                    
+                    const now = Date.now();
+                    if (now - this.lastBounceTime > 200) {
+                        this.playSound('bounce');
+                        this.lastBounceTime = now;
+                    }
+                    
+                    if (Math.abs(this.ball.vx) < 0.5 && Math.abs(this.ball.vy) < 2) {
+                        this.ball.vx = 0;
+                        this.ball.vy = 0;
+                        this.ballInPlay = false;
+                        this.resetBall();
+                    }
+                }
+                
+                // Wall collisions
+                if (this.ball.x - this.ball.radius < 0) {
+                    this.ball.x = this.ball.radius;
+                    this.ball.vx = -this.ball.vx * 0.8;
+                    this.playSound('bounce');
+                }
+                
+                if (this.ball.x + this.ball.radius > this.canvas.width) {
+                    this.ball.x = this.canvas.width - this.ball.radius;
+                    this.ball.vx = -this.ball.vx * 0.8;
+                    this.playSound('bounce');
+                }
+                
+                // Ceiling collision
+                if (this.ball.y - this.ball.radius < 0) {
+                    this.ball.y = this.ball.radius;
+                    this.ball.vy = -this.ball.vy * 0.8;
+                    this.playSound('bounce');
+                }
+                
+                // Update goalkeeper
+                this.keeper.y += this.keeper.speed * this.keeper.direction;
+                
+                const now = Date.now();
+                if (now - this.keeper.lastSqueak > 1000 && Math.random() < 0.02) {
+                    this.playSound('squeak');
+                    this.keeper.lastSqueak = now;
+                }
+                
+                if (Math.random() < 0.01) {
+                    this.keeper.direction *= -1;
+                }
+                
+                // Keeper bounds checking
+                const keeperTop = this.goal.y + this.keeper.height * 0.3;
+                const keeperBottom = this.goal.y + this.goal.height - this.keeper.height * 0.3;
+                
+                if (this.keeper.y < keeperTop) {
+                    this.keeper.y = keeperTop;
+                    this.keeper.direction = 1;
+                } else if (this.keeper.y > keeperBottom) {
+                    this.keeper.y = keeperBottom;
+                    this.keeper.direction = -1;
+                }
+                
+                // Goal collision detection
+                if (this.ball.x + this.ball.radius > this.goal.x && 
+                    this.ball.x - this.ball.radius < this.goal.x + this.goal.width &&
+                    this.ball.y > this.goal.y && 
+                    this.ball.y < this.goal.y + this.goal.height) {
+                    
+                    const keeperTopBound = this.keeper.y - this.keeper.height * 0.4;
+                    const keeperBottomBound = this.keeper.y + this.keeper.height * 0.4;
+                    
+                    if (this.ball.y < keeperTopBound || this.ball.y > keeperBottomBound) {
+                        // GOAL!
+                        this.score += 100;
+                        this.showGoal();
+                        this.playSound('goal');
+                        this.playSound('crowdClap');
+                    } else {
+                        // Save!
+                        this.ball.vx = -this.ball.vx * 0.8;
+                        this.score += 10;
+                        this.playSound('save');
+                    }
+                    
+                    this.updateUI();
+                    this.resetBall();
+                }
+                
+                // Goal post/crossbar detection
+                if (this.ball.x + this.ball.radius > this.goal.x - 5 && 
+                    this.ball.x - this.ball.radius < this.goal.x + this.goal.width + 5) {
+                    
+                    if (this.ball.y > this.goal.y - 5 && this.ball.y < this.goal.y + 5) {
+                        this.playSound('goalpost');
+                    } else if (this.ball.y > this.goal.y + this.goal.height - 5 && this.ball.y < this.goal.y + this.goal.height + 5) {
+                        this.playSound('goalpost');
+                    } else if (this.ball.x > this.goal.x - 5 && this.ball.x < this.goal.x + 5 && 
+                             this.ball.y > this.goal.y && this.ball.y < this.goal.y + this.goal.height) {
+                        this.playSound('crossbar');
+                    }
+                }
+            }
+            
+            resetBall() {
+                setTimeout(() => {
+                    this.ball.x = this.canvas.width * 0.15;
+                    this.ball.y = this.groundLevel - this.ball.radius;
+                    this.ball.vx = 0;
+                    this.ball.vy = 0;
+                    this.ball.rotation = 0;
+                    this.ballInPlay = false;
+                    
+                    this.keeper.speed = 2 + (Math.random() * 2);
+                }, 1000);
+            }
+            
+            draw() {
+                // Draw football field background
+                if (this.images.field) {
+                    this.ctx.drawImage(this.images.field, 0, 0, this.canvas.width, this.canvas.height);
+                } else {
+                    // Fallback field
+                    this.ctx.fillStyle = '#27ae60';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // Draw field markings
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeRect(50, 50, this.canvas.width - 100, this.canvas.height - 100);
+                    
+                    // Center circle
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.canvas.width / 2, this.canvas.height / 2, 60, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                    
+                    // Center line
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.canvas.width / 2, 50);
+                    this.ctx.lineTo(this.canvas.width / 2, this.canvas.height - 50);
+                    this.ctx.stroke();
+                }
+                
+                // Draw goal
+                if (this.images.goal) {
+                    this.ctx.drawImage(
+                        this.images.goal, 
+                        this.goal.x - 10, 
+                        this.goal.y - 20, 
+                        this.goal.width + 20, 
+                        this.goal.height + 40
+                    );
+                } else {
+                    // Fallback goal
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    this.ctx.fillRect(this.goal.x, this.goal.y, this.goal.width, this.goal.height);
+                    
+                    // Goal net
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    this.ctx.lineWidth = 1;
+                    for (let i = 0; i < 8; i++) {
+                        const y = this.goal.y + (i * this.goal.height / 8);
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(this.goal.x + this.goal.width, y);
+                        this.ctx.lineTo(this.goal.x + this.goal.width + 30, y - 15);
+                        this.ctx.stroke();
+                    }
+                }
+                
+                // Draw goalkeeper
+                if (this.images.goalkeeper) {
+                    this.ctx.drawImage(
+                        this.images.goalkeeper,
+                        this.keeper.x - this.keeper.width / 2,
+                        this.keeper.y - this.keeper.height / 2,
+                        this.keeper.width,
+                        this.keeper.height
+                    );
+                } else {
+                    // Fallback goalkeeper
+                    this.ctx.fillStyle = '#f39c12';
+                    this.ctx.fillRect(
+                        this.keeper.x - this.keeper.width / 2,
+                        this.keeper.y - this.keeper.height / 2,
+                        this.keeper.width,
+                        this.keeper.height
+                    );
+                }
+                
+                // Draw ball with rotation
+                if (this.images.ball) {
+                    this.ctx.save();
+                    this.ctx.translate(this.ball.x, this.ball.y);
+                    this.ctx.rotate(this.ball.rotation);
+                    this.ctx.drawImage(
+                        this.images.ball,
+                        -this.ball.radius,
+                        -this.ball.radius,
+                        this.ball.radius * 2,
+                        this.ball.radius * 2
+                    );
+                    this.ctx.restore();
+                } else {
+                    // Fallback ball
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.strokeStyle = '#2d3436';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius - 2, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+                
+                // Draw drag line when dragging
+                if (this.isDragging) {
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([5, 5]);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.ball.x, this.ball.y);
+                    this.ctx.lineTo(this.dragEnd.x, this.dragEnd.y);
+                    this.ctx.stroke();
+                    this.ctx.setLineDash([]);
+                    
+                    // Draw power indicator around ball
+                    this.ctx.strokeStyle = `rgba(253, 203, 110, ${this.power / 100})`;
+                    this.ctx.lineWidth = 3;
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius + 8, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+            }
+            
+            showGoal() {
+                this.goalText.style.display = 'block';
+                setTimeout(() => {
+                    this.goalText.style.display = 'none';
+                }, 1000);
+            }
+            
+            showInstructions() {
+                this.instructionPopup.style.display = 'flex';
+            }
+            
+            hideInstructions() {
+                this.instructionPopup.style.display = 'none';
+                this.gameActive = true;
+                this.playSound('whistle');
+            }
+            
+            updateUI() {
+                this.scoreElement.textContent = this.score;
+                this.shotsElement.textContent = this.shots;
+            }
+            
+            gameLoop() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(this.gameLoop.bind(this));
+            }
+            
+            restart() {
+                this.init();
+                this.restartBtn.style.display = 'none';
+                this.hideInstructions();
+            }
+        }
+        
+        // Start the game when page loads
+        window.addEventListener('load', () => {
+            new FlickSoccer();
+        });
+        
+        // Prevent zoom gestures
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('gesturechange', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('gestureend', function(e) {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Helicopter Obstacle Avoidance</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: white;
+            touch-action: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .ui-panel {
+            position: absolute;
+            padding: 15px;
+            background: rgba(106, 17, 203, 0.85);
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            z-index: 10;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .score-display {
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            min-width: 100px;
+        }
+        
+        .game-menu {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 30px;
+            width: 80%;
+            max-width: 400px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        p {
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #ff9966, #ff5e62);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .game-over {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            #game-container {
+                height: 100vh;
+                max-width: 100%;
+                border-radius: 0;
+            }
+            
+            .score-display {
+                font-size: 20px;
+                top: 10px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-canvas"></div>
+        
+        <div class="ui-panel score-display">Score: 0</div>
+        
+        <div class="ui-panel game-menu" id="start-menu">
+            <h1>Helicopter Rescue</h1>
+            <p>Navigate through obstacles and rescue the survivors!</p>
+            <p>Touch anywhere on the screen to activate the virtual joystick and drag to move. Release to stop.</p>
+            <p>Use arrow keys on desktop.</p>
+            <button class="btn" id="start-btn">Start Mission</button>
+        </div>
+        
+        <div class="ui-panel game-menu game-over" id="game-over-menu">
+            <h1>Mission Failed</h1>
+            <p>Your score: <span id="final-score">0</span></p>
+            <button class="btn" id="restart-btn">Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get actual dimensions of the game canvas container
+            const canvasElement = document.getElementById('game-canvas');
+            const gameWidth = canvasElement.offsetWidth;
+            const gameHeight = canvasElement.offsetHeight;
+            
+            // Game variables
+            let game;
+            let helicopter;
+            let obstacles;
+            let survivors;
+            let cursors;
+            let score = 0;
+            let scoreText;
+            let gameActive = false;
+            let obstacleTimer;
+            let survivorTimer;
+            let background;
+            
+            // Particle emitters
+            let explosionEmitter;
+            let rescueEmitter;
+            
+            // Virtual Joystick variables
+            let joystickActive = false;
+            let joystickDirX = 0;
+            let joystickDirY = 0;
+            let joystickBase;
+            let joystickKnob;
+            let joystickCenterX;
+            let joystickCenterY;
+            const joystickRadius = 80;
+            
+            // Game configuration
+            const config = {
+                type: Phaser.AUTO,
+                width: gameWidth,
+                height: gameHeight,
+                parent: 'game-canvas',
+                physics: {
+                    default: 'arcade',
+                    arcade: {
+                        gravity: { y: 0 },
+                        debug: false
+                    }
+                },
+                scene: {
+                    preload: preload,
+                    create: create,
+                    update: update
+                }
+            };
+            
+            // Initialize Phaser game
+            game = new Phaser.Game(config);
+            
+            // Preload assets
+            function preload() {
+                // Load custom assets from root folder
+                this.load.image('helicopter', './helicopter_imresizer.png');
+                this.load.image('obstacle', './obstacle_imresizer.png');
+                this.load.image('survivor', './survivor_imresizer.png');
+                
+                // Create a gradient background programmatically
+                const gradient = this.make.graphics({x: 0, y: 0});
+                gradient.fillGradientStyle(0x6a11cb, 0x6a11cb, 0x2575fc, 0x2575fc);
+                gradient.fillRect(0, 0, gameWidth, gameHeight);
+                gradient.generateTexture('background', gameWidth, gameHeight);
+                gradient.destroy();
+            }
+            
+            // Create game objects
+            function create() {
+                // Create background
+                background = this.add.tileSprite(0, 0, gameWidth, gameHeight, 'background').setOrigin(0);
+                
+                // Create helicopter
+                helicopter = this.physics.add.sprite(gameWidth / 2, gameHeight / 2, 'helicopter');
+                helicopter.setCollideWorldBounds(true);
+                helicopter.setScale(0.8);
+                helicopter.body.setSize(30, 15);
+                helicopter.body.setOffset(5, 5);
+                
+                // Create obstacle group
+                obstacles = this.physics.add.group();
+                
+                // Create survivor group
+                survivors = this.physics.add.group();
+                
+                // Set up collisions
+                this.physics.add.overlap(helicopter, obstacles, hitObstacle, null, this);
+                this.physics.add.overlap(helicopter, survivors, rescueSurvivor, null, this);
+                
+                // Set up keyboard controls
+                cursors = this.input.keyboard.createCursorKeys();
+                
+                // Particle emitters
+                explosionEmitter = this.add.particles(0, 0, 'helicopter', {
+                    speed: 100,
+                    lifespan: 500,
+                    quantity: 20,
+                    scale: { start: 1, end: 0 },
+                    blendMode: 'ADD',
+                    tint: 0xff0000
+                }).setDepth(20);
+                
+                rescueEmitter = this.add.particles(0, 0, 'survivor', {
+                    speed: 50,
+                    lifespan: 800,
+                    quantity: 10,
+                    scale: { start: 1, end: 0 },
+                    blendMode: 'ADD',
+                    tint: 0x00ff00
+                }).setDepth(20);
+                
+                // Virtual Joystick setup - initially invisible
+                joystickBase = this.add.circle(0, 0, joystickRadius, 0x000000, 0.3).setDepth(10);
+                joystickKnob = this.add.circle(0, 0, joystickRadius * 0.5, 0xffffff, 0.7).setDepth(11);
+                joystickBase.setVisible(false);
+                joystickKnob.setVisible(false);
+                
+                this.input.on('pointerdown', function(pointer) {
+                    if (gameActive && !joystickActive) {
+                        joystickActive = true;
+                        joystickCenterX = pointer.x;
+                        joystickCenterY = pointer.y;
+                        joystickBase.setPosition(joystickCenterX, joystickCenterY);
+                        joystickKnob.setPosition(joystickCenterX, joystickCenterY);
+                        joystickBase.setVisible(true);
+                        joystickKnob.setVisible(true);
+                        joystickDirX = 0;
+                        joystickDirY = 0;
+                    }
+                }, this);
+                
+                this.input.on('pointermove', function(pointer) {
+                    if (!joystickActive) return;
+                    
+                    let dx = pointer.x - joystickCenterX;
+                    let dy = pointer.y - joystickCenterY;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist > joystickRadius) {
+                        dx *= joystickRadius / dist;
+                        dy *= joystickRadius / dist;
+                    }
+                    
+                    joystickKnob.setPosition(joystickCenterX + dx, joystickCenterY + dy);
+                    joystickDirX = dx / joystickRadius;
+                    joystickDirY = dy / joystickRadius;
+                }, this);
+                
+                this.input.on('pointerup', function(pointer) {
+                    if (joystickActive) {
+                        joystickActive = false;
+                        joystickBase.setVisible(false);
+                        joystickKnob.setVisible(false);
+                        joystickKnob.setPosition(joystickCenterX, joystickCenterY);
+                        joystickDirX = 0;
+                        joystickDirY = 0;
+                    }
+                }, this);
+                
+                // Create score text
+                scoreText = document.querySelector('.score-display');
+                
+                // Start button event listener
+                document.getElementById('start-btn').addEventListener('click', startGame.bind(this));
+                document.getElementById('restart-btn').addEventListener('click', restartGame.bind(this));
+                
+                // Hide game over menu initially
+                document.getElementById('game-over-menu').style.display = 'none';
+                
+                // Pause physics initially
+                this.physics.pause();
+            }
+            
+            // Update game state
+            function update() {
+                if (!gameActive) return;
+                
+                // Scroll the background
+                background.tilePositionX += 2;
+                
+                let vx = 0;
+                let vy = 0;
+                let rotate = false;
+                
+                // Keyboard controls (priority)
+                const hasKeyboardInput = cursors.left.isDown || cursors.right.isDown || cursors.up.isDown || cursors.down.isDown;
+                if (hasKeyboardInput) {
+                    if (cursors.left.isDown) {
+                        vx = -350; // Boosted sensitivity
+                    } else if (cursors.right.isDown) {
+                        vx = 350;
+                    }
+                    if (cursors.up.isDown) {
+                        vy = -350;
+                    } else if (cursors.down.isDown) {
+                        vy = 350;
+                    }
+                    rotate = true;
+                } else if (joystickActive) {
+                    vx = joystickDirX * 350; // Boosted sensitivity
+                    vy = joystickDirY * 350;
+                    if (vx !== 0 || vy !== 0) {
+                        rotate = true;
+                    }
+                }
+                
+                // Set velocity directly for precise control
+                helicopter.setVelocityX(vx);
+                helicopter.setVelocityY(vy);
+                
+                // Rotate helicopter based on movement
+                if (rotate && (vx !== 0 || vy !== 0)) {
+                    helicopter.rotation = Math.atan2(vy, vx);
+                } else {
+                    helicopter.rotation = 0;
+                }
+            }
+            
+            // Start the game
+            function startGame() {
+                gameActive = true;
+                score = 0;
+                updateScore();
+                
+                // Clear any existing objects
+                obstacles.clear(true, true);
+                survivors.clear(true, true);
+                
+                // Reset helicopter position
+                helicopter.setPosition(gameWidth / 2, gameHeight / 2);
+                helicopter.setVelocity(0, 0);
+                helicopter.rotation = 0;
+                
+                // Hide start menu
+                document.getElementById('start-menu').style.display = 'none';
+                document.getElementById('game-over-menu').style.display = 'none';
+                
+                // Start physics
+                this.physics.resume();
+                
+                // Start generating obstacles and survivors
+                obstacleTimer = this.time.addEvent({
+                    delay: 1500,
+                    callback: createObstacle,
+                    callbackScope: this,
+                    loop: true
+                });
+                
+                survivorTimer = this.time.addEvent({
+                    delay: 3000,
+                    callback: createSurvivor,
+                    callbackScope: this,
+                    loop: true
+                });
+            }
+            
+            // Restart the game
+            function restartGame() {
+                startGame.call(this);
+            }
+            
+            // Create an obstacle
+            function createObstacle() {
+                const obstacle = obstacles.create(gameWidth, Phaser.Math.Between(100, gameHeight - 100), 'obstacle');
+                obstacle.setVelocityX(-200);
+                obstacle.body.immovable = true;
+                
+                // Remove obstacle when it goes off screen
+                obstacle.checkWorldBounds = true;
+                obstacle.outOfBoundsKill = true;
+            }
+            
+            // Create a survivor
+            function createSurvivor() {
+                const survivor = survivors.create(gameWidth, Phaser.Math.Between(100, gameHeight - 100), 'survivor');
+                survivor.setVelocityX(-150);
+                
+                // Add a slight floating animation
+                this.tweens.add({
+                    targets: survivor,
+                    y: survivor.y + 20,
+                    duration: 1000,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+                
+                // Remove survivor when it goes off screen
+                survivor.checkWorldBounds = true;
+                survivor.outOfBoundsKill = true;
+            }
+            
+            // Handle obstacle collision
+            function hitObstacle(helicopter, obstacle) {
+                if (!gameActive) return;
+                
+                this.physics.pause();
+                gameActive = false;
+                
+                // Particle explosion effect
+                explosionEmitter.setPosition(helicopter.x, helicopter.y);
+                explosionEmitter.explode(20, helicopter.x, helicopter.y);
+                
+                // Show game over menu
+                document.getElementById('final-score').textContent = score;
+                document.getElementById('game-over-menu').style.display = 'block';
+                
+                // Clear timers
+                if (obstacleTimer) obstacleTimer.remove();
+                if (survivorTimer) survivorTimer.remove();
+            }
+            
+            // Handle survivor rescue
+            function rescueSurvivor(helicopter, survivor) {
+                if (survivor.rescued) return; // Prevent multiple calls
+                survivor.rescued = true;
+                
+                // Kill any tweens on the survivor
+                this.tweens.killTweensOf(survivor);
+                
+                // Particle rescue effect first
+                rescueEmitter.setPosition(survivor.x, survivor.y);
+                rescueEmitter.explode(10, survivor.x, survivor.y);
+                
+                // Then remove and destroy
+                survivors.remove(survivor, true, true);
+                
+                // Add points
+                score += 100;
+                updateScore();
+            }
+            
+            // Update score display
+            function updateScore() {
+                scoreText.textContent = `Score: ${score}`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Connect Four — Single File</title>
+  <style>
+    :root{
+      --bg:#0f1724; /* dark */
+      --panel:#0b1220;
+      --grid:#0b1a2b;
+      --empty:rgba(255,255,255,0.06);
+      --red:#ef4444;
+      --yellow:#f59e0b;
+      --accent:#60a5fa;
+      --glass: rgba(255,255,255,0.03);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;
+      background:linear-gradient(180deg,var(--bg),#071024);color:#e6eef6;
+      display:flex;align-items:center;justify-content:center;padding:20px;
+    }
+    .app{
+      width:min(980px,96vw);background:linear-gradient(180deg,var(--panel),#071228);
+      border-radius:12px;padding:18px;box-shadow:0 8px 30px rgba(2,6,23,0.6);
+      display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start
+    }
+    .controls{padding:12px;background:var(--glass);border-radius:10px;min-height:200px}
+    h1{font-size:20px;margin:4px 0}
+    .status{margin-top:8px;font-weight:600}
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.04);cursor:pointer;margin-right:8px;border:1px solid rgba(255,255,255,0.03)}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),#3b82f6);color:#05204a;border:none}
+    .board-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px}
+    .board{
+      background:var(--grid);padding:12px;border-radius:12px;display:grid;grid-template-columns:repeat(7,1fr);
+      gap:10px;touch-action:none;width:100%;max-width:720px;aspect-ratio:7/6;position:relative
+    }
+    .col-btn{position:absolute;top:6px;left:0;right:0;display:flex;justify-content:space-between;padding:0 12px;pointer-events:none}
+    .col-btn button{pointer-events:auto;width:calc((100% - 60px)/7);background:transparent;border:none;padding:4px;border-radius:8px;opacity:0.06}
+    .cell{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--empty);box-shadow:inset 0 -6px 14px rgba(0,0,0,0.5);transition:transform .12s ease}
+    .disc{width:88%;height:88%;border-radius:999px;box-shadow:inset -6px -8px 18px rgba(0,0,0,0.5);transform:scale(0);transition:transform .18s cubic-bezier(.2,.9,.3,1)}
+    .disc.red{background:var(--red)}
+    .disc.yellow{background:var(--yellow)}
+    .disc.active{transform:scale(1)}
+    .win{outline:4px solid rgba(96,165,250,0.28);box-shadow:0 8px 30px rgba(96,165,250,0.12)}
+    .small{font-size:13px;opacity:0.9}
+    .meta{margin-top:10px}
+    .footer{grid-column:1/-1;text-align:center;font-size:13px;opacity:0.9;margin-top:6px}
+    @media (max-width:880px){.app{grid-template-columns:1fr;}}
+    @media (max-width:420px){.col-btn{padding:0 6px}.btn{padding:6px 8px}}
+  </style>
+</head>
+<body>
+  <div class="app" role="application">
+    <div class="controls">
+      <h1>Connect Four</h1>
+      <div class="small">Drop discs into a vertical grid to align four in a row. Two-player local.</div>
+      <div class="status" id="status">Player <span id="playerDot">🔴</span> to move</div>
+
+      <div class="meta">
+        <button class="btn" id="undoBtn">Undo</button>
+        <button class="btn" id="resetBtn">Reset</button>
+        <button class="btn primary" id="hintBtn">Hint (suggest col)</button>
+      </div>
+
+      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.04);margin:12px 0">
+      <div class="small">Rules:</div>
+      <ul class="small" style="line-height:1.5">
+        <li>Classic 7 columns × 6 rows.</li>
+        <li>Click/tap a column to drop a disc; discs fall to the lowest empty slot.</li>
+        <li>First to connect 4 horizontally, vertically or diagonally wins.</li>
+      </ul>
+
+      <div style="margin-top:12px" class="small">Keyboard: use 1–7 keys to drop in that column.</div>
+    </div>
+
+    <div class="board-wrap">
+      <div class="board" id="board" aria-label="Connect Four board" role="grid"></div>
+      <div class="footer">Made with ❤️ — click/tap columns or use keys 1–7.</div>
+    </div>
+  </div>
+
+  <script>
+    // Standard Connect Four: 7 cols x 6 rows
+    const COLS = 7, ROWS = 6;
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const playerDot = document.getElementById('playerDot');
+    const resetBtn = document.getElementById('resetBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const hintBtn = document.getElementById('hintBtn');
+
+    // board[row][col] where row 0 is top
+    let board = [];
+    let current = 1; // 1 = red, 2 = yellow
+    let history = [];
+    let finished = false;
+
+    function initBoard(){
+      board = Array.from({length:ROWS},()=>Array(COLS).fill(0));
+      history = [];
+      finished = false;
+      current = 1;
+      renderGrid();
+      updateStatus();
+    }
+
+    function renderGrid(){
+      boardEl.innerHTML = '';
+      // add column buttons overlay
+      const colBtnWrap = document.createElement('div');
+      colBtnWrap.className = 'col-btn';
+      for(let c=0;c<COLS;c++){
+        const b = document.createElement('button');
+        b.title = 'Drop in column '+(c+1);
+        b.addEventListener('click',()=>tryDrop(c));
+        colBtnWrap.appendChild(b);
+      }
+      boardEl.appendChild(colBtnWrap);
+
+      // create cells (grid is columns left->right, rows top->bottom)
+      for(let r=0;r<ROWS;r++){
+        for(let c=0;c<COLS;c++){
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.setAttribute('role','gridcell');
+          cell.dataset.row = r; cell.dataset.col = c;
+          const disc = document.createElement('div');
+          disc.className = 'disc';
+          // fill color if present
+          const val = board[r][c];
+          if(val===1) disc.classList.add('red','active');
+          if(val===2) disc.classList.add('yellow','active');
+          cell.appendChild(disc);
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    function tryDrop(col){
+      if(finished) return;
+      // find lowest empty row (highest row index)
+      for(let r=ROWS-1;r>=0;r--){
+        if(board[r][col]===0){
+          placeDisc(r,col,current);
+          return true;
+        }
+      }
+      // column full -> shake animation (quick scale)
+      const index = col; // which col
+      const allCells = Array.from(boardEl.querySelectorAll('.cell'));
+      for(let r=0;r<ROWS;r++){
+        const idx = r*COLS + col;
+        const el = allCells[idx];
+        el.animate([{transform:'translateY(0)'},{transform:'translateY(-6px)'},{transform:'translateY(0)'}],{duration:220});
+      }
+      return false;
+    }
+
+    function placeDisc(row,col,player){
+      board[row][col] = player;
+      history.push({row,col,player});
+      renderGrid();
+      animateDrop(row,col);
+      const win = checkWin(row,col,player);
+      if(win){
+        finished = true;
+        highlightWin(win);
+        statusEl.textContent = (player===1? 'Red (🔴)':'Yellow (🟡)') + ' wins!';
+        return;
+      }
+      // draw check
+      if(board.flat().every(v=>v!==0)){
+        finished = true; statusEl.textContent = 'Draw — board full.'; return;
+      }
+      // switch player
+      current = current===1?2:1;
+      updateStatus();
+    }
+
+    function animateDrop(row,col){
+      // scale in the disc at [row,col]
+      const cell = boardEl.querySelector('[data-row="'+row+'"][data-col="'+col+'"]');
+      const disc = cell.querySelector('.disc');
+      // small delay to let render happen
+      requestAnimationFrame(()=>{
+        disc.classList.add(current===1?'red':'yellow');
+        setTimeout(()=>disc.classList.add('active'),20);
+      });
+    }
+
+    function updateStatus(){
+      playerDot.textContent = current===1? '🔴':'🟡';
+      statusEl.innerHTML = `Player <strong>${current===1? 'Red (🔴)':'Yellow (🟡)'}</strong> to move`;
+    }
+
+    function checkWin(r,c,player){
+      // return list of winning coordinates if win, otherwise null
+      const dirs = [ [0,1],[1,0],[1,1],[1,-1] ];
+      for(const [dr,dc] of dirs){
+        let line = [{r,c}];
+        // go backward
+        for(let k=1;k<4;k++){
+          const rr=r-dr*k, cc=c-dc*k;
+          if(rr<0||rr>=ROWS||cc<0||cc>=COLS) break;
+          if(board[rr][cc]===player) line.unshift({r:rr,c:cc}); else break;
+        }
+        // forward
+        for(let k=1;k<4;k++){
+          const rr=r+dr*k, cc=c+dc*k;
+          if(rr<0||rr>=ROWS||cc<0||cc>=COLS) break;
+          if(board[rr][cc]===player) line.push({r:rr,c:cc}); else break;
+        }
+        if(line.length>=4) return line.slice(-4); // last 4 are winning ones
+      }
+      return null;
+    }
+
+    function highlightWin(cells){
+      // add win class to matching discs
+      for(const {r,c} of cells){
+        const el = boardEl.querySelector('[data-row="'+r+'"][data-col="'+c+'"] .disc');
+        if(el) el.classList.add('active','win');
+      }
+      // pulse other discs slightly
+      const others = boardEl.querySelectorAll('.disc:not(.win)');
+      others.forEach(d=>d.style.opacity=0.6);
+    }
+
+    // Undo
+    undoBtn.addEventListener('click',()=>{
+      if(history.length===0||finished) return;
+      const last = history.pop();
+      board[last.row][last.col]=0;
+      current = last.player; // give turn back to who played
+      renderGrid(); updateStatus();
+    });
+
+    resetBtn.addEventListener('click',()=>{
+      if(confirm('Reset the board?')) initBoard();
+    });
+
+    hintBtn.addEventListener('click',()=>{
+      if(finished) return;
+      const suggestion = simpleHint(current);
+      if(suggestion==null){ alert('No suggested move.'); return; }
+      alert('Suggested column: ' + (suggestion+1));
+    });
+
+    // Simple hint engine: check immediate winning move, block opponent's winning move, else pick center-most valid
+    function simpleHint(player){
+      // try to win
+      for(let c=0;c<COLS;c++){
+        const r = firstEmptyRow(c);
+        if(r===null) continue;
+        board[r][c]=player;
+        if(checkWin(r,c,player)) { board[r][c]=0; return c; }
+        board[r][c]=0;
+      }
+      // try to block
+      const opponent = player===1?2:1;
+      for(let c=0;c<COLS;c++){
+        const r = firstEmptyRow(c);
+        if(r===null) continue;
+        board[r][c]=opponent;
+        if(checkWin(r,c,opponent)){ board[r][c]=0; return c; }
+        board[r][c]=0;
+      }
+      // else center preference
+      const order = [3,2,4,1,5,0,6];
+      for(const c of order){ if(firstEmptyRow(c)!==null) return c; }
+      return null;
+    }
+
+    function firstEmptyRow(col){
+      for(let r=ROWS-1;r>=0;r--) if(board[r][col]===0) return r; return null;
+    }
+
+    // keyboard support 1-7
+    window.addEventListener('keydown',e=>{
+      if(e.key>='1'&&e.key<='7'){
+        const col = Number(e.key)-1; tryDrop(col);
+      }
+      if(e.key==='u') undoBtn.click();
+      if(e.key==='r') resetBtn.click();
+    });
+
+    // Initialize and initial render
+    initBoard();
+
+    // expose for debugging (optional)
+    window.cf = {board,initBoard,tryDrop};
+  </script>
+</body>
+</html>

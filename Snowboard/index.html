@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Snowboard Slalom</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: pan-y;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4a1c6b 0%, #2d1b69 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 80vh;
+            overflow: hidden;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            background: #1a0b2e;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: rgba(106, 17, 203, 0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .timer-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: rgba(106, 17, 203, 0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .lives-display {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: rgba(255, 107, 107, 0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .game-title {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+            color: #e0c3fc;
+            letter-spacing: 2px;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+            color: #e0c3fc;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+        }
+        
+        .start-screen, .game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(26, 11, 46, 0.95);
+            z-index: 10;
+            text-align: center;
+            padding: 30px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .game-over-screen {
+            display: none;
+        }
+        
+        h1 {
+            font-size: 42px;
+            margin-bottom: 20px;
+            color: #e0c3fc;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+            background: linear-gradient(to right, #8a2be2, #9370db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            max-width: 80%;
+            line-height: 1.5;
+            color: #c9b6e4;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #8a2be2, #9370db);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 10px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            pointer-events: auto;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .final-score {
+            font-size: 28px;
+            margin: 20px 0;
+            color: #e0c3fc;
+            background: rgba(106, 17, 203, 0.7);
+            padding: 15px 30px;
+            border-radius: 15px;
+        }
+        
+        .combo-display {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: rgba(107, 255, 131, 0.8);
+            padding: 6px 12px;
+            border-radius: 15px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .mobile-controls {
+            position: absolute;
+            bottom: 80px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            pointer-events: auto;
+        }
+        
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(138, 43, 226, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e0c3fc;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #c9b6e4;
+            margin-top: 5px;
+        }
+        
+        .instructions {
+            background: rgba(106, 17, 203, 0.3);
+            padding: 15px;
+            border-radius: 15px;
+            margin: 20px 0;
+            width: 80%;
+        }
+        
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        
+        .instruction-icon {
+            margin-right: 10px;
+            font-size: 20px;
+            color: #e0c3fc;
+        }
+        
+        .achievement {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(106, 17, 203, 0.9);
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            display: none;
+        }
+        
+        .powerup-indicator {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: rgba(255, 215, 0, 0.8);
+            padding: 6px 12px;
+            border-radius: 15px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        @media (max-width: 500px) {
+            .game-title {
+                font-size: 28px;
+            }
+            
+            h1 {
+                font-size: 36px;
+            }
+            
+            .btn {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+            
+            .control-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="ui-overlay">
+            <div class="game-title">PRO SNOWBOARD SLALOM</div>
+            <div class="score-display"><i class="fas fa-star"></i> <span id="score">0</span></div>
+            <div class="timer-display"><i class="fas fa-clock"></i> <span id="timer">60</span>s</div>
+            <div class="lives-display"><i class="fas fa-heart"></i> <span id="lives">3</span></div>
+            <div class="combo-display" id="comboDisplay"><i class="fas fa-bolt"></i> Combo: <span id="combo">0</span>x</div>
+            <div class="powerup-indicator" id="powerupIndicator"><i class="fas fa-bolt"></i> Speed Boost!</div>
+            <div class="controls">Swipe or use arrow keys to control the snowboarder</div>
+            
+            <div class="mobile-controls">
+                <div class="control-btn" id="leftBtn"><i class="fas fa-arrow-left"></i></div>
+                <div class="control-btn" id="rightBtn"><i class="fas fa-arrow-right"></i></div>
+            </div>
+        </div>
+        
+        <div class="start-screen" id="startScreen">
+            <h1>PRO SLALOM</h1>
+            <p>Navigate through the gates to score points. Pass on the correct side to maintain your combo multiplier! Collect power-ups for special abilities.</p>
+            
+            <div class="instructions">
+                <div class="instruction-item">
+                    <div class="instruction-icon"><i class="fas fa-flag"></i></div>
+                    <div>Pass through gates on the correct side</div>
+                </div>
+                <div class="instruction-item">
+                    <div class="instruction-icon"><i class="fas fa-bolt"></i></div>
+                    <div>Build combo for higher scores</div>
+                </div>
+                <div class="instruction-item">
+                    <div class="instruction-icon"><i class="fas fa-snowflake"></i></div>
+                    <div>Avoid obstacles and wrong passes</div>
+                </div>
+                <div class="instruction-item">
+                    <div class="instruction-icon"><i class="fas fa-gem"></i></div>
+                    <div>Collect power-ups for bonuses</div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="highScore">0</div>
+                    <div class="stat-label">High Score</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="gamesPlayed">0</div>
+                    <div class="stat-label">Games Played</div>
+                </div>
+            </div>
+            
+            <button class="btn" id="startBtn"><i class="fas fa-play"></i> Start Game</button>
+        </div>
+        
+        <div class="game-over-screen" id="gameOverScreen">
+            <h1>FINISHED!</h1>
+            <p>Your final score:</p>
+            <div class="final-score" id="finalScore">0</div>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="finalGates">0</div>
+                    <div class="stat-label">Gates Passed</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="finalCombo">0</div>
+                    <div class="stat-label">Max Combo</div>
+                </div>
+            </div>
+            
+            <button class="btn" id="restartBtn"><i class="fas fa-redo"></i> Play Again</button>
+        </div>
+        
+        <div class="achievement" id="achievement">
+            <i class="fas fa-trophy"></i>
+            <div>New High Score!</div>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const livesDisplay = document.getElementById('lives');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const comboDisplay = document.getElementById('comboDisplay');
+        const comboValue = document.getElementById('combo');
+        const powerupIndicator = document.getElementById('powerupIndicator');
+        const highScoreDisplay = document.getElementById('highScore');
+        const gamesPlayedDisplay = document.getElementById('gamesPlayed');
+        const finalGatesDisplay = document.getElementById('finalGates');
+        const finalComboDisplay = document.getElementById('finalCombo');
+        const achievementDisplay = document.getElementById('achievement');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        
+        // Set canvas dimensions
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Game state
+        let gameActive = false;
+        let score = 0;
+        let timeLeft = 60;
+        let lives = 3;
+        let combo = 0;
+        let gatesPassed = 0;
+        let maxCombo = 0;
+        let timerInterval;
+        let highScore = localStorage.getItem('slalomHighScore') || 0;
+        let gamesPlayed = localStorage.getItem('slalomGamesPlayed') || 0;
+        let powerupActive = false;
+        let powerupTimer = 0;
+        
+        // Initialize stats
+        highScoreDisplay.textContent = highScore;
+        gamesPlayedDisplay.textContent = gamesPlayed;
+        
+        // Snowboarder properties
+        const snowboarder = {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 60,
+            velocityX: 0,
+            acceleration: 0.8,
+            maxSpeed: 12,
+            friction: 0.92,
+            color: '#9370DB',
+            lean: 0,
+            trail: []
+        };
+        
+        // Gate properties
+        const gates = [];
+        const obstacles = [];
+        const powerUps = [];
+        const gateWidth = 15;
+        const gateHeight = 80;
+        const gateSpacing = 150;
+        let gateSpeed = 3;
+        let lastGateType = 'right';
+        
+        // Particles for effects
+        const particles = [];
+        
+        // Initialize snowboarder position
+        function initSnowboarder() {
+            snowboarder.x = canvas.width / 2;
+            snowboarder.y = canvas.height - 100;
+            snowboarder.velocityX = 0;
+            snowboarder.lean = 0;
+            snowboarder.trail = [];
+        }
+        
+        // Create alternating gates
+        function createGates() {
+            gates.length = 0;
+            obstacles.length = 0;
+            powerUps.length = 0;
+            const numGates = Math.ceil(canvas.height / gateSpacing) + 2;
+            
+            for (let i = 0; i < numGates; i++) {
+                lastGateType = lastGateType === 'left' ? 'right' : 'left';
+                const x = lastGateType === 'left' ? 
+                    canvas.width * 0.25 - gateWidth/2 : 
+                    canvas.width * 0.75 - gateWidth/2;
+                
+                gates.push({
+                    x: x,
+                    y: -i * gateSpacing,
+                    width: gateWidth,
+                    height: gateHeight,
+                    type: lastGateType,
+                    color: lastGateType === 'left' ? '#FF6BCB' : '#6B8EFF',
+                    passed: false
+                });
+                
+                // Add occasional obstacles
+                if (Math.random() > 0.7) {
+                    obstacles.push({
+                        x: Math.random() * (canvas.width - 40) + 20,
+                        y: -i * gateSpacing - 50,
+                        width: 30,
+                        height: 30,
+                        type: 'rock'
+                    });
+                }
+                
+                // Add occasional power-ups
+                if (Math.random() > 0.8) {
+                    powerUps.push({
+                        x: Math.random() * (canvas.width - 30) + 15,
+                        y: -i * gateSpacing - 100,
+                        width: 25,
+                        height: 25,
+                        type: Math.random() > 0.5 ? 'speed' : 'shield',
+                        collected: false
+                    });
+                }
+            }
+        }
+        
+        // Draw snowboarder with improved graphics
+        function drawSnowboarder() {
+            // Draw trail with gradient
+            for (let i = 0; i < snowboarder.trail.length; i++) {
+                const alpha = i / snowboarder.trail.length * 0.5;
+                ctx.fillStyle = `rgba(147, 112, 219, ${alpha})`;
+                ctx.fillRect(
+                    snowboarder.trail[i].x - snowboarder.width/2, 
+                    snowboarder.trail[i].y - snowboarder.height/2, 
+                    snowboarder.width, 
+                    snowboarder.height
+                );
+            }
+            
+            // Draw snowboarder with lean effect
+            ctx.save();
+            ctx.translate(snowboarder.x, snowboarder.y);
+            ctx.rotate(snowboarder.lean * 0.05);
+            
+            // Snowboarder body
+            ctx.fillStyle = powerupActive ? '#FFD700' : snowboarder.color;
+            ctx.fillRect(-snowboarder.width/2, -snowboarder.height/2, snowboarder.width, snowboarder.height);
+            
+            // Snowboard
+            ctx.fillStyle = '#4A1C6B';
+            ctx.fillRect(-snowboarder.width/2 - 5, snowboarder.height/2 - 10, snowboarder.width + 10, 10);
+            
+            // Goggles
+            ctx.fillStyle = '#1a0b2e';
+            ctx.fillRect(-snowboarder.width/4, -snowboarder.height/4, snowboarder.width/2, 10);
+            
+            ctx.restore();
+            
+            // Add current position to trail
+            snowboarder.trail.push({x: snowboarder.x, y: snowboarder.y});
+            if (snowboarder.trail.length > 15) {
+                snowboarder.trail.shift();
+            }
+        }
+        
+        // Draw gates with improved graphics
+        function drawGates() {
+            gates.forEach(gate => {
+                // Gate pole
+                ctx.fillStyle = gate.color;
+                ctx.fillRect(gate.x, gate.y, gate.width, gate.height);
+                
+                // Draw flag with gradient
+                const gradient = ctx.createLinearGradient(
+                    gate.type === 'left' ? gate.x + gate.width : gate.x - 20,
+                    gate.y,
+                    gate.type === 'left' ? gate.x + gate.width + 20 : gate.x,
+                    gate.y + gate.height/2
+                );
+                gradient.addColorStop(0, gate.color);
+                gradient.addColorStop(1, '#E0C3FC');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                if (gate.type === 'left') {
+                    ctx.moveTo(gate.x + gate.width, gate.y);
+                    ctx.lineTo(gate.x + gate.width + 20, gate.y + gate.height/2);
+                    ctx.lineTo(gate.x + gate.width, gate.y + gate.height);
+                } else {
+                    ctx.moveTo(gate.x, gate.y);
+                    ctx.lineTo(gate.x - 20, gate.y + gate.height/2);
+                    ctx.lineTo(gate.x, gate.y + gate.height);
+                }
+                ctx.closePath();
+                ctx.fill();
+            });
+        }
+        
+        // Draw obstacles
+        function drawObstacles() {
+            obstacles.forEach(obstacle => {
+                if (obstacle.type === 'rock') {
+                    ctx.fillStyle = '#888';
+                    ctx.beginPath();
+                    ctx.arc(obstacle.x, obstacle.y, obstacle.width/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Rock details
+                    ctx.fillStyle = '#666';
+                    ctx.beginPath();
+                    ctx.arc(obstacle.x - 5, obstacle.y - 3, 4, 0, Math.PI * 2);
+                    ctx.arc(obstacle.x + 6, obstacle.y + 2, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+        
+        // Draw power-ups
+        function drawPowerUps() {
+            powerUps.forEach(powerUp => {
+                if (powerUp.collected) return;
+                
+                ctx.fillStyle = powerUp.type === 'speed' ? '#FFD700' : '#00FF7F';
+                ctx.beginPath();
+                ctx.arc(powerUp.x, powerUp.y, powerUp.width/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw icon
+                ctx.fillStyle = '#000';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(powerUp.type === 'speed' ? '⚡' : '🛡️', powerUp.x, powerUp.y);
+            });
+        }
+        
+        // Draw particles
+        function drawParticles() {
+            particles.forEach((particle, index) => {
+                ctx.fillStyle = particle.color;
+                ctx.globalAlpha = particle.alpha;
+                ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+                ctx.globalAlpha = 1;
+                
+                // Update particle
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.alpha -= 0.02;
+                particle.size *= 0.95;
+                
+                // Remove dead particles
+                if (particle.alpha <= 0) {
+                    particles.splice(index, 1);
+                }
+            });
+        }
+        
+        // Create particle effect
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    size: Math.random() * 5 + 2,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    color: color,
+                    alpha: 1
+                });
+            }
+        }
+        
+        // Draw background with parallax effect
+        let backgroundOffset = 0;
+        function drawBackground() {
+            // Draw gradient sky
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a0b2e');
+            gradient.addColorStop(1, '#2d1b69');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw distant mountains (parallax slow)
+            ctx.fillStyle = 'rgba(45, 25, 80, 0.6)';
+            drawMountains(backgroundOffset * 0.2, canvas.height * 0.6);
+            
+            // Draw mid mountains (parallax medium)
+            ctx.fillStyle = 'rgba(65, 35, 100, 0.7)';
+            drawMountains(backgroundOffset * 0.5, canvas.height * 0.7);
+            
+            // Draw snow
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.fillRect(0, canvas.height * 0.75, canvas.width, canvas.height * 0.25);
+            
+            // Draw close mountains (parallax fast)
+            ctx.fillStyle = 'rgba(85, 45, 120, 0.8)';
+            drawMountains(backgroundOffset, canvas.height * 0.8);
+            
+            // Update background offset for parallax
+            backgroundOffset += gateSpeed * 0.5;
+            if (backgroundOffset > canvas.width) {
+                backgroundOffset = 0;
+            }
+        }
+        
+        // Draw mountain range
+        function drawMountains(offset, baseY) {
+            ctx.beginPath();
+            ctx.moveTo(-50 + offset, baseY);
+            
+            let x = -50 + offset;
+            while (x < canvas.width + 50) {
+                const peakHeight = Math.random() * 80 + 40;
+                x += Math.random() * 100 + 50;
+                ctx.lineTo(x, baseY - peakHeight);
+            }
+            
+            ctx.lineTo(canvas.width + 50, baseY);
+            ctx.lineTo(canvas.width + 50, canvas.height);
+            ctx.lineTo(-50, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // Update game state with improved physics
+        function update() {
+            if (!gameActive) return;
+            
+            // Apply friction to snowboarder
+            snowboarder.velocityX *= snowboarder.friction;
+            snowboarder.x += snowboarder.velocityX;
+            
+            // Update lean based on velocity
+            snowboarder.lean = snowboarder.velocityX * 0.5;
+            
+            // Keep snowboarder within bounds with bounce effect
+            if (snowboarder.x < snowboarder.width/2) {
+                snowboarder.x = snowboarder.width/2;
+                snowboarder.velocityX *= -0.5;
+                createParticles(snowboarder.x, snowboarder.y, '#FF6BCB', 5);
+            } else if (snowboarder.x > canvas.width - snowboarder.width/2) {
+                snowboarder.x = canvas.width - snowboarder.width/2;
+                snowboarder.velocityX *= -0.5;
+                createParticles(snowboarder.x, snowboarder.y, '#6B8EFF', 5);
+            }
+            
+            // Move gates and obstacles
+            gates.forEach(gate => {
+                gate.y += gateSpeed;
+                
+                // Check collision with gate
+                if (!gate.passed && 
+                    gate.y + gateHeight > snowboarder.y - snowboarder.height/2 && 
+                    gate.y < snowboarder.y + snowboarder.height/2) {
+                    
+                    // Check if player passed through the correct side
+                    const correctSide = gate.type === 'left' ? 
+                        snowboarder.x < canvas.width/2 : 
+                        snowboarder.x > canvas.width/2;
+                    
+                    if (correctSide) {
+                        // Correct pass
+                        score += 10 * (combo + 1);
+                        scoreDisplay.textContent = score;
+                        gate.passed = true;
+                        gatesPassed++;
+                        combo++;
+                        comboValue.textContent = combo;
+                        comboDisplay.style.display = 'flex';
+                        comboDisplay.style.background = 'rgba(107, 255, 131, 0.8)';
+                        createParticles(gate.x, gate.y, '#6BFF83', 10);
+                        
+                        // Update max combo
+                        if (combo > maxCombo) {
+                            maxCombo = combo;
+                        }
+                    } else {
+                        // Wrong side - penalty
+                        score = Math.max(0, score - 15);
+                        scoreDisplay.textContent = score;
+                        gate.passed = true;
+                        combo = 0;
+                        comboValue.textContent = combo;
+                        comboDisplay.style.background = 'rgba(255, 107, 107, 0.8)';
+                        createParticles(snowboarder.x, snowboarder.y, '#FF6B6B', 15);
+                    }
+                }
+                
+                // Reset gate if it goes off screen
+                if (gate.y > canvas.height) {
+                    gate.y = -gateHeight;
+                    gate.passed = false;
+                    
+                    // Randomize gate position
+                    lastGateType = lastGateType === 'left' ? 'right' : 'left';
+                    gate.type = lastGateType;
+                    gate.x = gate.type === 'left' ? 
+                        canvas.width * 0.25 - gateWidth/2 : 
+                        canvas.width * 0.75 - gateWidth/2;
+                    gate.color = gate.type === 'left' ? '#FF6BCB' : '#6B8EFF';
+                }
+            });
+            
+            // Update obstacles
+            obstacles.forEach(obstacle => {
+                obstacle.y += gateSpeed;
+                
+                // Check collision with obstacle
+                const dx = snowboarder.x - obstacle.x;
+                const dy = snowboarder.y - obstacle.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < (snowboarder.width/2 + obstacle.width/2)) {
+                    // Collision with obstacle
+                    if (!powerupActive) {
+                        lives--;
+                        livesDisplay.textContent = lives;
+                        if (lives <= 0) {
+                            endGame();
+                        }
+                    }
+                    score = Math.max(0, score - 30);
+                    scoreDisplay.textContent = score;
+                    combo = 0;
+                    comboValue.textContent = combo;
+                    comboDisplay.style.background = 'rgba(255, 107, 107, 0.8)';
+                    createParticles(snowboarder.x, snowboarder.y, '#FF6B6B', 20);
+                    
+                    // Move obstacle off screen
+                    obstacle.y = canvas.height + 100;
+                }
+                
+                // Reset obstacle if it goes off screen
+                if (obstacle.y > canvas.height) {
+                    obstacle.y = -100;
+                    obstacle.x = Math.random() * (canvas.width - 40) + 20;
+                }
+            });
+            
+            // Update power-ups
+            powerUps.forEach(powerUp => {
+                if (powerUp.collected) return;
+                
+                powerUp.y += gateSpeed;
+                
+                // Check collision with power-up
+                const dx = snowboarder.x - powerUp.x;
+                const dy = snowboarder.y - powerUp.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < (snowboarder.width/2 + powerUp.width/2)) {
+                    powerUp.collected = true;
+                    
+                    if (powerUp.type === 'speed') {
+                        // Speed boost power-up
+                        gateSpeed *= 1.5;
+                        powerupActive = true;
+                        powerupTimer = 300; // 5 seconds at 60fps
+                        powerupIndicator.style.display = 'flex';
+                        setTimeout(() => {
+                            gateSpeed /= 1.5;
+                            powerupActive = false;
+                            powerupIndicator.style.display = 'none';
+                        }, 5000);
+                    } else if (powerUp.type === 'shield') {
+                        // Shield power-up - extra life
+                        lives = Math.min(5, lives + 1);
+                        livesDisplay.textContent = lives;
+                    }
+                    
+                    createParticles(powerUp.x, powerUp.y, powerUp.type === 'speed' ? '#FFD700' : '#00FF7F', 15);
+                }
+                
+                // Reset power-up if it goes off screen
+                if (powerUp.y > canvas.height) {
+                    powerUp.y = -100 - Math.random() * 200;
+                    powerUp.x = Math.random() * (canvas.width - 30) + 15;
+                    powerUp.type = Math.random() > 0.5 ? 'speed' : 'shield';
+                    powerUp.collected = false;
+                }
+            });
+            
+            // Gradually increase difficulty
+            if (gatesPassed > 0 && gatesPassed % 10 === 0) {
+                gateSpeed = Math.min(8, 3 + Math.floor(gatesPassed / 10) * 0.5);
+            }
+        }
+        
+        // Handle touch/swipe controls
+        let touchStartX = 0;
+        
+        canvas.addEventListener('touchstart', function(e) {
+            touchStartX = e.touches[0].clientX;
+            e.preventDefault();
+        });
+        
+        canvas.addEventListener('touchmove', function(e) {
+            if (!gameActive) return;
+            
+            const touchX = e.touches[0].clientX;
+            const deltaX = touchX - touchStartX;
+            
+            // Apply velocity based on swipe
+            snowboarder.velocityX += deltaX * 0.1;
+            snowboarder.velocityX = Math.max(-snowboarder.maxSpeed, Math.min(snowboarder.maxSpeed, snowboarder.velocityX));
+            
+            touchStartX = touchX;
+            e.preventDefault();
+        });
+        
+        // Handle keyboard controls
+        const keys = {};
+        window.addEventListener('keydown', function(e) {
+            keys[e.key] = true;
+        });
+        
+        window.addEventListener('keyup', function(e) {
+            keys[e.key] = false;
+        });
+        
+        function handleKeyboard() {
+            if (keys['ArrowLeft']) {
+                snowboarder.velocityX -= snowboarder.acceleration;
+                snowboarder.velocityX = Math.max(-snowboarder.maxSpeed, snowboarder.velocityX);
+            }
+            if (keys['ArrowRight']) {
+                snowboarder.velocityX += snowboarder.acceleration;
+                snowboarder.velocityX = Math.min(snowboarder.maxSpeed, snowboarder.velocityX);
+            }
+        }
+        
+        // Mobile button controls
+        let leftPressed = false;
+        let rightPressed = false;
+        
+        leftBtn.addEventListener('touchstart', function(e) {
+            leftPressed = true;
+            e.preventDefault();
+        });
+        
+        leftBtn.addEventListener('touchend', function(e) {
+            leftPressed = false;
+            e.preventDefault();
+        });
+        
+        rightBtn.addEventListener('touchstart', function(e) {
+            rightPressed = true;
+            e.preventDefault();
+        });
+        
+        rightBtn.addEventListener('touchend', function(e) {
+            rightPressed = false;
+            e.preventDefault();
+        });
+        
+        // Mobile button control loop
+        function mobileControlLoop() {
+            if (leftPressed) {
+                snowboarder.velocityX -= snowboarder.acceleration;
+                snowboarder.velocityX = Math.max(-snowboarder.maxSpeed, snowboarder.velocityX);
+            }
+            if (rightPressed) {
+                snowboarder.velocityX += snowboarder.acceleration;
+                snowboarder.velocityX = Math.min(snowboarder.maxSpeed, snowboarder.velocityX);
+            }
+            
+            if (gameActive) {
+                requestAnimationFrame(mobileControlLoop);
+            }
+        }
+        
+        // Game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawBackground();
+            drawGates();
+            drawObstacles();
+            drawPowerUps();
+            drawSnowboarder();
+            drawParticles();
+            update();
+            
+            if (gameActive) {
+                handleKeyboard();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // Start game
+        startBtn.addEventListener('click', function() {
+            startScreen.style.display = 'none';
+            gameActive = true;
+            score = 0;
+            timeLeft = 60;
+            lives = 3;
+            combo = 0;
+            gatesPassed = 0;
+            maxCombo = 0;
+            gateSpeed = 3;
+            powerupActive = false;
+            scoreDisplay.textContent = score;
+            timerDisplay.textContent = timeLeft + 's';
+            livesDisplay.textContent = lives;
+            comboDisplay.style.display = 'none';
+            powerupIndicator.style.display = 'none';
+            
+            initSnowboarder();
+            createGates();
+            
+            // Start timer
+            clearInterval(timerInterval);
+            timerInterval = setInterval(function() {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft + 's';
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+            
+            gameLoop();
+            mobileControlLoop();
+        });
+        
+        // Restart game
+        restartBtn.addEventListener('click', function() {
+            gameOverScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+        });
+        
+        // End game
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            finalScoreDisplay.textContent = score;
+            finalGatesDisplay.textContent = gatesPassed;
+            finalComboDisplay.textContent = maxCombo;
+            
+            // Update stats
+            gamesPlayed++;
+            localStorage.setItem('slalomGamesPlayed', gamesPlayed);
+            gamesPlayedDisplay.textContent = gamesPlayed;
+            
+            // Check for high score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('slalomHighScore', highScore);
+                highScoreDisplay.textContent = highScore;
+                
+                // Show achievement
+                achievementDisplay.style.display = 'block';
+                setTimeout(() => {
+                    achievementDisplay.style.display = 'none';
+                }, 3000);
+            }
+            
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        // Initial setup
+        initSnowboarder();
+        createGates();
+    </script>
+</body>
+</html>

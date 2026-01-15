@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sniper Challenge 3D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a3a, #0d1b2a);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ffd700;
+            z-index: 10;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        .score-container {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .score-box {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #444;
+        }
+        
+        .score-value {
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .game-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scope {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border: 2px solid #ffd700;
+            border-radius: 50%;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .scope::before, .scope::after {
+            content: '';
+            position: absolute;
+            background: #ffd700;
+        }
+        
+        .scope::before {
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            transform: translateY(-50%);
+        }
+        
+        .scope::after {
+            left: 50%;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            transform: translateX(-50%);
+        }
+        
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 6;
+        }
+        
+        .crosshair::before, .crosshair::after {
+            content: '';
+            position: absolute;
+            background: #ff0000;
+        }
+        
+        .crosshair::before {
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            transform: translateY(-50%);
+        }
+        
+        .crosshair::after {
+            left: 50%;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            transform: translateX(-50%);
+        }
+        
+        .target {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #8b0000, #500000);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(139, 0, 0, 0.7);
+            transition: transform 0.2s;
+            cursor: pointer;
+            z-index: 2;
+        }
+        
+        .target.hit {
+            animation: hitAnimation 0.5s forwards;
+        }
+        
+        @keyframes hitAnimation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.7; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        
+        .bullet-hole {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #000;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .controls {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid #ffd700;
+        }
+        
+        button {
+            background: linear-gradient(to bottom, #ffd700, #b8860b);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 0 #b8860b;
+        }
+        
+        button:hover {
+            background: linear-gradient(to bottom, #ffed4e, #d4af37);
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #b8860b;
+        }
+        
+        button:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #b8860b;
+        }
+        
+        .instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            z-index: 20;
+            border: 2px solid #ffd700;
+        }
+        
+        .instructions h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+        
+        .instructions p {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .instructions button {
+            margin-top: 20px;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 20;
+            border: 2px solid #ffd700;
+            display: none;
+        }
+        
+        .game-over h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 32px;
+        }
+        
+        .final-score {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        
+        .level-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 18px;
+            border: 1px solid #444;
+        }
+        
+        .level-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .wind-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 18px;
+            border: 1px solid #444;
+        }
+        
+        .wind-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .scope-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.8) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="logo">SNIPER CHALLENGE 3D</div>
+            <div class="score-container">
+                <div class="score-box">
+                    Score: <span class="score-value" id="score">0</span>
+                </div>
+                <div class="score-box">
+                    Targets: <span class="score-value" id="targets-hit">0</span>/<span id="total-targets">10</span>
+                </div>
+                <div class="score-box">
+                    Time: <span class="score-value" id="time">60</span>s
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="scope-overlay"></div>
+            <div class="scope"></div>
+            <div class="crosshair"></div>
+            <div class="wind-indicator">
+                Wind: <span class="wind-value" id="wind">0</span> m/s
+            </div>
+            <div class="level-indicator">
+                Level: <span class="level-value" id="level">1</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">Start Game</button>
+            <button id="reloadBtn">Reload (R)</button>
+            <button id="zoomBtn">Zoom (Z)</button>
+            <button id="pauseBtn">Pause (P)</button>
+        </div>
+        
+        <div class="instructions" id="instructions">
+            <h2>SNIPER CHALLENGE 3D</h2>
+            <p>Welcome to the ultimate sniper challenge!</p>
+            <p><strong>How to play:</strong></p>
+            <p>- Move your mouse to aim</p>
+            <p>- Click to shoot targets</p>
+            <p>- Hit as many targets as you can before time runs out</p>
+            <p>- Watch out for wind that affects your bullet trajectory</p>
+            <p>- Complete levels to progress to more difficult challenges</p>
+            <p><strong>Controls:</strong></p>
+            <p>R - Reload | Z - Zoom | P - Pause</p>
+            <button id="startGameBtn">START MISSION</button>
+        </div>
+        
+        <div class="game-over" id="gameOver">
+            <h2>MISSION COMPLETE</h2>
+            <p class="final-score">Final Score: <span id="finalScore">0</span></p>
+            <p>Targets Hit: <span id="finalTargets">0</span>/<span id="finalTotal">0</span></p>
+            <p>Accuracy: <span id="accuracy">0</span>%</p>
+            <button id="restartBtn">NEW MISSION</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let score = 0;
+        let targetsHit = 0;
+        let totalTargets = 10;
+        let timeLeft = 60;
+        let level = 1;
+        let wind = 0;
+        let gameActive = false;
+        let gameTimer;
+        let targets = [];
+        let bullets = 10;
+        let shotsFired = 0;
+        let zoomed = false;
+        
+        // DOM elements
+        const gameArea = document.getElementById('gameArea');
+        const scoreElement = document.getElementById('score');
+        const targetsHitElement = document.getElementById('targets-hit');
+        const totalTargetsElement = document.getElementById('total-targets');
+        const timeElement = document.getElementById('time');
+        const levelElement = document.getElementById('level');
+        const windElement = document.getElementById('wind');
+        const startBtn = document.getElementById('startBtn');
+        const reloadBtn = document.getElementById('reloadBtn');
+        const zoomBtn = document.getElementById('zoomBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const instructions = document.getElementById('instructions');
+        const gameOver = document.getElementById('gameOver');
+        const finalScore = document.getElementById('finalScore');
+        const finalTargets = document.getElementById('finalTargets');
+        const finalTotal = document.getElementById('finalTotal');
+        const accuracyElement = document.getElementById('accuracy');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        
+        // Event listeners
+        startBtn.addEventListener('click', startGame);
+        startGameBtn.addEventListener('click', startGame);
+        reloadBtn.addEventListener('click', reload);
+        zoomBtn.addEventListener('click', toggleZoom);
+        pauseBtn.addEventListener('click', togglePause);
+        restartBtn.addEventListener('click', restartGame);
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            
+            switch(e.key.toLowerCase()) {
+                case 'r':
+                    reload();
+                    break;
+                case 'z':
+                    toggleZoom();
+                    break;
+                case 'p':
+                    togglePause();
+                    break;
+            }
+        });
+        
+        // Game functions
+        function startGame() {
+            instructions.style.display = 'none';
+            gameOver.style.display = 'none';
+            resetGame();
+            gameActive = true;
+            generateTargets();
+            startTimer();
+            updateWind();
+        }
+        
+        function resetGame() {
+            score = 0;
+            targetsHit = 0;
+            timeLeft = 60;
+            level = 1;
+            bullets = 10;
+            shotsFired = 0;
+            zoomed = false;
+            updateUI();
+            
+            // Clear existing targets and bullet holes
+            document.querySelectorAll('.target, .bullet-hole').forEach(el => el.remove());
+            targets = [];
+        }
+        
+        function updateUI() {
+            scoreElement.textContent = score;
+            targetsHitElement.textContent = targetsHit;
+            totalTargetsElement.textContent = totalTargets;
+            timeElement.textContent = timeLeft;
+            levelElement.textContent = level;
+            windElement.textContent = wind;
+        }
+        
+        function generateTargets() {
+            const areaWidth = gameArea.clientWidth;
+            const areaHeight = gameArea.clientHeight;
+            
+            for (let i = 0; i < totalTargets; i++) {
+                const target = document.createElement('div');
+                target.className = 'target';
+                
+                // Random position (avoiding edges)
+                const x = Math.random() * (areaWidth - 100) + 50;
+                const y = Math.random() * (areaHeight - 100) + 50;
+                
+                target.style.left = `${x}px`;
+                target.style.top = `${y}px`;
+                
+                // Add point value based on size and distance from center
+                const distanceFromCenter = Math.sqrt(
+                    Math.pow(x - areaWidth/2, 2) + Math.pow(y - areaHeight/2, 2)
+                );
+                
+                let points = 100;
+                if (distanceFromCenter > areaWidth * 0.3) points = 200;
+                if (distanceFromCenter > areaWidth * 0.5) points = 300;
+                
+                target.dataset.points = points;
+                target.textContent = points;
+                
+                // Add click event
+                target.addEventListener('click', () => hitTarget(target));
+                
+                gameArea.appendChild(target);
+                targets.push(target);
+            }
+        }
+        
+        function hitTarget(target) {
+            if (!gameActive) return;
+            
+            // Mark as hit
+            target.classList.add('hit');
+            
+            // Add score
+            const points = parseInt(target.dataset.points);
+            score += points;
+            
+            // Increase targets hit
+            targetsHit++;
+            
+            // Create bullet hole
+            createBulletHole(target.offsetLeft + 30, target.offsetTop + 30);
+            
+            // Remove target after animation
+            setTimeout(() => {
+                target.remove();
+                const index = targets.indexOf(target);
+                if (index > -1) {
+                    targets.splice(index, 1);
+                }
+                
+                // Check if all targets are hit
+                if (targets.length === 0) {
+                    levelUp();
+                }
+            }, 500);
+            
+            updateUI();
+        }
+        
+        function createBulletHole(x, y) {
+            const bulletHole = document.createElement('div');
+            bulletHole.className = 'bullet-hole';
+            bulletHole.style.left = `${x}px`;
+            bulletHole.style.top = `${y}px`;
+            gameArea.appendChild(bulletHole);
+        }
+        
+        function levelUp() {
+            level++;
+            totalTargets += 5;
+            timeLeft += 30;
+            
+            // Increase difficulty
+            if (level > 1) {
+                generateTargets();
+            }
+            
+            updateUI();
+        }
+        
+        function startTimer() {
+            clearInterval(gameTimer);
+            gameTimer = setInterval(() => {
+                if (gameActive) {
+                    timeLeft--;
+                    updateUI();
+                    
+                    if (timeLeft <= 0) {
+                        endGame();
+                    }
+                    
+                    // Update wind every 5 seconds
+                    if (timeLeft % 5 === 0) {
+                        updateWind();
+                    }
+                }
+            }, 1000);
+        }
+        
+        function updateWind() {
+            wind = (Math.random() * 20 - 10).toFixed(1);
+            updateUI();
+        }
+        
+        function reload() {
+            if (!gameActive) return;
+            bullets = 10;
+            // In a real game, this would have a delay and animation
+        }
+        
+        function toggleZoom() {
+            if (!gameActive) return;
+            zoomed = !zoomed;
+            const scope = document.querySelector('.scope');
+            const crosshair = document.querySelector('.crosshair');
+            
+            if (zoomed) {
+                scope.style.width = '150px';
+                scope.style.height = '150px';
+                crosshair.style.width = '20px';
+                crosshair.style.height = '20px';
+            } else {
+                scope.style.width = '100px';
+                scope.style.height = '100px';
+                crosshair.style.width = '30px';
+                crosshair.style.height = '30px';
+            }
+        }
+        
+        function togglePause() {
+            gameActive = !gameActive;
+            if (gameActive) {
+                startTimer();
+            } else {
+                clearInterval(gameTimer);
+            }
+        }
+        
+        function endGame() {
+            gameActive = false;
+            clearInterval(gameTimer);
+            
+            // Calculate accuracy
+            const accuracy = shotsFired > 0 ? Math.round((targetsHit / shotsFired) * 100) : 0;
+            
+            // Update game over screen
+            finalScore.textContent = score;
+            finalTargets.textContent = targetsHit;
+            finalTotal.textContent = totalTargets;
+            accuracyElement.textContent = accuracy;
+            
+            // Show game over screen
+            gameOver.style.display = 'block';
+        }
+        
+        function restartGame() {
+            startGame();
+        }
+        
+        // Mouse movement for crosshair
+        document.addEventListener('mousemove', (e) => {
+            if (!gameActive) return;
+            
+            const crosshair = document.querySelector('.crosshair');
+            crosshair.style.left = `${e.clientX}px`;
+            crosshair.style.top = `${e.clientY}px`;
+        });
+        
+        // Shooting mechanics
+        document.addEventListener('click', (e) => {
+            if (!gameActive || e.target.tagName === 'BUTTON') return;
+            
+            shotsFired++;
+            
+            // In a real game, this would check if a target was hit
+            // For this demo, we're relying on the target click event
+        });
+        
+        // Initialize
+        updateUI();
+    </script>
+</body>
+</html>

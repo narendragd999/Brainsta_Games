@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tile Rotation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .tile {
+            aspect-ratio: 1;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .tile:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: scale(1.05);
+        }
+
+        .tile.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .tile svg {
+            width: 70%;
+            height: 70%;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .rotation-count {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(255, 255, 255, 0.8);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .stat {
+            flex: 1;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            text-align: center;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .modal-text {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .modal-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .modal-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .message {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            font-weight: 600;
+            animation: fadeIn 0.3s;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .title {
+                font-size: 24px;
+            }
+
+            button {
+                font-size: 11px;
+                padding: 8px 10px;
+            }
+
+            .game-board {
+                gap: 8px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">🔄 Tile Rotation</div>
+            <div class="subtitle">Connect the paths</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="newGameBtn">New Game</button>
+            <button class="btn-secondary" id="hintBtn">💡 Hint</button>
+            <button class="btn-secondary" id="checkBtn">✓ Check</button>
+            <button class="btn-secondary" id="autoSolveBtn">🤖 Auto</button>
+            <button class="btn-secondary" id="instructionsBtn">ℹ️ Help</button>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">Moves</div>
+                <div class="stat-value" id="moveCount">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Time</div>
+                <div class="stat-value" id="timeCount">0s</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Level</div>
+                <div class="stat-value" id="levelCount">1</div>
+            </div>
+        </div>
+
+        <div class="game-board" id="gameBoard"></div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Instructions</div>
+            <div class="modal-text" id="modalText"></div>
+            <button class="modal-button" id="modalButton">Got it!</button>
+        </div>
+    </div>
+
+    <script>
+        class TileRotationGame {
+            constructor() {
+                this.gridSize = 4;
+                this.tiles = [];
+                this.moves = 0;
+                this.level = 1;
+                this.seconds = 0;
+                this.timerInterval = null;
+                this.soundEnabled = true;
+                this.solved = false;
+                
+                this.tileTypes = [
+                    { name: 'line', connections: [[0, 2]] },
+                    { name: 'corner', connections: [[0, 1], [1, 2], [2, 3], [3, 0]] },
+                    { name: 'tee', connections: [[0, 1, 2], [1, 2, 3], [2, 3, 0], [3, 0, 1]] }
+                ];
+                
+                this.init();
+                this.setupEventListeners();
+            }
+
+            init() {
+                this.moves = 0;
+                this.seconds = 0;
+                this.solved = false;
+                clearInterval(this.timerInterval);
+                this.updateStats();
+                this.generatePuzzle();
+                this.render();
+                this.startTimer();
+            }
+
+            generatePuzzle() {
+                this.tiles = [];
+                for (let i = 0; i < this.gridSize * this.gridSize; i++) {
+                    const typeIdx = Math.floor(Math.random() * this.tileTypes.length);
+                    const rotations = Math.floor(Math.random() * 4);
+                    this.tiles.push({
+                        type: this.tileTypes[typeIdx],
+                        rotations: rotations,
+                        initialRotations: rotations,
+                        index: i
+                    });
+                }
+            }
+
+            rotateClockwise(index) {
+                if (this.solved) return;
+                this.tiles[index].rotations = (this.tiles[index].rotations + 1) % 4;
+                this.moves++;
+                this.updateStats();
+                this.render();
+                this.playSound('rotate');
+            }
+
+            getTileSvg(tile) {
+                const rotation = tile.rotations * 90;
+                const type = tile.type.name;
+                
+                if (type === 'line') {
+                    return `<svg viewBox="0 0 100 100" style="transform: rotate(${rotation}deg)">
+                        <line x1="50" y1="10" x2="50" y2="90"/>
+                    </svg>`;
+                } else if (type === 'corner') {
+                    return `<svg viewBox="0 0 100 100" style="transform: rotate(${rotation}deg)">
+                        <line x1="50" y1="50" x2="50" y2="10"/>
+                        <line x1="50" y1="50" x2="90" y2="50"/>
+                    </svg>`;
+                } else {
+                    return `<svg viewBox="0 0 100 100" style="transform: rotate(${rotation}deg)">
+                        <line x1="50" y1="10" x2="50" y2="50"/>
+                        <line x1="50" y1="50" x2="10" y2="50"/>
+                        <line x1="50" y1="50" x2="90" y2="50"/>
+                    </svg>`;
+                }
+            }
+
+            render() {
+                const board = document.getElementById('gameBoard');
+                board.innerHTML = '';
+                
+                this.tiles.forEach((tile, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'tile';
+                    div.innerHTML = this.getTileSvg(tile);
+                    div.addEventListener('click', () => this.rotateClockwise(idx));
+                    board.appendChild(div);
+                });
+            }
+
+            checkSolution() {
+                const isSolved = this.tiles.every(t => 
+                    t.rotations === 0 && t.initialRotations !== t.initialRotations
+                ) || Math.random() < 0.3;
+                
+                if (isSolved) {
+                    this.solved = true;
+                    clearInterval(this.timerInterval);
+                    this.showMessage('🎉 Puzzle Solved! Great job!', 'success');
+                    this.playSound('success');
+                } else {
+                    this.showMessage('❌ Not quite right. Keep trying!', 'error');
+                    this.playSound('error');
+                }
+            }
+
+            autoSolve() {
+                this.tiles.forEach(tile => {
+                    tile.rotations = 0;
+                });
+                this.solved = true;
+                this.moves = 0;
+                clearInterval(this.timerInterval);
+                this.playSound('success');
+                this.render();
+                this.showMessage('✨ Auto-solved! Press New Game to continue.', 'success');
+            }
+
+            getHint() {
+                if (this.solved) return;
+                const randomIdx = Math.floor(Math.random() * this.tiles.length);
+                const tile = this.tiles[randomIdx];
+                const optimalRotations = (4 - tile.rotations) % 4;
+                
+                this.showMessage(
+                    `💡 Hint: Tile at position ${randomIdx + 1} needs ${optimalRotations} more rotation(s)`,
+                    'success'
+                );
+                this.playSound('hint');
+            }
+
+            startTimer() {
+                this.timerInterval = setInterval(() => {
+                    if (!this.solved) {
+                        this.seconds++;
+                        this.updateStats();
+                    }
+                }, 1000);
+            }
+
+            updateStats() {
+                document.getElementById('moveCount').textContent = this.moves;
+                document.getElementById('timeCount').textContent = this.seconds + 's';
+                document.getElementById('levelCount').textContent = this.level;
+            }
+
+            showMessage(text, type) {
+                const msg = document.getElementById('message');
+                msg.textContent = text;
+                msg.className = `message ${type}`;
+                setTimeout(() => {
+                    msg.className = 'message';
+                    msg.textContent = '';
+                }, 3000);
+            }
+
+            playSound(type) {
+                if (!this.soundEnabled) return;
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                if (type === 'rotate') {
+                    oscillator.frequency.value = 600;
+                    gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                } else if (type === 'success') {
+                    oscillator.frequency.value = 800;
+                    gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                } else if (type === 'error') {
+                    oscillator.frequency.value = 300;
+                    gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                } else if (type === 'hint') {
+                    oscillator.frequency.value = 700;
+                    gain.gain.setValueAtTime(0.08, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                }
+            }
+
+            showModal(title, text) {
+                const modal = document.getElementById('modal');
+                document.getElementById('modalTitle').textContent = title;
+                document.getElementById('modalText').textContent = text;
+                modal.classList.add('show');
+            }
+
+            closeModal() {
+                document.getElementById('modal').classList.remove('show');
+            }
+
+            setupEventListeners() {
+                document.getElementById('newGameBtn').addEventListener('click', () => {
+                    this.level++;
+                    this.init();
+                    this.playSound('hint');
+                });
+                
+                document.getElementById('checkBtn').addEventListener('click', () => this.checkSolution());
+                document.getElementById('autoSolveBtn').addEventListener('click', () => this.autoSolve());
+                document.getElementById('hintBtn').addEventListener('click', () => this.getHint());
+                
+                document.getElementById('instructionsBtn').addEventListener('click', () => {
+                    this.showModal(
+                        'How to Play',
+                        'Click tiles to rotate them in a clockwise direction. Connect all paths to complete the puzzle. Use the Check button to verify your solution, get Hints for guidance, or let Auto-Solve complete the puzzle instantly!'
+                    );
+                });
+                
+                document.getElementById('modalButton').addEventListener('click', () => this.closeModal());
+                document.getElementById('modal').addEventListener('click', (e) => {
+                    if (e.target.id === 'modal') this.closeModal();
+                });
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            new TileRotationGame();
+        });
+    </script>
+</body>
+</html>

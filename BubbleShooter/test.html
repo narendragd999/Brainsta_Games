@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>बबल टावर 3D</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0c0c2e, #1a1a4a, #2d1b69);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #game-container {
+            position: relative;
+            width: min(95vw, 900px);
+            height: min(80vh, 700px);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        
+        .score-panel {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: clamp(14px, 2vw, 18px);
+            font-weight: bold;
+            pointer-events: none;
+            user-select: none;
+            margin-bottom: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        #top-left-stats {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+
+        #penalty-panel {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #f40076;
+            border: 2px solid #ff7e00;
+        }
+
+        #next-bubble-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+        
+        .next-bubble-label {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .next-bubble-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+        }
+        
+        .combo-high {
+            color: #ffcc00;
+            text-shadow: 0 0 8px #ffcc00;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            to {
+                transform: scale(1.1);
+            }
+        }
+
+        /* Start/Game Over Screens */
+        #start-screen, #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 100;
+            text-align: center;
+        }
+        
+        #game-over {
+            display: none;
+        }
+
+        h1 {
+            font-size: clamp(36px, 8vw, 64px);
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ff7e00, 0 0 10px #f40076;
+            color: #fff;
+        }
+        
+        h2 {
+            font-size: clamp(28px, 6vw, 48px);
+            margin-bottom: 30px;
+            color: #ffcc00;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #f40076, #ff7e00);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(244, 0, 118, 0.6);
+            pointer-events: auto;
+        }
+        
+        button:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 8px 30px rgba(244, 0, 118, 0.8);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .instructions {
+            max-width: 80%;
+            margin-top: 20px;
+            line-height: 1.6;
+            color: #ccc;
+            font-size: 16px;
+        }
+        
+        .instructions strong {
+            color: #ffcc00;
+        }
+
+        /* Shooter base at the bottom */
+        #shooter-base {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 20px;
+            background: rgba(50, 50, 50, 0.5);
+            border-radius: 10px;
+            z-index: 50;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="top-left-stats">
+                <div class="score-panel">
+                    स्कोर: <span id="score">0</span>
+                </div>
+                <div class="score-panel">
+                    लेवल: <span id="level">1</span>
+                </div>
+                <div class="score-panel">
+                    कॉम्बो: <span id="combo">1</span>
+                </div>
+            </div>
+            
+            <div class="score-panel" id="penalty-panel">
+                पेनल्टी शॉट्स: <span id="penalty-shots">5</span>
+            </div>
+            
+            <div id="next-bubble-container">
+                <div class="next-bubble-label">अगला बबल</div>
+                <div class="next-bubble-preview" id="next-bubble-preview"></div>
+            </div>
+        </div>
+        
+        <!-- START SCREEN (DEFAULT - VISIBLE) -->
+        <div id="start-screen">
+            <h1>बबल टावर 3D</h1>
+            <button id="start-button">गेम शुरू करें</button>
+            <div class="instructions">
+                <p>टावर को घुमाने के लिए **ड्रैग** करें।</p>
+                <p>बबल शूट करने के लिए **क्लिक** करें और रंग मिलाएं!</p>
+                <p>3 या अधिक बबल का मिलान करें ताकि वे फूट सकें।</p>
+                <p>अगर आपके **पेनल्टी शॉट्स (5)** खत्म हो जाते हैं, तो एक नई रो (row) जुड़ जाएगी!</p>
+            </div>
+        </div>
+        
+        <!-- GAME OVER SCREEN (DEFAULT - HIDDEN) -->
+        <div id="game-over" class="hidden">
+            <h2>गेम ओवर</h2>
+            <p style="font-size: 24px; margin-bottom: 10px;">आपका स्कोर: <span id="final-score">0</span></p>
+            <p style="font-size: 18px; margin-bottom: 20px; color: #ff7e00;">सबसे बड़ा कॉम्बो: <span id="max-combo">1</span></p>
+            <button id="restart-button">फिर से खेलें</button>
+        </div>
+    </div>
+
+    <script>
+        // --- गेम कॉन्स्टेंट्स ---
+        const TOWER_RADIUS = 6;
+        const BUBBLE_RADIUS = 0.8;
+        const TOWER_COLUMNS = 12;
+        const ROW_SPACING = BUBBLE_RADIUS * 1.732; // हेक्सागोनल पैकिंग के लिए Math.sqrt(3) * R
+        const SHOOTER_Y = -12;
+        const GAME_OVER_Y_THRESHOLD = -8;
+        const MAX_PENALTY_SHOTS = 5;
+
+        // --- गेम वैरिएबल्स ---
+        let scene, camera, renderer, towerGroup;
+        let bubbles = []; // टावर से जुड़े स्टैटिक बबल्स का ऐरे
+        let shooterBubble; // वर्तमान प्रोजेक्टाइल
+        let nextBubbleColor;
+        
+        let score = 0;
+        let level = 1;
+        let combo = 1;
+        let maxCombo = 1;
+        let penaltyShotsRemaining = MAX_PENALTY_SHOTS;
+        let isGameActive = false; // मुख्य स्टेट फ्लैग
+        let isShooting = false;
+        let isDragging = false;
+        let previousMouseX = 0;
+        let mouseX = 0;
+
+        // मानक बबल रंग
+        const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff]; 
+
+        // --- DOM एलिमेंट्स ---
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const comboElement = document.getElementById('combo');
+        const finalScoreElement = document.getElementById('final-score');
+        const maxComboElement = document.getElementById('max-combo');
+        const nextBubblePreview = document.getElementById('next-bubble-preview');
+        const penaltyShotsElement = document.getElementById('penalty-shots');
+        const canvas = document.getElementById('game-canvas');
+
+        // --- 3D इनिशियलाइज़ेशन ---
+        function createTowerPipe() {
+            const pipeHeight = 30;
+            const radius = TOWER_RADIUS - 0.05; 
+            const pipeGeometry = new THREE.CylinderGeometry(radius, radius, pipeHeight, 32, 1, false); // सेगमेंट बढ़ाए, openEnded false
+            
+            const pipeMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x2a2a5a, 
+                transparent: false, 
+                opacity: 1,
+                shininess: 50,
+                side: THREE.BackSide
+            });
+            
+            const pipe = new THREE.Mesh(pipeGeometry, pipeMaterial);
+            pipe.position.y = (pipeHeight / 2) + GAME_OVER_Y_THRESHOLD + ROW_SPACING - 5; 
+            towerGroup.add(pipe);
+        }
+
+        function init() {
+            // Three.js दृश्य सेट करें
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f0f23);
+            
+            towerGroup = new THREE.Group();
+            scene.add(towerGroup);
+
+            // कैमरा सेट करें
+            const canvasWidth = canvas.clientWidth;
+            const canvasHeight = canvas.clientHeight;
+            camera = new THREE.PerspectiveCamera(50, canvasWidth / canvasHeight, 0.1, 1000);
+            camera.position.z = 30; 
+            camera.position.y = -8; 
+            camera.lookAt(0, 0, 0);
+            
+            // रेंडरर सेट करें
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(canvasWidth, canvasHeight);
+            
+            // प्रकाश सेट करें
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(10, 20, 10);
+            scene.add(directionalLight);
+            
+            // दृश्य तत्व जोड़ें
+            createTowerPipe(); 
+
+            // इवेंट लिसनर्स
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('mouseleave', handleMouseUp);
+            canvas.addEventListener('click', handleClick);
+            window.addEventListener('resize', onWindowResize);
+            
+            // एनीमेशन लूप शुरू करें
+            animate();
+        }
+
+        function onWindowResize() {
+            const canvasWidth = canvas.clientWidth;
+            const canvasHeight = canvas.clientHeight;
+            camera.aspect = canvasWidth / canvasHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(canvasWidth, canvasHeight);
+        }
+
+        // --- इनपुट हैंडलर ---
+        function handleMouseDown(event) {
+            if (!isGameActive) return;
+            isDragging = true;
+            previousMouseX = event.clientX;
+            canvas.style.cursor = 'grabbing';
+        }
+
+        function handleMouseMove(event) {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = ((event.clientX - rect.left) / canvas.clientWidth) * 2 - 1;
+
+            if (!isDragging || !isGameActive) return;
+
+            const deltaX = event.clientX - previousMouseX;
+            towerGroup.rotation.y += deltaX * 0.005; 
+            previousMouseX = event.clientX;
+        }
+
+        function handleMouseUp() {
+            isDragging = false;
+            canvas.style.cursor = 'crosshair';
+        }
+        
+        function handleClick(event) {
+            // सिर्फ तभी शूट करें जब ड्रैग नहीं कर रहे हैं
+            if (!isGameActive || isDragging || isShooting) return;
+            shootBubble();
+        }
+
+        // --- बबल लॉजिक ---
+        
+        function getRandomColor() {
+            const colorIndex = Math.floor(Math.random() * colors.length);
+            return colors[colorIndex];
+        }
+
+        function createBubble(y, color, col = -1, isShooter = false) {
+            const geometry = new THREE.SphereGeometry(BUBBLE_RADIUS, 16, 16);
+            const material = new THREE.MeshPhongMaterial({ color, shininess: 100 });
+            const bubble = new THREE.Mesh(geometry, material);
+            
+            bubble.userData = { color: color, col: col };
+            
+            if (isShooter) {
+                bubble.position.set(0, SHOOTER_Y, 0);
+                scene.add(bubble);
+            } else {
+                const angle = (col / TOWER_COLUMNS) * Math.PI * 2;
+                // विषम/सम रो के लिए क्षैतिज ऑफ़सेट (हेक्स ग्रिड)
+                const offsetX = (Math.floor(y / ROW_SPACING) % 2 === 0) ? 0 : (Math.PI / TOWER_COLUMNS); 
+                
+                bubble.position.x = Math.cos(angle + offsetX) * TOWER_RADIUS;
+                bubble.position.y = y;
+                bubble.position.z = Math.sin(angle + offsetX) * TOWER_RADIUS;
+                
+                towerGroup.add(bubble);
+                bubbles.push(bubble);
+            }
+            
+            return bubble;
+        }
+
+        function createInitialBubbles() {
+            const startRows = 6;
+            
+            for (let row = 0; row < startRows; row++) {
+                for (let col = 0; col < TOWER_COLUMNS; col++) {
+                    // बबल्स को ऊपर रखें (सकारात्मक Y मान)
+                    const y = 5 + (row * ROW_SPACING); 
+                    createBubble(y, getRandomColor(), col, false);
+                }
+            }
+        }
+        
+        function setShooter() {
+            if (shooterBubble) scene.remove(shooterBubble);
+
+            const color = nextBubbleColor || getRandomColor();
+            shooterBubble = createBubble(SHOOTER_Y, color, -1, true);
+            
+            nextBubbleColor = getRandomColor();
+            nextBubblePreview.style.backgroundColor = `#${nextBubbleColor.toString(16).padStart(6, '0')}`;
+        }
+        
+        function shootBubble() {
+            if (!isGameActive || isShooting || isDragging) return;
+            
+            isShooting = true;
+            
+            // लक्ष्य बिंदु: टावर के केंद्र की ओर लेकिन माउस X द्वारा ऑफ़सेट
+            const targetX = mouseX * TOWER_RADIUS * 0.8; 
+            const targetY = 5; 
+            const targetZ = -TOWER_RADIUS; // टावर की ओर
+
+            const startPosition = shooterBubble.position.clone();
+            const targetPosition = new THREE.Vector3(targetX, targetY, targetZ);
+            
+            const direction = targetPosition.sub(startPosition).normalize();
+            
+            animateBubble(shooterBubble, direction);
+        }
+        
+        function animateBubble(bubble, direction) {
+            const speed = 0.5;
+            
+            function move() {
+                if (!isShooting) return;
+                
+                bubble.position.add(direction.clone().multiplyScalar(speed));
+                
+                // टक्कर की जाँच
+                const collision = checkCollision(bubble);
+                
+                if (collision || bubble.position.z < -TOWER_RADIUS) {
+                    // प्रोजेक्टाइल को सीन से हटा दें
+                    scene.remove(bubble);
+                    
+                    // टावर के घूमने के आधार पर लैंडिंग की स्थिति निर्धारित करें
+                    const towerRotation = towerGroup.rotation.y;
+                    const globalPosition = bubble.position.clone();
+                    globalPosition.applyAxisAngle(new THREE.Vector3(0, 1, 0), -towerRotation); // स्थानीय समन्वय में बदलें
+                    
+                    const newBubble = placeNewBubble(globalPosition, bubble.userData.color);
+                    
+                    processShotResult(newBubble);
+                    
+                    isShooting = false;
+                    setShooter();
+                    return;
+                }
+                
+                requestAnimationFrame(move);
+            }
+            
+            move();
+        }
+
+        function processShotResult(newBubble) {
+            const matchedBubbles = checkMatches(newBubble);
+            
+            if (matchedBubbles.length >= 3) {
+                // सफल शॉट
+                removeBubbles(matchedBubbles);
+                
+                // कॉम्बो अपडेट करें
+                combo++;
+                maxCombo = Math.max(maxCombo, combo);
+                comboElement.textContent = combo;
+                if (combo > 1) {
+                    comboElement.classList.add('combo-high');
+                }
+                
+                // स्कोर जोड़ें
+                score += matchedBubbles.length * 10 * combo;
+                scoreElement.textContent = score;
+
+                // यदि पर्याप्त स्कोर हो तो लेवल बढ़ाएँ
+                if (score > level * 500) {
+                    levelUp();
+                }
+
+                penaltyShotsRemaining = MAX_PENALTY_SHOTS; // पेनल्टी रीसेट
+            } else {
+                // असफल शॉट
+                combo = 1;
+                comboElement.textContent = combo;
+                comboElement.classList.remove('combo-high');
+
+                penaltyShotsRemaining = Math.max(0, penaltyShotsRemaining - 1);
+                
+                if (penaltyShotsRemaining <= 0) {
+                    addNewRow(); // पेनल्टी: नई रो जोड़ें
+                }
+            }
+            penaltyShotsElement.textContent = penaltyShotsRemaining;
+            
+            // हर शॉट के बाद गेम ओवर की जाँच करें
+            checkGameOver();
+        }
+
+        function levelUp() {
+            level++;
+            levelElement.textContent = level;
+            // भविष्य में नए रंग या बाधाएं जोड़ें
+        }
+        
+        function addNewRow() {
+            // 1. सभी बबल्स को नीचे ले जाएँ
+            bubbles.forEach(bubble => {
+                bubble.position.y -= ROW_SPACING;
+            });
+
+            // 2. नई रो की Y स्थिति निर्धारित करें
+            let highestY = GAME_OVER_Y_THRESHOLD; 
+            if (bubbles.length > 0) {
+                highestY = bubbles.reduce((max, bubble) => Math.max(max, bubble.position.y), GAME_OVER_Y_THRESHOLD);
+            }
+            
+            const newRowY = highestY + ROW_SPACING;
+
+            // 3. नई रो बनाएँ
+            for (let col = 0; col < TOWER_COLUMNS; col++) {
+                createBubble(newRowY, getRandomColor(), col, false); 
+            }
+            
+            // पेनल्टी शॉट्स रीसेट करें
+            penaltyShotsRemaining = MAX_PENALTY_SHOTS;
+            penaltyShotsElement.textContent = penaltyShotsRemaining;
+        }
+
+        // --- ग्रिड और टक्कर लॉजिक ---
+
+        function checkCollision(flyingBubble) {
+            // केवल टावर के करीब होने पर ही जाँच करें
+            if (flyingBubble.position.z > TOWER_RADIUS * 0.5) return false;
+
+            for (const staticBubble of bubbles) {
+                const staticBubbleGlobalPos = staticBubble.getWorldPosition(new THREE.Vector3());
+                const distance = flyingBubble.position.distanceTo(staticBubbleGlobalPos);
+                
+                if (distance < BUBBLE_RADIUS * 2) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function placeNewBubble(globalPosition, color) {
+            // 1. संदर्भ Y स्तर निर्धारित करें
+            let lowestY = GAME_OVER_Y_THRESHOLD; 
+            if (bubbles.length > 0) {
+                 lowestY = bubbles.reduce((min, b) => Math.min(min, b.position.y), 100);
+            }
+            
+            // 2. निकटतम रो (Y-axis) ज्ञात करें
+            let closestRow = Math.round((globalPosition.y - lowestY) / ROW_SPACING);
+            const snappedY = (closestRow * ROW_SPACING) + lowestY;
+
+            // 3. निकटतम कॉलम (Angle/X-Z प्लेन) ज्ञात करें
+            const angle = Math.atan2(globalPosition.z, globalPosition.x);
+            let normalizedAngle = angle < 0 ? angle + Math.PI * 2 : angle;
+            
+            // विषम/सम रो के लिए क्षैतिज ऑफ़सेट लागू करें
+            const offsetX = (closestRow % 2 === 0) ? 0 : (Math.PI / TOWER_COLUMNS); 
+            
+            const angleStep = Math.PI * 2 / TOWER_COLUMNS;
+            let closestCol = Math.round((normalizedAngle - offsetX) / angleStep) % TOWER_COLUMNS;
+            if (closestCol < 0) closestCol += TOWER_COLUMNS;
+            
+            const snappedAngle = closestCol * angleStep + offsetX;
+
+            // 4. स्नैप्ड X और Z की गणना करें
+            const snappedX = Math.cos(snappedAngle) * TOWER_RADIUS;
+            const snappedZ = Math.sin(snappedAngle) * TOWER_RADIUS;
+
+            // 5. अंतिम स्टैटिक बबल बनाएँ और जोड़ें
+            const newBubble = createBubble(snappedY, color, closestCol);
+            newBubble.position.set(snappedX, snappedY, snappedZ);
+
+            towerGroup.add(newBubble);
+            bubbles.push(newBubble);
+            
+            return newBubble;
+        }
+        
+        function checkMatches(newBubble) {
+            const matched = [newBubble];
+            const color = newBubble.userData.color;
+            
+            // नेबर (पड़ोसी) खोजने के लिए पुनरावर्ती फ़ंक्शन (Recursive Function)
+            function findNeighbors(bubble) {
+                for (const otherBubble of bubbles) {
+                    if (matched.includes(otherBubble)) continue;
+                    
+                    const distance = bubble.position.distanceTo(otherBubble.position);
+                    
+                    if (distance < BUBBLE_RADIUS * 2.1 && otherBubble.userData.color === color) {
+                        matched.push(otherBubble);
+                        findNeighbors(otherBubble);
+                    }
+                }
+            }
+
+            findNeighbors(newBubble);
+            return matched;
+        }
+
+        function removeBubbles(bubblesToRemove) {
+            bubblesToRemove.forEach(b => {
+                towerGroup.remove(b);
+                const index = bubbles.indexOf(b);
+                if (index > -1) {
+                    bubbles.splice(index, 1);
+                }
+                createExplosion(b.getWorldPosition(new THREE.Vector3()), b.userData.color);
+            });
+        }
+        
+        // --- गेम स्टेट मैनेजमेंट ---
+
+        function checkGameOver() {
+            if (!isGameActive) return; 
+
+            for (const bubble of bubbles) {
+                if (bubble.position.y < GAME_OVER_Y_THRESHOLD) {
+                    endGame();
+                    return;
+                }
+            }
+        }
+        
+        function startGame() {
+            // UI ट्रांजिशन: स्टार्ट स्क्रीन को छुपाएं
+            startScreen.style.display = 'none';
+            gameOverScreen.classList.add('hidden'); 
+
+            isGameActive = true; // गेम को एक्टिव करें
+            
+            // पुराने स्टेट की सफ़ाई
+            bubbles.forEach(bubble => towerGroup.remove(bubble));
+            bubbles = [];
+            if (shooterBubble) scene.remove(shooterBubble);
+            
+            // स्टेट रीसेट
+            score = 0;
+            level = 1;
+            combo = 1;
+            maxCombo = 1;
+            penaltyShotsRemaining = MAX_PENALTY_SHOTS;
+            
+            scoreElement.textContent = score;
+            levelElement.textContent = level;
+            comboElement.textContent = combo;
+            penaltyShotsElement.textContent = penaltyShotsRemaining;
+            comboElement.classList.remove('combo-high');
+            
+            // गेम एलिमेंट्स बनाएँ
+            createInitialBubbles();
+            setShooter();
+        }
+        
+        function endGame() {
+            isGameActive = false;
+            finalScoreElement.textContent = score;
+            maxComboElement.textContent = maxCombo;
+            // गेम ओवर स्क्रीन दिखाएँ
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        function restartGame() {
+            gameOverScreen.style.display = 'none';
+            startGame();
+        }
+
+        // --- एनीमेशन और प्रभाव ---
+
+        function createExplosion(position, color) {
+            // (सरलीकृत कण प्रभाव लॉजिक)
+            const particleCount = 15;
+            for (let i = 0; i < particleCount; i++) {
+                const geometry = new THREE.SphereGeometry(0.15, 8, 8);
+                const material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 });
+                const particle = new THREE.Mesh(geometry, material);
+                
+                particle.position.copy(position);
+                
+                const direction = new THREE.Vector3(
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ).normalize();
+                
+                particle.userData = { direction, speed: Math.random() * 0.1 + 0.05, life: 1.0 };
+                scene.add(particle);
+
+                // कण को धीरे-धीरे सीन से हटा दें
+                setTimeout(() => {
+                    scene.remove(particle);
+                }, 1000);
+                
+                // कण की एनीमेशन
+                function animateParticle() {
+                    if (particle.userData.life <= 0) return;
+                    
+                    particle.position.add(particle.userData.direction.clone().multiplyScalar(particle.userData.speed));
+                    particle.userData.life -= 0.02;
+                    particle.material.opacity = particle.userData.life;
+                    
+                    if (particle.userData.life > 0) {
+                        requestAnimationFrame(animateParticle);
+                    } else {
+                        scene.remove(particle);
+                    }
+                }
+                
+                animateParticle();
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // सिर्फ रेंडर करें, कोई ऑटो रोटेशन नहीं
+            renderer.render(scene, camera);
+        }
+        
+        // इवेंट लिसनर्स अटैच करें
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', restartGame);
+        
+        // गेम को लोड पर शुरू करें (केवल 3D सीन के साथ, UI को डिफ़ॉल्ट पर छोड़ दें)
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Flow Free — Corrected & Improved</title>
+  <style>
+    :root{--bg1:#6a11cb;--bg2:#2575fc;--card:#fff;--primary:#3498db;--accent:#6a11cb;--muted:#666}
+    *{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI, Roboto, Arial}
+    html,body{height:100%}
+    body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--bg1),var(--bg2));padding:20px;color:#222}
+    .container{width:100%;max-width:540px;background:rgba(255,255,255,0.96);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,0.2);overflow:hidden}
+    .header{background:linear-gradient(135deg,var(--primary),#2c3e50);color:#fff;padding:18px;text-align:center}
+    .header h1{font-size:20px}
+    .game-container{padding:16px}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .btn{padding:10px 14px;border-radius:9px;border:none;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-secondary{background:var(--accent);color:#fff}
+    .btn-ghost{background:#fff;border:1px solid #eee}
+    .game-info{display:flex;justify-content:space-between;align-items:center;background:#fbfbff;padding:10px;border-radius:10px;margin-bottom:12px}
+    .board{background:#ecf0f4;border-radius:12px;padding:12px;position:relative}
+    /* grid - responsive square */
+    .grid-wrap{position:relative;width:100%;padding-top:100%;}
+    .grid{position:absolute;inset:12px;border-radius:10px;display:grid;gap:6px;width:calc(100% - 24px);height:calc(100% - 24px);background:linear-gradient(180deg,#fff,#f4f7ff);overflow:hidden}
+    .cell{background:rgba(255,255,255,0.8);border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative;touch-action:none}
+    .dot{width:66%;height:66%;border-radius:50%;box-shadow:0 8px 20px rgba(0,0,0,0.12)}
+    canvas.path-canvas{position:absolute;left:12px;top:12px;right:12px;bottom:12px;pointer-events:none;border-radius:10px}
+    .footer{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:12px}
+    .status{background:#fff;padding:10px;border-radius:10px;flex:1;text-align:center;font-weight:700}
+    .modal-back{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center}
+    .modal{background:#fff;padding:18px;border-radius:12px;width:92%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+    @media(max-width:420px){.header h1{font-size:18px}.controls{gap:6px}.btn{padding:8px}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header"><h1>Flow Free — Improved Logic</h1></div>
+    <div class="game-container">
+      <div class="controls">
+        <button id="newBtn" class="btn btn-primary">🆕 New</button>
+        <button id="undoBtn" class="btn btn-ghost">↩️ Undo</button>
+        <button id="resetBtn" class="btn btn-ghost">🔄 Reset</button>
+        <button id="hintBtn" class="btn btn-secondary">💡 Hint</button>
+        <button id="solveBtn" class="btn btn-secondary">🤖 Solve</button>
+        <select id="size" style="margin-left:auto;padding:8px;border-radius:8px;border:1px solid #eee">
+          <option value="5">5 × 5</option>
+          <option value="6">6 × 6</option>
+          <option value="7">7 × 7</option>
+        </select>
+      </div>
+
+      <div class="game-info">
+        <div>Grid: <span id="gridLabel">5 × 5</span></div>
+        <div>Moves: <span id="moves">0</span></div>
+      </div>
+
+      <div class="board">
+        <div class="grid-wrap">
+          <div id="grid" class="grid" role="application" aria-label="flow grid"></div>
+          <canvas id="canvas" class="path-canvas"></canvas>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="status" id="statusText">Playing...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalBackdrop" class="modal-back"><div class="modal"><h3>How to play</h3><p>Connect each pair of same-colored dots. Paths cannot cross. Fill the entire grid to win. Use Hint to reveal one completed pair. Auto-Solve animates the full solution.</p><div style="text-align:right;margin-top:8px;"><button id="closeModal" class="btn btn-primary">Close</button></div></div></div>
+
+  <script>
+    // Improved game logic: deterministic occupancy, proper path backtracking, solver (DFS with ordering), animated solve/hint
+    const gridEl = document.getElementById('grid');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const sizeSel = document.getElementById('size');
+    const gridLabel = document.getElementById('gridLabel');
+    const movesEl = document.getElementById('moves');
+    const statusText = document.getElementById('statusText');
+    const newBtn = document.getElementById('newBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const hintBtn = document.getElementById('hintBtn');
+    const solveBtn = document.getElementById('solveBtn');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const closeModal = document.getElementById('closeModal');
+
+    const COLORS = ['#e74c3c','#3498db','#f1c40f','#2ecc71','#9b59b6','#e67e22','#1abc9c','#d35400'];
+
+    let N = parseInt(sizeSel.value,10);
+    let cells = []; // {dot:color|null, path:boolean, ownerColor|null}
+    let pairs = []; // [{color,a:{r,c},b:{r,c}}]
+    let paths = {}; // color -> [{r,c}]
+    let history = []; // stack of moves for undo: {color,cell}
+    let active = null; // {color, cells: [{r,c}]}
+    let solving=false;
+
+    function resizeCanvas(){
+      const rect = gridEl.getBoundingClientRect();
+      canvas.width = rect.width; canvas.height = rect.height; // canvas uses grid coords
+      drawAllPaths();
+    }
+
+    window.addEventListener('resize', ()=>{ setTimeout(resizeCanvas,50)});
+
+    function init(){
+      N = parseInt(sizeSel.value,10);
+      gridLabel.textContent = `${N} × ${N}`;
+      cells = Array.from({length:N}, ()=>Array.from({length:N}, ()=>({dot:null, owner:null})));
+      pairs = [];
+      paths = {};
+      history = [];
+      active = null;
+      solving=false;
+      statusText.textContent='Playing...';
+      movesEl.textContent='0';
+      generatePairs();
+      renderGrid();
+      setTimeout(resizeCanvas,100);
+    }
+
+    function generatePairs(){
+      const numPairs = Math.max(3, Math.floor(N * 0.9));
+      const positions = [];
+      for(let r=0;r<N;r++) for(let c=0;c<N;c++) positions.push({r,c});
+      shuffle(positions);
+      for(let i=0;i<numPairs && positions.length>1;i++){
+        const p1 = positions.pop(); const p2 = positions.pop();
+        const color = COLORS[i % COLORS.length];
+        cells[p1.r][p1.c].dot = color; cells[p2.r][p2.c].dot = color;
+        pairs.push({color,a:p1,b:p2}); paths[color]=[];
+      }
+    }
+
+    function renderGrid(){
+      gridEl.innerHTML='';
+      gridEl.style.gridTemplateColumns = `repeat(${N},1fr)`;
+      gridEl.style.gridTemplateRows = `repeat(${N},1fr)`;
+      for(let r=0;r<N;r++){
+        for(let c=0;c<N;c++){
+          const cell = document.createElement('div');
+          cell.className='cell';
+          cell.dataset.r=r; cell.dataset.c=c;
+          cell.addEventListener('pointerdown', cellPointerDown);
+          cell.addEventListener('pointerenter', cellPointerEnter);
+          cell.addEventListener('pointerup', cellPointerUp);
+          cell.addEventListener('pointercancel', cellPointerUp);
+          if(cells[r][c].dot){ const dot = document.createElement('div'); dot.className='dot'; dot.style.background=cells[r][c].dot; cell.appendChild(dot); }
+          gridEl.appendChild(cell);
+        }
+      }
+      drawAllPaths();
+    }
+
+    function cellToPos(r,c){
+      const el = gridEl.querySelector(`.cell[data-r='${r}'][data-c='${c}']`);
+      return el.getBoundingClientRect();
+    }
+
+    function drawAllPaths(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      // compute cell center positions
+      const rect = gridEl.getBoundingClientRect();
+      if(rect.width===0||rect.height===0) return;
+      const cellW = rect.width / N; const cellH = rect.height / N;
+      function center(pt){ return {x: (pt.c+0.5)*cellW, y:(pt.r+0.5)*cellH}; }
+      for(const color in paths){
+        const pts = paths[color]; if(!pts || pts.length===0) continue;
+        ctx.beginPath(); ctx.lineWidth = Math.min(cellW,cellH)*0.6; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 8;
+        for(let i=0;i<pts.length;i++){ const p=center(pts[i]); if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); }
+        ctx.stroke(); ctx.shadowBlur=0;
+      }
+    }
+
+    // Input handling with proper adjacency and preventing crossing
+    let pointerActive=false;
+    function cellPointerDown(e){ if(solving) return; const r=+this.dataset.r,c=+this.dataset.c; pointerActive=true; startTouch(r,c); }
+    function cellPointerEnter(e){ if(solving) return; if(!pointerActive) return; const r=+this.dataset.r,c=+this.dataset.c; moveTouch(r,c); }
+    function cellPointerUp(e){ if(solving) return; pointerActive=false; endTouch(); }
+
+    function startTouch(r,c){
+      const cell = cells[r][c];
+      if(cell.dot){ // start or reset path for this color
+        const color = cell.dot;
+        // if existing path for this color exists, allow continuing from its endpoints or restart
+        // we'll start fresh from this dot: clear existing intermediate cells owned by this color
+        clearPath(color);
+        active = {color, cells:[{r,c}]};
+        cells[r][c].owner = color; history.push({type:'start',color,cell:{r,c}});
+        updateMoves(0);
+        drawAllPaths();
+      } else if(cell.owner){ // tapping a colored path cell starts editing that path if it's last cell
+        // find which color and if it's an endpoint, allow backtrack
+        // for simplicity, don't start from mid-path
+        beep(220);
+      } else {
+        // empty cell: nothing
+        beep(220);
+      }
+    }
+
+    function moveTouch(r,c){
+      if(!active) return;
+      const last = active.cells[active.cells.length-1];
+      if(Math.abs(last.r - r) + Math.abs(last.c - c) !== 1) return; // only 4-neighbor
+      // prevent crossing other colors
+      if(cells[r][c].owner && cells[r][c].owner !== active.color){ beep(160); return; }
+      // backtrack: if next cell is previous one, allow remove last
+      if(active.cells.length>1){ const prev = active.cells[active.cells.length-2]; if(prev.r===r && prev.c===c){ // pop last
+          const rem = active.cells.pop(); cells[rem.r][rem.c].owner = null; history.push({type:'pop',color:active.color,cell:rem}); paths[active.color]=active.cells.slice(); drawAllPaths(); return; } }
+      // avoid loops inside same color (don't step into earlier index other than backtrack)
+      if(active.cells.some(p=>p.r===r && p.c===c)) { beep(160); return; }
+      // add
+      active.cells.push({r,c}); cells[r][c].owner = active.color; history.push({type:'add',color:active.color,cell:{r,c}}); paths[active.color]=active.cells.slice(); drawAllPaths();
+      // if reached other dot of same color -> finish
+      if(cells[r][c].dot === active.color){ // ensure it's the opposite endpoint (not same cell)
+        finishActive();
+      }
+    }
+
+    function endTouch(){ if(!active) return; // keep partial paths as they are
+      // allow partial path — leave it; but we set active to null
+      active=null; drawAllPaths(); }
+
+    function finishActive(){ if(!active) return; // commit path
+      const color = active.color; paths[color] = active.cells.slice(); active=null; // check win
+      updateMoves(1);
+      drawAllPaths(); checkWinCondition(); }
+
+    function updateMoves(add=1){ if(add) movesEl.textContent = String(Number(movesEl.textContent) + add); }
+
+    function clearPath(color){ // remove ownership from intermediate cells but keep dots
+      const arr = paths[color] || [];
+      for(const p of arr){ if(!cells[p.r][p.c].dot) cells[p.r][p.c].owner = null; }
+      paths[color]=[]; history.push({type:'clear',color}); drawAllPaths(); }
+
+    function undo(){ if(history.length===0 || solving) return; const h = history.pop(); if(h.type==='add'){ cells[h.cell.r][h.cell.c].owner = null; // also remove from paths
+        const arr = paths[h.color]||[]; paths[h.color] = arr.filter(p=>!(p.r===h.cell.r && p.c===h.cell.c)); }
+      else if(h.type==='pop'){ // re-add
+        cells[h.cell.r][h.cell.c].owner = h.color; paths[h.color] = paths[h.color]||[]; paths[h.color].push(h.cell);
+      } else if(h.type==='clear'){ // can't fully restore without full history; simplest approach: regenerate from scratch
+        // for reliability, just re-init board preserving dots
+        init(); return; }
+      drawAllPaths(); }
+
+    // win check: all cells owned and each pair connected
+    function checkWinCondition(){
+      // all cells must have owner
+      for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!cells[r][c].owner && !cells[r][c].dot) return false;
+      // each pair endpoints must be connected in paths
+      for(const p of pairs){ const pts = paths[p.color]||[]; const hasA = pts.some(q=>q.r===p.a.r && q.c===p.a.c); const hasB = pts.some(q=>q.r===p.b.r && q.c===p.b.c); if(!hasA||!hasB) return false; }
+      // if reached here, win
+      statusText.textContent='Completed!'; setTimeout(()=>celebrate(),100); return true;
+    }
+
+    function celebrate(){ // simple confetti using DOM
+      statusText.style.color='#2ecc71'; // small visual
+    }
+
+    // Solver: backtracking routing for all pairs; returns map color->path or null
+    function solveAll(){
+      // occupancy null or color
+      const occ = Array.from({length:N}, ()=>Array(N).fill(null));
+      for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(cells[r][c].dot) occ[r][c] = cells[r][c].dot;
+      // order pairs by manhattan distance descending to attempt harder first
+      const list = pairs.slice().sort((a,b)=> Math.abs(a.a.r-a.b.r)+Math.abs(a.a.c-a.b.c) - (Math.abs(b.a.r-b.b.r)+Math.abs(b.a.c-b.b.c)));
+      const result = {};
+
+      function neighbors(r,c){ return [[r+1,c],[r-1,c],[r,c+1],[r,c-1]].filter(([rr,cc])=>rr>=0&&cc>=0&&rr<N&&cc<N); }
+
+      function findPathDFS(start,goal,occLocal){
+        const visited = Array.from({length:N}, ()=>Array(N).fill(false));
+        let found=null;
+        const path=[];
+        function dfs(r,c){ if(found) return; if(r===goal.r && c===goal.c){ path.push({r,c}); found = path.slice(); return; }
+          visited[r][c]=true; path.push({r,c});
+          // heuristic: sort neighbors by distance to goal
+          const nbrs = neighbors(r,c).map(([rr,cc])=>({rr,cc,dist:Math.abs(rr-goal.r)+Math.abs(cc-goal.c)})).sort((a,b)=>a.dist-b.dist);
+          for(const n of nbrs){ if(found) break; if(visited[n.rr][n.cc]) continue; const val=occLocal[n.rr][n.cc]; if(val && !(n.rr===goal.r && n.cc===goal.c)) continue; dfs(n.rr,n.cc); }
+          if(found) return; path.pop(); };
+        dfs(start.r,start.c); return found;
+      }
+
+      function backtrack(i,occLocal){ if(i===list.length) return true; const p=list[i]; const path = findPathDFS(p.a,p.b,occLocal); if(!path) return false; // try to lock path
+        // mark
+        const occ2 = occLocal.map(r=>r.slice());
+        for(const cell of path) occ2[cell.r][cell.c]=p.color;
+        result[p.color]=path;
+        if(backtrack(i+1,occ2)) return true;
+        delete result[p.color]; return false; }
+
+      const ok = backtrack(0, occ.map(r=>r.slice())); return ok?result:null;
+    }
+
+    // Animate solver
+    async function animateSolution(sol){ solving=true; disableControls(true); // clear current paths
+      for(const color in paths){ paths[color]=[]; }
+      drawAllPaths();
+      const entries = Object.keys(sol).map(c=>({color:c,path:sol[c]}));
+      // animate each path sequentially
+      for(const e of entries){ for(let i=0;i<e.path.length;i++){ const p=e.path[i]; cells[p.r][p.c].owner = e.color; paths[e.color] = paths[e.color]||[]; paths[e.color].push({r:p.r,c:p.c}); drawAllPaths(); await sleep(80); } }
+      solving=false; disableControls(false); checkWinCondition(); }
+
+    function sleep(ms){ return new Promise(res=>setTimeout(res,ms)); }
+
+    function hint(){ if(solving) return; const sol = solveAll(); if(!sol){ alert('No solution available'); return; } // pick a color that is incomplete
+      const incomplete = Object.keys(sol).find(c=>!(paths[c] && paths[c].length>0)); if(!incomplete){ // all have some path -> pick shortest remaining
+        alert('No hint available'); return; }
+      // animate just this color
+      (async ()=>{ solving=true; disableControls(true); const path = sol[incomplete]; for(let i=0;i<path.length;i++){ const p=path[i]; cells[p.r][p.c].owner = incomplete; paths[incomplete]=paths[incomplete]||[]; paths[incomplete].push({r:p.r,c:p.c}); drawAllPaths(); await sleep(90);} solving=false; disableControls(false); checkWinCondition(); })(); }
+
+    function autoSolve(){ if(solving) return; const sol = solveAll(); if(!sol){ alert('No solution found'); return; } animateSolution(sol); }
+
+    function disableControls(v){ [newBtn,undoBtn,resetBtn,hintBtn,solveBtn,sizeSel].forEach(b=>b.disabled=v); }
+
+    function reset(){ if(solving) return; // clear owners but keep dots
+      for(let r=0;r<N;r++) for(let c=0;c<N;c++){ if(!cells[r][c].dot) cells[r][c].owner=null; }
+      for(const k in paths) paths[k]=[]; history=[]; active=null; drawAllPaths(); movesEl.textContent='0'; statusText.textContent='Playing...'; }
+
+    // UI wiring
+    newBtn.addEventListener('click', init);
+    sizeSel.addEventListener('change', init);
+    resetBtn.addEventListener('click', reset);
+    undoBtn.addEventListener('click', undo);
+    solveBtn.addEventListener('click', autoSolve);
+    hintBtn.addEventListener('click', hint);
+    closeModal.addEventListener('click', ()=>modalBackdrop.style.display='none');
+
+    // small helper beep
+    function beep(freq=660){ try{ const aCtx = window._aCtx || (window._aCtx = new (window.AudioContext || window.webkitAudioContext)()); const o = aCtx.createOscillator(); const g = aCtx.createGain(); o.type='sine'; o.frequency.value=freq; g.gain.value=0.02; o.connect(g); g.connect(aCtx.destination); o.start(); o.stop(aCtx.currentTime+0.04);}catch(e){} }
+
+    function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+
+    // initialize pairs array for solver's use
+    function regenPairsList(){ pairs = []; for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(cells[r][c].dot){} // rebuild from cells
+      // scan dots by color
+      const map = {};
+      for(let r=0;r<N;r++) for(let c=0;c<N;c++){ const d=cells[r][c].dot; if(d){ if(!map[d]) map[d]=[]; map[d].push({r,c}); }}
+      for(const color in map){ const arr=map[color]; if(arr.length===2) pairs.push({color,a:arr[0],b:arr[1]}); }
+    }
+
+    // After generating pairs (generatePairs) we call regenPairsList()
+    // Modify generatePairs to call regenPairsList at end
+    // Let's override generatePairs to also set pairs list correctly
+    // (we already push into pairs earlier) ensure regen
+
+    // small init fix: ensure pairs variable is set to created pairs
+    const originalGenerate = generatePairs;
+    generatePairs = function(){ originalGenerate(); regenPairsList(); };
+
+    // start
+    init();
+  </script>
+</body>
+</html>

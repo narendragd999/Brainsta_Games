@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Circuit Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 100vh;
+            justify-content: center;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 12px 15px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .level {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .moves {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .cell:active {
+            transform: scale(0.95);
+        }
+
+        .cell.powered {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 0 20px rgba(245, 87, 108, 0.6);
+        }
+
+        .cell.source {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
+            font-size: 24px;
+        }
+
+        .cell.target {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            box-shadow: 0 0 20px rgba(56, 249, 215, 0.6);
+            font-size: 24px;
+        }
+
+        .cell.target.powered {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .wire-box {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .wire-line {
+            position: absolute;
+            background: rgba(50, 50, 50, 0.8);
+            border-radius: 2px;
+        }
+
+        .wire-line.h {
+            width: 100%;
+            height: 5px;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+        }
+
+        .wire-line.v {
+            height: 100%;
+            width: 5px;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+        }
+
+        .wire-line.tl {
+            width: 50%;
+            height: 5px;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .wire-line.tr {
+            width: 50%;
+            height: 5px;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .wire-line.tt {
+            height: 50%;
+            width: 5px;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .wire-line.tb {
+            height: 50%;
+            width: 5px;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .cell.powered .wire-line {
+            background: #ffffff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.25);
+            color: #fff;
+            backdrop-filter: blur(10px);
+        }
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .message {
+            text-align: center;
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            font-weight: 500;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .modal-content ul {
+            margin: 10px 0 15px 20px;
+            line-height: 1.8;
+        }
+
+        .close-modal {
+            margin-top: 15px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="level">Level <span id="levelNum">1</span></div>
+            <div class="moves">Moves: <span id="moveCount">0</span></div>
+            <button onclick="showInstructions()" style="padding: 8px 12px; font-size: 13px;">❓</button>
+        </div>
+
+        <div class="grid" id="grid"></div>
+
+        <div class="message" id="message">Connect the source to all targets!</div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="checkSolution()">Check Solution</button>
+            <button class="btn-secondary" onclick="getHint()">Hint</button>
+            <button class="btn-secondary" onclick="autoSolve()">Auto-Solve</button>
+            <button class="btn-secondary" onclick="newPuzzle()">New Puzzle</button>
+        </div>
+    </div>
+
+    <div class="modal" id="instructionsModal">
+        <div class="modal-content">
+            <h2>🔌 How to Play</h2>
+            <p><strong>Objective:</strong> Connect ⚡ to all 💡 by rotating wires.</p>
+            <p><strong>Controls:</strong> Tap cells to rotate wires 90°</p>
+            <p><strong>Wire connections:</strong> [Left, Top, Right, Bottom]</p>
+            <ul>
+                <li>Straight: 2 opposite sides</li>
+                <li>Corner: 2 adjacent sides</li>
+                <li>T-junction: 3 sides</li>
+            </ul>
+            <button class="btn-primary close-modal" onclick="hideInstructions()">Got It!</button>
+        </div>
+    </div>
+
+    <script>
+        const SIZE = 5;
+        let grid, solution, level = 1, moves = 0, source, targets;
+        
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function sound(f, d) {
+            try {
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.frequency.value = f; g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d);
+                o.start(); o.stop(audioCtx.currentTime + d);
+            } catch(e) {}
+        }
+
+        // Connections: [left, top, right, bottom] where 1 = open, 0 = closed
+        const CONN = {
+            h: [1,0,1,0], v: [0,1,0,1],
+            c0: [1,1,0,0], c1: [0,1,1,0], c2: [0,0,1,1], c3: [1,0,0,1],
+            t0: [1,1,1,0], t1: [0,1,1,1], t2: [1,0,1,1], t3: [1,1,0,1]
+        };
+
+        function init() {
+            grid = []; solution = [];
+            for (let i = 0; i < SIZE; i++) {
+                grid[i] = []; solution[i] = [];
+                for (let j = 0; j < SIZE; j++) {
+                    grid[i][j] = { t: 'e', c: 'h', p: false };
+                    solution[i][j] = { t: 'e', c: 'h' };
+                }
+            }
+            
+            source = { x: 0, y: 2 };
+            grid[2][0].t = 's'; solution[2][0].t = 's';
+            
+            targets = [{ x: 4, y: 2 }, { x: 2, y: 0 }];
+            if (level > 2) targets.push({ x: 2, y: 4 });
+            
+            targets.forEach(t => {
+                grid[t.y][t.x].t = 'g'; 
+                solution[t.y][t.x].t = 'g';
+            });
+            
+            // Build solution manually - SIMPLE WORKING PATH
+            // Row 2: 0(source) -> 1(h) -> 2(c1 or t) -> 3(h) -> 4(target)
+            solution[2][1].c = 'h'; // horizontal wire at (1,2)
+            
+            if (targets.length === 2) {
+                // Just 2 targets - use corner at (2,2) going up and right
+                solution[2][2].c = 'c1'; // corner: top + right
+                solution[2][3].c = 'h'; // horizontal to target
+                
+                // Vertical path up from (2,2) to (2,0)
+                solution[1][2].c = 'v';
+            } else {
+                // 3 targets - use T-junction at (2,2)
+                solution[2][2].c = 't2'; // T: left + right + bottom
+                solution[2][3].c = 'h';
+                solution[1][2].c = 'v'; // up
+                solution[3][2].c = 'v'; // down
+            }
+            
+            // Randomize puzzle
+            const types = ['h', 'v', 'c0', 'c1', 'c2', 'c3'];
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE; j++) {
+                    if (grid[i][j].t === 'e') {
+                        grid[i][j].c = types[Math.floor(Math.random() * types.length)];
+                    }
+                }
+            }
+            
+            moves = 0;
+            draw();
+        }
+
+        function draw() {
+            const el = document.getElementById('grid');
+            el.innerHTML = '';
+            
+            power();
+            
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE; j++) {
+                    const d = document.createElement('div');
+                    d.className = 'cell';
+                    
+                    if (grid[i][j].t === 's') {
+                        d.classList.add('source', 'powered');
+                        d.textContent = '⚡';
+                    } else if (grid[i][j].t === 'g') {
+                        d.classList.add('target');
+                        if (grid[i][j].p) d.classList.add('powered');
+                        d.textContent = '💡';
+                    } else {
+                        if (grid[i][j].p) d.classList.add('powered');
+                        d.appendChild(wire(grid[i][j].c));
+                    }
+                    
+                    d.onclick = () => rotate(j, i);
+                    el.appendChild(d);
+                }
+            }
+            
+            document.getElementById('levelNum').textContent = level;
+            document.getElementById('moveCount').textContent = moves;
+        }
+
+        function wire(c) {
+            const box = document.createElement('div');
+            box.className = 'wire-box';
+            const conn = CONN[c];
+            
+            if (conn[0] && conn[2]) {
+                const l = document.createElement('div');
+                l.className = 'wire-line h';
+                box.appendChild(l);
+            } else {
+                if (conn[0]) {
+                    const l = document.createElement('div');
+                    l.className = 'wire-line tl';
+                    box.appendChild(l);
+                }
+                if (conn[2]) {
+                    const l = document.createElement('div');
+                    l.className = 'wire-line tr';
+                    box.appendChild(l);
+                }
+            }
+            
+            if (conn[1] && conn[3]) {
+                const l = document.createElement('div');
+                l.className = 'wire-line v';
+                box.appendChild(l);
+            } else {
+                if (conn[1]) {
+                    const l = document.createElement('div');
+                    l.className = 'wire-line tt';
+                    box.appendChild(l);
+                }
+                if (conn[3]) {
+                    const l = document.createElement('div');
+                    l.className = 'wire-line tb';
+                    box.appendChild(l);
+                }
+            }
+            
+            return box;
+        }
+
+        function rotate(x, y) {
+            if (grid[y][x].t !== 'e') return;
+            
+            const seq = {
+                h: 'v', v: 'h',
+                c0: 'c1', c1: 'c2', c2: 'c3', c3: 'c0',
+                t0: 't1', t1: 't2', t2: 't3', t3: 't0'
+            };
+            
+            grid[y][x].c = seq[grid[y][x].c];
+            moves++;
+            sound(400, 0.1);
+            draw();
+            
+            if (win()) {
+                setTimeout(() => {
+                    msg('🎉 Level Complete!');
+                    sound(800, 0.3);
+                    setTimeout(() => { level++; init(); }, 1500);
+                }, 100);
+            }
+        }
+
+        function power() {
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE; j++) {
+                    grid[i][j].p = false;
+                }
+            }
+            
+            const q = [{x: source.x, y: source.y}];
+            const v = new Set(['0,2']);
+            grid[2][0].p = true;
+            
+            while (q.length) {
+                const {x, y} = q.shift();
+                const cell = grid[y][x];
+                
+                let conn = cell.t === 's' || cell.t === 'g' ? [1,1,1,1] : CONN[cell.c];
+                
+                const dirs = [
+                    {dx:-1, dy:0, i:0, j:2},
+                    {dx:0, dy:-1, i:1, j:3},
+                    {dx:1, dy:0, i:2, j:0},
+                    {dx:0, dy:1, i:3, j:1}
+                ];
+                
+                for (const d of dirs) {
+                    if (!conn[d.i]) continue;
+                    
+                    const nx = x + d.dx, ny = y + d.dy;
+                    if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) continue;
+                    
+                    const k = `${nx},${ny}`;
+                    if (v.has(k)) continue;
+                    
+                    const next = grid[ny][nx];
+                    let nconn = next.t === 's' || next.t === 'g' ? [1,1,1,1] : CONN[next.c];
+                    
+                    if (nconn[d.j]) {
+                        grid[ny][nx].p = true;
+                        v.add(k);
+                        q.push({x: nx, y: ny});
+                    }
+                }
+            }
+        }
+
+        function win() {
+            return targets.every(t => grid[t.y][t.x].p);
+        }
+
+        function checkSolution() {
+            sound(300, 0.1);
+            if (win()) {
+                msg('✅ Perfect! All targets powered!');
+                sound(600, 0.3);
+            } else {
+                msg('❌ Not all targets are connected yet');
+                sound(200, 0.2);
+            }
+        }
+
+        function getHint() {
+            sound(500, 0.1);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE; j++) {
+                    if (grid[i][j].t === 'e' && grid[i][j].c !== solution[i][j].c) {
+                        document.querySelectorAll('.cell')[i * SIZE + j].style.background = 'rgba(255,255,0,0.5)';
+                        setTimeout(draw, 1000);
+                        msg('💡 Highlighted cell needs adjustment');
+                        return;
+                    }
+                }
+            }
+            msg('✨ All correct!');
+        }
+
+        function autoSolve() {
+            sound(700, 0.2);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE; j++) {
+                    grid[i][j].c = solution[i][j].c;
+                    grid[i][j].t = solution[i][j].t;
+                }
+            }
+            moves = 0;
+            draw();
+            msg('🤖 Auto-solved! All connected!');
+        }
+
+        function newPuzzle() {
+            sound(450, 0.15);
+            init();
+            msg('🆕 New puzzle!');
+        }
+
+        function msg(m) {
+            document.getElementById('message').textContent = m;
+        }
+
+        function showInstructions() {
+            document.getElementById('instructionsModal').classList.add('show');
+        }
+
+        function hideInstructions() {
+            document.getElementById('instructionsModal').classList.remove('show');
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>NeuroMatrix Pro v3.0</title>
+
+<style>
+:root {
+  --primary: #6366f1;
+  --secondary: #8b5cf6;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --dark: #1e293b;
+  --light: #f8fafc;
+  --neural: #8b5cf6;
+  --visual: #06b6d4;
+  --logic: #10b981;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.container {
+  width: 100%;
+  max-width: 500px;
+  background: white;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--neural), var(--visual), var(--logic));
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--neural), var(--visual));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo-icon {
+  font-size: 28px;
+}
+
+.stats {
+  display: flex;
+  gap: 10px;
+}
+
+.stat-badge {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--light);
+  color: var(--dark);
+  border: 2px solid #e2e8f0;
+  min-width: 80px;
+  justify-content: center;
+}
+
+.stat-badge.highlight {
+  background: linear-gradient(135deg, var(--neural), var(--visual));
+  color: white;
+  border: none;
+}
+
+.progress-container {
+  margin: 28px 0;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--dark);
+  font-weight: 500;
+}
+
+.progress-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: #e2e8f0;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neural), var(--visual), var(--logic));
+  border-radius: 5px;
+  transition: width 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.puzzle-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.puzzle-type {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.puzzle-type.neural { background: #e0e7ff; color: var(--neural); }
+.puzzle-type.visual { background: #cffafe; color: var(--visual); }
+.puzzle-type.logic { background: #d1fae5; color: var(--logic); }
+
+.puzzle-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 8px;
+}
+
+.puzzle-desc {
+  font-size: 15px;
+  color: #64748b;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.timer-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.timer {
+  font-size: 15px;
+  color: var(--warning);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.game-area {
+  min-height: 220px;
+  margin: 28px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Visual Grid Styles */
+.visual-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 0 auto;
+  max-width: 320px;
+}
+
+.visual-cell {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  background: var(--light);
+  position: relative;
+  overflow: hidden;
+}
+
+.visual-cell:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.visual-cell.highlight {
+  background: linear-gradient(135deg, var(--neural), var(--visual));
+  color: white;
+  border-color: var(--neural);
+}
+
+/* Pattern Styles */
+.pattern-display {
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--dark);
+  padding: 24px;
+  background: var(--light);
+  border-radius: 20px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
+/* Logic Puzzle Styles */
+.logic-container {
+  text-align: center;
+  padding: 20px;
+  background: var(--light);
+  border-radius: 20px;
+}
+
+.shape-display {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 24px 0;
+  min-height: 80px;
+}
+
+.shape-item {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  animation: pulse 2s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin: 28px 0;
+}
+
+.option-btn {
+  padding: 18px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--light);
+  color: var(--dark);
+  border: 3px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.option-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.option-btn:hover::before {
+  opacity: 1;
+}
+
+.option-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-color: var(--neural);
+}
+
+.option-btn.correct {
+  background: linear-gradient(135deg, var(--logic), var(--success));
+  color: white;
+  border-color: var(--success);
+}
+
+.option-btn.incorrect {
+  background: linear-gradient(135deg, var(--danger), #f87171);
+  color: white;
+  border-color: var(--danger);
+}
+
+.feedback {
+  text-align: center;
+  padding: 20px;
+  border-radius: 16px;
+  font-weight: 600;
+  margin: 20px 0;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.4s ease;
+  font-size: 16px;
+}
+
+.feedback.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.feedback.correct {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: var(--success);
+  border-left: 6px solid var(--success);
+}
+
+.feedback.incorrect {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: var(--danger);
+  border-left: 6px solid var(--danger);
+}
+
+.combo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--dark);
+}
+
+.combo-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.combo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.combo-dot.active {
+  background: var(--warning);
+  transform: scale(1.3);
+  box-shadow: 0 0 15px var(--warning);
+}
+
+.difficulty-indicator {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.difficulty-indicator.easy { background: #dcfce7; color: #16a34a; }
+.difficulty-indicator.medium { background: #fef3c7; color: #d97706; }
+.difficulty-indicator.hard { background: #fee2e2; color: #dc2626; }
+.difficulty-indicator.expert { background: #e0e7ff; color: #4f46e5; }
+
+/* Brain Performance Meter */
+.performance-meter {
+  display: flex;
+  justify-content: space-between;
+  margin: 24px 0;
+  padding: 16px;
+  background: var(--light);
+  border-radius: 16px;
+}
+
+.meter-item {
+  text-align: center;
+  flex: 1;
+}
+
+.meter-label {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.meter-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.meter-bar {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.meter-fill.neural { background: var(--neural); }
+.meter-fill.visual { background: var(--visual); }
+.meter-fill.logic { background: var(--logic); }
+
+/* Enhanced visual effects */
+.floating {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+.glow {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+.hidden-pattern {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.hidden-pattern:hover {
+  opacity: 1;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🧠</div>
+      <div>NeuroMatrix Pro</div>
+    </div>
+    <div class="stats">
+      <div class="stat-badge highlight">🔥 <span id="streak">0</span></div>
+      <div class="stat-badge">🏆 <span id="score">0</span></div>
+      <div class="stat-badge">📊 <span id="level">1</span></div>
+    </div>
+  </div>
+
+  <div class="performance-meter">
+    <div class="meter-item">
+      <div class="meter-label">Neural</div>
+      <div class="meter-value" id="neural-score">0%</div>
+      <div class="meter-bar"><div class="meter-fill neural" id="neural-meter"></div></div>
+    </div>
+    <div class="meter-item">
+      <div class="meter-label">Visual</div>
+      <div class="meter-value" id="visual-score">0%</div>
+      <div class="meter-bar"><div class="meter-fill visual" id="visual-meter"></div></div>
+    </div>
+    <div class="meter-item">
+      <div class="meter-label">Logic</div>
+      <div class="meter-value" id="logic-score">0%</div>
+      <div class="meter-bar"><div class="meter-fill logic" id="logic-meter"></div></div>
+    </div>
+  </div>
+
+  <div class="progress-container">
+    <div class="progress-info">
+      <span>Neuro Level Progress</span>
+      <span id="progress-text">0/8</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-bar"></div>
+    </div>
+  </div>
+
+  <div class="puzzle-header">
+    <div class="puzzle-type" id="puzzle-type"></div>
+    <div class="puzzle-title" id="puzzle-title"></div>
+    <div class="puzzle-desc" id="puzzle-desc"></div>
+    <div class="timer-container">
+      <div class="timer">⏱ <span id="timer">45</span>s</div>
+    </div>
+  </div>
+
+  <div class="game-area" id="game-area"></div>
+
+  <div class="options-grid" id="options"></div>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div class="combo-container">
+    <span>Neuro Combo:</span>
+    <div class="combo-dots" id="combo-dots"></div>
+  </div>
+</div>
+
+<script>
+/* ================= ENHANCED STATE ================= */
+const state = {
+  score: 0,
+  streak: 0,
+  level: 1,
+  progress: 0,
+  timeLeft: 45,
+  timer: null,
+  totalCorrect: 0,
+  totalAttempts: 0,
+  neuralScore: 0,
+  visualScore: 0,
+  logicScore: 0,
+  difficultyLevels: [
+    { name: "Novice", puzzlesPerLevel: 8, timeLimit: 45, basePoints: 10 },
+    { name: "Thinker", puzzlesPerLevel: 12, timeLimit: 35, basePoints: 15 },
+    { name: "Analyst", puzzlesPerLevel: 15, timeLimit: 25, basePoints: 20 },
+    { name: "Genius", puzzlesPerLevel: 20, timeLimit: 18, basePoints: 25 }
+  ],
+  currentPuzzleType: ''
+};
+
+/* ================= ENHANCED PUZZLE TYPES ================= */
+const puzzleTypes = [
+  { type: "visualPattern", category: "visual", name: "Pattern Recognition" },
+  { type: "oddOneOut", category: "visual", name: "Anomaly Detection" },
+  { type: "matrixReasoning", category: "neural", name: "Matrix Reasoning" },
+  { type: "sequenceLogic", category: "logic", name: "Sequence Analysis" },
+  { type: "spatialRotation", category: "visual", name: "Spatial Rotation" },
+  { type: "symbolicLogic", category: "logic", name: "Symbolic Logic" },
+  { type: "memoryGrid", category: "neural", name: "Memory Grid" },
+  { type: "deductiveReasoning", category: "logic", name: "Deductive Reasoning" }
+];
+
+/* ================= VISUAL & LOGIC DATA ================= */
+const visualElements = {
+  shapes: ['●', '■', '▲', '◆', '★', '◼', '◈', '◉'],
+  colors: ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6'],
+  patterns: ['◢', '◣', '◤', '◥', '⬡', '⬢', '⭓', '⭔'],
+  symbols: ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ']
+};
+
+const logicRules = {
+  arithmetic: ['+', '-', '×', '÷'],
+  transformations: ['rotate', 'mirror', 'invert', 'scale'],
+  patterns: ['alternating', 'progressive', 'symmetrical', 'random']
+};
+
+/* ================= HELPERS ================= */
+const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const shuffleArray = (array) => [...array].sort(() => Math.random() - 0.5);
+const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+/* ================= TIMER MANAGEMENT ================= */
+function startTimer() {
+  clearInterval(state.timer);
+  state.timeLeft = state.difficultyLevels[state.level - 1].timeLimit;
+  updateTimerDisplay();
+  
+  state.timer = setInterval(() => {
+    state.timeLeft--;
+    updateTimerDisplay();
+    
+    if (state.timeLeft <= 0) {
+      clearInterval(state.timer);
+      handleTimeOut();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const timerEl = document.getElementById('timer');
+  timerEl.textContent = state.timeLeft;
+  
+  if (state.timeLeft <= 10) {
+    timerEl.style.color = '#ef4444';
+    timerEl.classList.add('floating');
+  } else if (state.timeLeft <= 20) {
+    timerEl.style.color = '#f59e0b';
+    timerEl.classList.remove('floating');
+  } else {
+    timerEl.style.color = '#06b6d4';
+    timerEl.classList.remove('floating');
+  }
+}
+
+function handleTimeOut() {
+  showFeedback("⏰ Time's up! Pattern lost.", false);
+  state.streak = 0;
+  updateCombo();
+  updatePerformanceMeters();
+  setTimeout(nextPuzzle, 1500);
+}
+
+/* ================= PUZZLE GENERATORS ================= */
+
+function generateVisualPattern() {
+  state.currentPuzzleType = 'visual';
+  
+  const gridSize = state.level <= 2 ? 16 : 25;
+  const patternType = getRandomElement(['color', 'shape', 'symbol']);
+  const correctPattern = getRandomInt(0, gridSize - 1);
+  
+  document.getElementById('puzzle-type').className = 'puzzle-type visual';
+  document.getElementById('puzzle-type').textContent = 'Visual Intelligence';
+  document.getElementById('puzzle-title').textContent = "Pattern Recognition";
+  document.getElementById('puzzle-desc').textContent = "Find the element that breaks the visual pattern";
+  
+  const gameArea = document.getElementById('game-area');
+  let html = '<div class="visual-grid" style="grid-template-columns: repeat(' + Math.sqrt(gridSize) + ', 1fr);">';
+  
+  for (let i = 0; i < gridSize; i++) {
+    let content, color;
+    
+    if (patternType === 'color') {
+      color = i === correctPattern ? 
+        getRandomElement(['#ef4444', '#f59e0b']) : 
+        getRandomElement(visualElements.colors.slice(0, 4));
+      content = '●';
+    } else if (patternType === 'shape') {
+      color = '#6366f1';
+      content = i === correctPattern ? 
+        getRandomElement(visualElements.shapes.slice(4)) : 
+        getRandomElement(visualElements.shapes.slice(0, 4));
+    } else {
+      color = '#8b5cf6';
+      content = i === correctPattern ? 
+        getRandomElement(visualElements.symbols.slice(4)) : 
+        getRandomElement(visualElements.symbols.slice(0, 4));
+    }
+    
+    html += `
+      <div class="visual-cell ${i === correctPattern ? 'highlight' : ''} hidden-pattern"
+           onclick="checkAnswer(${i === correctPattern})"
+           style="background: ${color}; color: ${i === correctPattern ? 'white' : color}; font-size: ${gridSize === 25 ? '20px' : '24px'};">
+        ${content}
+      </div>
+    `;
+  }
+  
+  html += '</div>';
+  gameArea.innerHTML = html;
+}
+
+function generateMatrixReasoning() {
+  state.currentPuzzleType = 'neural';
+  
+  const matrixSize = 9; // 3x3 matrix
+  const rules = ['horizontal', 'vertical', 'diagonal'];
+  const rule = getRandomElement(rules);
+  const missingIndex = getRandomInt(0, matrixSize - 1);
+  
+  document.getElementById('puzzle-type').className = 'puzzle-type neural';
+  document.getElementById('puzzle-type').textContent = 'Neural Processing';
+  document.getElementById('puzzle-title').textContent = "Matrix Reasoning";
+  document.getElementById('puzzle-desc').textContent = "Complete the pattern by selecting the missing element";
+  
+  // Generate matrix with pattern
+  const matrix = [];
+  let correctAnswer;
+  
+  if (rule === 'horizontal') {
+    for (let i = 0; i < matrixSize; i++) {
+      if (i === missingIndex) {
+        matrix.push('?');
+      } else {
+        const row = Math.floor(i / 3);
+        const patternValue = row * 3 + (i % 3);
+        matrix.push(patternValue + 1);
+      }
+    }
+    correctAnswer = (Math.floor(missingIndex / 3) * 3) + (missingIndex % 3) + 1;
+  } else if (rule === 'vertical') {
+    for (let i = 0; i < matrixSize; i++) {
+      if (i === missingIndex) {
+        matrix.push('?');
+      } else {
+        const col = i % 3;
+        const patternValue = col * 3 + Math.floor(i / 3);
+        matrix.push(patternValue + 1);
+      }
+    }
+    correctAnswer = ((missingIndex % 3) * 3) + Math.floor(missingIndex / 3) + 1;
+  } else {
+    // Diagonal pattern
+    for (let i = 0; i < matrixSize; i++) {
+      if (i === missingIndex) {
+        matrix.push('?');
+      } else {
+        const isDiagonal = i % 4 === 0 || (i % 2 === 0 && i !== 0 && i !== 8);
+        matrix.push(isDiagonal ? '★' : '○');
+      }
+    }
+    correctAnswer = missingIndex % 4 === 0 || (missingIndex % 2 === 0 && missingIndex !== 0 && missingIndex !== 8) ? '★' : '○';
+  }
+  
+  const gameArea = document.getElementById('game-area');
+  let html = '<div class="visual-grid" style="grid-template-columns: repeat(3, 1fr); max-width: 280px;">';
+  
+  matrix.forEach((item, index) => {
+    const isMissing = index === missingIndex;
+    html += `
+      <div class="visual-cell ${isMissing ? 'glow' : ''}"
+           style="background: ${isMissing ? '#f8fafc' : '#e0e7ff'}; 
+                  color: ${isMissing ? '#6366f1' : '#4f46e5'};
+                  font-size: 24px;">
+        ${item}
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  gameArea.innerHTML = html;
+  
+  // Generate options
+  const options = [];
+  if (typeof correctAnswer === 'number') {
+    options.push(correctAnswer, correctAnswer + 1, correctAnswer - 1, correctAnswer + 2);
+  } else {
+    options.push(correctAnswer, '●', '■', '▲');
+  }
+  
+  generateOptions(shuffleArray(options), correctAnswer);
+}
+
+function generateSequenceLogic() {
+  state.currentPuzzleType = 'logic';
+  
+  const sequenceTypes = ['arithmetic', 'geometric', 'alternating', 'fibonacci'];
+  const seqType = getRandomElement(sequenceTypes);
+  let sequence = [];
+  let answer;
+  
+  switch(seqType) {
+    case 'arithmetic':
+      const start = getRandomInt(1, 20);
+      const diff = getRandomInt(2, 5);
+      for (let i = 0; i < 4; i++) {
+        sequence.push(start + i * diff);
+      }
+      answer = start + 4 * diff;
+      break;
+      
+    case 'geometric':
+      const gStart = getRandomInt(1, 5);
+      const ratio = getRandomInt(2, 3);
+      for (let i = 0; i < 4; i++) {
+        sequence.push(gStart * Math.pow(ratio, i));
+      }
+      answer = gStart * Math.pow(ratio, 4);
+      break;
+      
+    case 'alternating':
+      for (let i = 0; i < 4; i++) {
+        sequence.push(getRandomElement(visualElements.shapes));
+      }
+      answer = sequence[sequence.length - 2]; // Pattern repeats every 2
+      break;
+      
+    case 'fibonacci':
+      sequence = [1, 1];
+      for (let i = 2; i < 6; i++) {
+        sequence.push(sequence[i-1] + sequence[i-2]);
+      }
+      answer = sequence[5] + sequence[4];
+      sequence = sequence.slice(0, 5);
+      break;
+  }
+  
+  document.getElementById('puzzle-type').className = 'puzzle-type logic';
+  document.getElementById('puzzle-type').textContent = 'Logical Reasoning';
+  document.getElementById('puzzle-title').textContent = "Sequence Analysis";
+  document.getElementById('puzzle-desc').textContent = "Identify the pattern and select the next element";
+  
+  const gameArea = document.getElementById('game-area');
+  gameArea.innerHTML = `
+    <div class="pattern-display">
+      ${sequence.join(' → ')} → ?
+    </div>
+  `;
+  
+  const options = typeof answer === 'number' 
+    ? [answer, answer + (seqType === 'arithmetic' ? getRandomInt(1,3) : 0), 
+       answer - (seqType === 'arithmetic' ? getRandomInt(1,3) : 0), 
+       Math.floor(answer * 1.5)]
+    : [answer, getRandomElement(visualElements.shapes), 
+       getRandomElement(visualElements.shapes), 
+       getRandomElement(visualElements.shapes)];
+  
+  generateOptions(shuffleArray(options), answer);
+}
+
+function generateSpatialRotation() {
+  state.currentPuzzleType = 'visual';
+  
+  const shapes = ['◢', '◣', '◤', '◥'];
+  const rotations = ['0deg', '90deg', '180deg', '270deg'];
+  const correctRotation = getRandomElement(rotations);
+  
+  document.getElementById('puzzle-type').className = 'puzzle-type visual';
+  document.getElementById('puzzle-type').textContent = 'Spatial Intelligence';
+  document.getElementById('puzzle-title').textContent = "Spatial Rotation";
+  document.getElementById('puzzle-desc').textContent = "Select the shape that matches after rotation";
+  
+  const baseShape = getRandomElement(shapes);
+  
+  const gameArea = document.getElementById('game-area');
+  gameArea.innerHTML = `
+    <div style="text-align: center;">
+      <div style="font-size: 60px; margin: 20px 0;">${baseShape}</div>
+      <div style="color: #64748b; margin-bottom: 20px;">Rotated ${correctRotation.replace('deg', '°')}</div>
+      <div style="font-size: 60px; margin: 20px 0; transform: rotate(${correctRotation}); display: inline-block;">
+        ${baseShape}
+      </div>
+    </div>
+  `;
+  
+  const options = shuffleArray(rotations.map(rot => rot.replace('deg', '°')));
+  generateOptions(options, correctRotation.replace('deg', '°'));
+}
+
+/* ================= GAME LOGIC ================= */
+
+function generateOptions(optionsArray, correctAnswer) {
+  const optionsContainer = document.getElementById('options');
+  optionsContainer.innerHTML = '';
+  
+  optionsArray.forEach(option => {
+    const button = document.createElement('button');
+    button.className = 'option-btn';
+    button.textContent = option;
+    button.onclick = () => checkAnswer(option === correctAnswer);
+    optionsContainer.appendChild(button);
+  });
+}
+
+function checkAnswer(isCorrect) {
+  clearInterval(state.timer);
+  state.totalAttempts++;
+  
+  if (isCorrect) {
+    const basePoints = state.difficultyLevels[state.level - 1].basePoints;
+    let points = basePoints;
+    state.streak++;
+    state.progress++;
+    state.totalCorrect++;
+    
+    // Bonus for speed
+    const timeBonus = Math.floor(state.timeLeft / 5);
+    points += timeBonus;
+    
+    // Update category score
+    if (state.currentPuzzleType === 'visual') {
+      state.visualScore = Math.min(100, state.visualScore + 5);
+    } else if (state.currentPuzzleType === 'logic') {
+      state.logicScore = Math.min(100, state.logicScore + 5);
+    } else {
+      state.neuralScore = Math.min(100, state.neuralScore + 5);
+    }
+    
+    // Streak bonus
+    const streakBonus = state.streak >= 5 ? Math.floor(state.streak / 5) * 5 : 0;
+    points += streakBonus;
+    
+    state.score += points;
+    
+    let feedback = `✅ Perfect! +${points} points`;
+    if (timeBonus > 0) feedback += ` (${timeBonus} speed bonus)`;
+    if (streakBonus > 0) feedback += ` (+${streakBonus} streak bonus)`;
+    
+    showFeedback(feedback, true);
+    
+    // Check level up
+    const currentLevel = state.difficultyLevels[state.level - 1];
+    if (state.progress >= currentLevel.puzzlesPerLevel) {
+      if (state.level < state.difficultyLevels.length) {
+        state.level++;
+        state.progress = 0;
+        setTimeout(() => {
+          showFeedback(`🎉 Level Up! Now: ${state.difficultyLevels[state.level - 1].name}`, true);
+        }, 300);
+      }
+    }
+  } else {
+    state.streak = 0;
+    
+    // Decrease category score slightly on wrong answer
+    if (state.currentPuzzleType === 'visual') {
+      state.visualScore = Math.max(0, state.visualScore - 2);
+    } else if (state.currentPuzzleType === 'logic') {
+      state.logicScore = Math.max(0, state.logicScore - 2);
+    } else {
+      state.neuralScore = Math.max(0, state.neuralScore - 2);
+    }
+    
+    showFeedback("❌ Incorrect pattern detected", false);
+  }
+  
+  updateUI();
+  updateCombo();
+  updatePerformanceMeters();
+  
+  setTimeout(nextPuzzle, isCorrect ? 1200 : 1500);
+}
+
+function showFeedback(message, isCorrect) {
+  const feedback = document.getElementById('feedback');
+  feedback.textContent = message;
+  feedback.className = `feedback show ${isCorrect ? 'correct' : 'incorrect'}`;
+  
+  setTimeout(() => {
+    feedback.className = 'feedback';
+  }, 1200);
+}
+
+function updateUI() {
+  document.getElementById('score').textContent = state.score;
+  document.getElementById('level').textContent = state.level;
+  
+  const currentLevel = state.difficultyLevels[state.level - 1];
+  document.getElementById('progress-text').textContent = 
+    `${state.progress}/${currentLevel.puzzlesPerLevel}`;
+  
+  const progressPercent = (state.progress / currentLevel.puzzlesPerLevel) * 100;
+  document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+  
+  // Add difficulty badge
+  const difficultyClass = state.level <= 2 ? 'easy' : state.level === 3 ? 'medium' : 'hard';
+  const badgeText = state.difficultyLevels[state.level - 1].name;
+  document.getElementById('puzzle-title').innerHTML += 
+    `<span class="difficulty-indicator ${difficultyClass}">${badgeText}</span>`;
+}
+
+function updateCombo() {
+  document.getElementById('streak').textContent = state.streak;
+  
+  const comboDots = document.getElementById('combo-dots');
+  comboDots.innerHTML = '';
+  
+  const maxDots = 5;
+  for (let i = 0; i < maxDots; i++) {
+    const dot = document.createElement('div');
+    dot.className = `combo-dot ${i < Math.min(state.streak, maxDots) ? 'active' : ''}`;
+    comboDots.appendChild(dot);
+  }
+}
+
+function updatePerformanceMeters() {
+  document.getElementById('neural-score').textContent = `${state.neuralScore}%`;
+  document.getElementById('visual-score').textContent = `${state.visualScore}%`;
+  document.getElementById('logic-score').textContent = `${state.logicScore}%`;
+  
+  document.getElementById('neural-meter').style.width = `${state.neuralScore}%`;
+  document.getElementById('visual-meter').style.width = `${state.visualScore}%`;
+  document.getElementById('logic-meter').style.width = `${state.logicScore}%`;
+}
+
+function nextPuzzle() {
+  // Clear any existing feedback
+  const feedback = document.getElementById('feedback');
+  feedback.className = 'feedback';
+  
+  // Clear puzzle title (remove previous difficulty badge)
+  document.getElementById('puzzle-title').textContent = '';
+  
+  // Select random puzzle type with some weighting
+  let availableTypes = [...puzzleTypes];
+  
+  // Ensure variety in puzzle types
+  if (state.currentPuzzleType === 'visual') {
+    availableTypes = puzzleTypes.filter(p => p.category !== 'visual');
+  } else if (state.currentPuzzleType === 'logic') {
+    availableTypes = puzzleTypes.filter(p => p.category !== 'logic');
+  }
+  
+  const puzzleType = getRandomElement(availableTypes);
+  
+  // Generate the selected puzzle
+  switch(puzzleType.type) {
+    case 'visualPattern':
+      generateVisualPattern();
+      break;
+    case 'matrixReasoning':
+      generateMatrixReasoning();
+      break;
+    case 'sequenceLogic':
+      generateSequenceLogic();
+      break;
+    case 'spatialRotation':
+      generateSpatialRotation();
+      break;
+    default:
+      generateVisualPattern();
+  }
+  
+  startTimer();
+  updateUI();
+}
+
+/* ================= INITIALIZATION ================= */
+function init() {
+  updateCombo();
+  updatePerformanceMeters();
+  nextPuzzle();
+}
+
+// Initialize the game
+init();
+</script>
+</body>
+</html>

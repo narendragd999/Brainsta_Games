@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helicopter Rescue</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #game {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+</head>
+<body>
+    <div id="game"></div>
+    <script>
+        class PreloadScene extends Phaser.Scene {
+            constructor() {
+                super('Preload');
+            }
+            preload() {
+                this.load.image('helicopter', './helicopter_imresizer.png');
+                this.load.image('obstacle', './obstacle_imresizer.png');
+                this.load.image('survivor', './survivor_imresizer.png');
+                // Audio commented out to avoid missing file error
+                // this.load.audio('bgm', './bgm.mp3');
+            }
+            create() {
+                this.scene.start('Menu');
+            }
+        }
+
+        class MenuScene extends Phaser.Scene {
+            constructor() {
+                super('Menu');
+            }
+            create() {
+                const width = this.scale.width;
+                const height = this.scale.height;
+                this.add.text(width / 2, height / 2 - 100, 'Helicopter Rescue', {
+                    fontSize: '48px',
+                    fill: '#fff'
+                }).setOrigin(0.5);
+                this.add.text(width / 2, height / 2 - 50, 'Rescue survivors while avoiding obstacles!', {
+                    fontSize: '24px',
+                    fill: '#fff'
+                }).setOrigin(0.5);
+                this.add.text(width / 2, height / 2, 'Use arrows or touch/drag to move', {
+                    fontSize: '18px',
+                    fill: '#fff'
+                }).setOrigin(0.5);
+                const startBtn = this.add.text(width / 2, height / 2 + 50, 'Start Mission', {
+                    fontSize: '32px',
+                    fill: '#fff'
+                }).setOrigin(0.5).setPadding(10).setStyle({ backgroundColor: '#8e44ad' }).setInteractive({ useHandCursor: true });
+                startBtn.on('pointerdown', () => {
+                    this.scene.start('Game');
+                });
+            }
+        }
+
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super('Game');
+            }
+            create() {
+                const width = this.scale.width;
+                const height = this.scale.height;
+
+                // Background gradient
+                const graphics = this.add.graphics();
+                graphics.fillGradientStyle(0x8e44ad, 0x8e44ad, 0x3498db, 0x3498db, 1);
+                graphics.fillRect(0, 0, width, height);
+                graphics.generateTexture('sky', width, height);
+                this.bg = this.add.tileSprite(0, 0, width, height, 'sky').setOrigin(0);
+
+                // Create particle texture
+                const partGraphics = this.add.graphics();
+                partGraphics.fillStyle(0xffffff, 1);
+                partGraphics.fillCircle(0, 0, 3);
+                partGraphics.generateTexture('particle', 6, 6);
+                partGraphics.destroy();
+
+                // Helicopter
+                this.heli = this.physics.add.sprite(100, height / 2, 'helicopter').setScale(0.8).setDepth(10);
+                this.heli.body.setSize(30, 15);
+                this.heli.body.setOffset(5, 5);
+                this.heli.setCollideWorldBounds(true);
+
+                // Controls
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.joystickActive = false;
+
+                // Score UI
+                this.score = 0;
+                this.panel = this.add.rectangle(width - 100, 30, 200, 60, 0x8e44ad).setAlpha(0.7).setDepth(20);
+                this.scoreText = this.add.text(width - 20, 20, 'Score: 0', {
+                    fontSize: '24px',
+                    fill: '#fff'
+                }).setOrigin(1, 0).setDepth(20);
+
+                // Groups
+                this.obstacles = this.physics.add.group();
+                this.survivors = this.physics.add.group();
+
+                // Physics collisions/overlaps
+                this.physics.add.collider(this.heli, this.obstacles, this.hitObstacle, null, this);
+                this.physics.add.overlap(this.heli, this.survivors, this.collectSurvivor, null, this);
+
+                // Spawners
+                this.time.addEvent({ delay: 1500, callback: this.spawnObstacle, callbackScope: this, loop: true });
+                this.time.addEvent({ delay: 3000, callback: this.spawnSurvivor, callbackScope: this, loop: true });
+
+                // Input for joystick
+                this.input.on('pointerdown', this.startJoystick, this);
+                this.input.on('pointermove', this.updateJoystick, this);
+                this.input.on('pointerup', this.stopJoystick, this);
+
+                // Music commented out to avoid missing file error
+                // this.music = this.sound.add('bgm');
+                // this.music.play({ loop: true });
+
+                // Pause physics initially? But starts stopped.
+                this.physics.pause(); // As per prompt, pause on start
+                // Resume would be on play, but since game starts, resume immediately after setup
+                this.time.delayedCall(100, () => this.physics.resume());
+            }
+            update() {
+                // Background scroll
+                this.bg.tilePositionX -= 0.5;
+
+                // Keyboard controls - set velocity for consistency
+                let vx = 0;
+                let vy = 0;
+                if (this.cursors.left.isDown) {
+                    vx = -350;
+                } else if (this.cursors.right.isDown) {
+                    vx = 350;
+                }
+                if (this.cursors.up.isDown) {
+                    vy = -350;
+                } else if (this.cursors.down.isDown) {
+                    vy = 350;
+                }
+                this.heli.setVelocity(vx, vy);
+
+                // Rotation based on velocity
+                const vel = this.heli.body.velocity;
+                if (vel.x !== 0 || vel.y !== 0) {
+                    const angle = Math.atan2(vel.y, vel.x) * Phaser.Math.RAD_TO_DEG;
+                    this.heli.setAngle(angle);
+                } else {
+                    this.heli.setAngle(0);
+                }
+            }
+            spawnObstacle() {
+                const height = this.scale.height;
+                const y = Phaser.Math.Between(100, height - 100);
+                const obs = this.obstacles.create(this.scale.width + 50, y, 'obstacle');
+                obs.body.setVelocityX(-200);
+                const destroyTime = ((this.scale.width + 100) / 200) * 1000 + 500;
+                this.time.delayedCall(destroyTime, () => {
+                    if (obs && obs.active) obs.destroy();
+                });
+            }
+            spawnSurvivor() {
+                const height = this.scale.height;
+                const y = Phaser.Math.Between(100, height - 100);
+                const surv = this.survivors.create(this.scale.width + 50, y, 'survivor');
+                surv.body.setVelocityX(-100);
+                surv.rescued = false;
+                this.tweens.add({
+                    targets: surv,
+                    y: '+=20',
+                    duration: 1000,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: -1
+                });
+                const destroyTime = ((this.scale.width + 100) / 100) * 1000 + 500;
+                this.time.delayedCall(destroyTime, () => {
+                    if (surv && surv.active) surv.destroy();
+                });
+            }
+            collectSurvivor(heli, surv) {
+                if (surv.rescued) return;
+                surv.rescued = true;
+                // Green particles
+                const em = this.add.particles('particle').createEmitter({
+                    speed: 50,
+                    lifespan: 800,
+                    scale: { start: 1, end: 0 },
+                    blendMode: 'ADD'
+                });
+                em.setPosition(surv.x, surv.y);
+                em.setTint(0x00ff00);
+                em.explode(10, surv.x, surv.y);
+                this.time.delayedCall(800, () => {
+                    if (em) em.remove();
+                });
+                surv.destroy();
+                this.score += 100;
+                this.scoreText.setText(`Score: ${this.score}`);
+            }
+            hitObstacle(heli, obs) {
+                obs.destroy();
+                // Red particles
+                const em = this.add.particles('particle').createEmitter({
+                    speed: 100,
+                    lifespan: 500,
+                    scale: { start: 1, end: 0 },
+                    blendMode: 'ADD'
+                });
+                em.setPosition(heli.x, heli.y);
+                em.setTint(0xff0000);
+                em.explode(20, heli.x, heli.y);
+                this.time.delayedCall(500, () => {
+                    if (em) em.remove();
+                });
+                this.physics.pause();
+                // this.music.stop();
+                this.scene.start('GameOver', { score: this.score });
+            }
+            startJoystick(pointer) {
+                if (this.joystickActive) return;
+                this.joystickActive = true;
+                this.joystickBase = this.add.circle(pointer.x, pointer.y, 80, 0x000000, 0.5).setDepth(5);
+                this.joystickKnob = this.add.circle(pointer.x, pointer.y, 40, 0xffffff, 0.8).setDepth(6);
+            }
+            updateJoystick(pointer) {
+                if (!this.joystickActive) return;
+                let dx = pointer.x - this.joystickBase.x;
+                let dy = pointer.y - this.joystickBase.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const maxDist = 80;
+                if (dist > maxDist) {
+                    dx = (dx / dist) * maxDist;
+                    dy = (dy / dist) * maxDist;
+                }
+                this.joystickKnob.setPosition(this.joystickBase.x + dx, this.joystickBase.y + dy);
+                const speed = 350;
+                this.heli.setVelocity((dx / maxDist) * speed, (dy / maxDist) * speed);
+            }
+            stopJoystick() {
+                if (!this.joystickActive) return;
+                this.joystickActive = false;
+                this.joystickBase.destroy();
+                this.joystickKnob.destroy();
+                this.heli.setVelocity(0, 0);
+            }
+        }
+
+        class GameOverScene extends Phaser.Scene {
+            constructor() {
+                super('GameOver');
+            }
+            init(data) {
+                this.finalScore = data.score || 0;
+            }
+            create() {
+                const width = this.scale.width;
+                const height = this.scale.height;
+                this.add.text(width / 2, height / 2 - 100, 'Mission Failed', {
+                    fontSize: '48px',
+                    fill: '#fff'
+                }).setOrigin(0.5);
+                this.add.text(width / 2, height / 2 - 50, `Final Score: ${this.finalScore}`, {
+                    fontSize: '24px',
+                    fill: '#fff'
+                }).setOrigin(0.5);
+                const tryAgainBtn = this.add.text(width / 2, height / 2 + 50, 'Try Again', {
+                    fontSize: '32px',
+                    fill: '#fff'
+                }).setOrigin(0.5).setPadding(10).setStyle({ backgroundColor: '#8e44ad' }).setInteractive({ useHandCursor: true });
+                tryAgainBtn.on('pointerdown', () => {
+                    this.scene.start('Game');
+                });
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'game',
+            width: window.innerWidth,
+            height: window.innerHeight,
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH
+            },
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 },
+                    debug: false
+                }
+            },
+            scene: [PreloadScene, MenuScene, GameScene, GameOverScene],
+            fps: {
+                target: 60,
+                forceSetTimeOut: true
+            }
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>

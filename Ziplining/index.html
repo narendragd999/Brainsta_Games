@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zipline Adventure Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+            padding: 10px;
+        }
+        
+        #gameContainer {
+            width: 100%;
+            max-width: 800px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+        
+        .game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .ui-panel {
+            background: rgba(74, 20, 140, 0.85);
+            border-radius: 15px;
+            padding: 12px;
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            top: 10px;
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .stat-box {
+            display: flex;
+            align-items: center;
+            background: rgba(106, 17, 203, 0.9);
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin: 0 5px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stat-icon {
+            font-size: 1.2rem;
+            margin-right: 8px;
+            color: #ffcc00;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 15px;
+            pointer-events: none;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(106, 17, 203, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 5px;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            font-size: 1.3rem;
+            color: white;
+            pointer-events: auto;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.9);
+            background: rgba(84, 13, 160, 0.9);
+        }
+        
+        .style-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .style-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            background: rgba(157, 78, 221, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            font-size: 1.1rem;
+            color: white;
+            pointer-events: auto;
+            transition: all 0.2s;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .style-btn:active {
+            transform: scale(0.95);
+            background: rgba(138, 63, 197, 0.9);
+        }
+        
+        .style-icon {
+            font-size: 1.4rem;
+            margin-bottom: 3px;
+        }
+        
+        .style-label {
+            font-size: 0.7rem;
+            text-align: center;
+        }
+        
+        .game-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(74, 20, 140, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            z-index: 20;
+            backdrop-filter: blur(10px);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .menu-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #ffcc00;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .menu-btn {
+            background: linear-gradient(135deg, #9e4edd 0%, #6a11cb 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin: 8px 0;
+            width: 100%;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .menu-btn i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .menu-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .menu-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .instructions {
+            text-align: left;
+            margin: 15px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .instruction-icon {
+            width: 30px;
+            height: 30px;
+            background: rgba(157, 78, 221, 0.7);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .hint-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(74, 20, 140, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            width: 80%;
+            max-width: 350px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            z-index: 30;
+            backdrop-filter: blur(10px);
+        }
+        
+        .hint-title {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #ffcc00;
+        }
+        
+        .hint-text {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .close-btn {
+            background: rgba(157, 78, 221, 0.9);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 15px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .character-selector {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .character-option {
+            width: 70px;
+            height: 70px;
+            border-radius: 15px;
+            background: rgba(157, 78, 221, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+            margin: 5px;
+            position: relative;
+        }
+        
+        .character-option.selected {
+            border-color: #ffcc00;
+            transform: scale(1.1);
+        }
+        
+        .character-option.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .character-option.locked::after {
+            content: "🔒";
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 1rem;
+        }
+        
+        .character-icon {
+            font-size: 2.5rem;
+        }
+        
+        .difficulty-selector {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+        }
+        
+        .difficulty-option {
+            padding: 10px 15px;
+            border-radius: 10px;
+            background: rgba(157, 78, 221, 0.7);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            text-align: center;
+            flex: 1;
+            margin: 0 5px;
+        }
+        
+        .difficulty-option.selected {
+            border-color: #ffcc00;
+            background: rgba(157, 78, 221, 0.9);
+        }
+        
+        .location-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .location-option {
+            padding: 12px 15px;
+            border-radius: 10px;
+            background: rgba(157, 78, 221, 0.7);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .location-option.selected {
+            border-color: #ffcc00;
+            background: rgba(157, 78, 221, 0.9);
+        }
+        
+        .location-option.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .location-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .location-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .location-desc {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .location-unlock {
+            font-size: 0.9rem;
+            background: rgba(255, 204, 0, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        .progress-container {
+            margin: 15px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffcc00, #ff9900);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        
+        .level-indicator {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .mission-list {
+            text-align: left;
+            margin: 15px 0;
+        }
+        
+        .mission-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .mission-icon {
+            width: 25px;
+            height: 25px;
+            background: rgba(157, 78, 221, 0.7);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+            font-size: 0.8rem;
+        }
+        
+        .mission-complete {
+            background: rgba(76, 175, 80, 0.7);
+        }
+        
+        .powerup-indicator {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .powerup-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 204, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .powerup-timer {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 2px;
+        }
+        
+        @media (max-width: 768px) {
+            .stat-box {
+                padding: 6px 10px;
+            }
+            
+            .stat-icon {
+                font-size: 1rem;
+                margin-right: 5px;
+            }
+            
+            .stat-value {
+                font-size: 0.9rem;
+            }
+            
+            .control-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1.1rem;
+            }
+            
+            .style-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 1rem;
+            }
+            
+            .style-icon {
+                font-size: 1.2rem;
+            }
+            
+            .style-label {
+                font-size: 0.65rem;
+            }
+            
+            .menu-title {
+                font-size: 1.6rem;
+            }
+            
+            .menu-btn {
+                font-size: 1rem;
+                padding: 10px 15px;
+            }
+            
+            .character-option {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .character-icon {
+                font-size: 2rem;
+            }
+            
+            .difficulty-option {
+                padding: 8px 10px;
+                font-size: 0.9rem;
+            }
+            
+            .location-option {
+                padding: 10px 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stat-box {
+                padding: 5px 8px;
+            }
+            
+            .stat-icon {
+                font-size: 0.9rem;
+            }
+            
+            .stat-value {
+                font-size: 0.8rem;
+            }
+            
+            .control-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+            
+            .style-btn {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .style-icon {
+                font-size: 1.1rem;
+            }
+            
+            .style-label {
+                font-size: 0.6rem;
+            }
+            
+            .controls {
+                padding: 0 10px;
+            }
+            
+            .character-option {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .character-icon {
+                font-size: 1.7rem;
+            }
+            
+            .difficulty-option {
+                padding: 6px 8px;
+                font-size: 0.8rem;
+            }
+            
+            .location-option {
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer"></div>
+    
+    <div class="game-ui">
+        <div class="stats">
+            <div class="stat-box">
+                <i class="fas fa-tachometer-alt stat-icon"></i>
+                <div class="stat-value" id="speedValue">0</div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-star stat-icon"></i>
+                <div class="stat-value" id="styleValue">0</div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-bolt stat-icon"></i>
+                <div class="stat-value" id="scoreValue">0</div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-wind stat-icon"></i>
+                <div class="stat-value" id="windValue">0</div>
+            </div>
+        </div>
+        
+        <div class="powerup-indicator" id="powerupIndicator"></div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-row">
+                    <div class="control-btn" id="upBtn">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-btn" id="leftBtn">
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                    <div class="control-btn" id="downBtn">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="control-btn" id="rightBtn">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <div class="style-controls">
+                    <div class="style-btn" id="superheroBtn">
+                        <i class="fas fa-running style-icon"></i>
+                        <div class="style-label">Superhero</div>
+                    </div>
+                    <div class="style-btn" id="reclineBtn">
+                        <i class="fas fa-couch style-icon"></i>
+                        <div class="style-label">Recline</div>
+                    </div>
+                    <div class="style-btn" id="nohandsBtn">
+                        <i class="fas fa-hands style-icon"></i>
+                        <div class="style-label">No Hands</div>
+                    </div>
+                    <div class="style-btn" id="spinBtn">
+                        <i class="fas fa-sync-alt style-icon"></i>
+                        <div class="style-label">Spin</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="game-menu" id="mainMenu">
+        <h1 class="menu-title">Zipline Adventure Pro</h1>
+        <p>Complete missions, unlock locations, and become the ultimate zipline champion!</p>
+        
+        <div class="progress-container">
+            <div class="level-indicator">
+                <span>Level 1</span>
+                <span id="playerLevel">Adventurer</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="xpBar" style="width: 30%"></div>
+            </div>
+        </div>
+        
+        <div class="location-selector">
+            <div class="location-option selected" data-location="forest">
+                <div class="location-info">
+                    <div class="location-name">Forest Canopy</div>
+                    <div class="location-desc">Beginner course with gentle slopes</div>
+                </div>
+                <div class="location-unlock">UNLOCKED</div>
+            </div>
+            <div class="location-option locked" data-location="mountains">
+                <div class="location-info">
+                    <div class="location-name">Mountain Peaks</div>
+                    <div class="location-desc">High altitude with strong winds</div>
+                </div>
+                <div class="location-unlock">5000 PTS</div>
+            </div>
+            <div class="location-option locked" data-location="canyon">
+                <div class="location-info">
+                    <div class="location-name">Grand Canyon</div>
+                    <div class="location-desc">Long distances and tricky obstacles</div>
+                </div>
+                <div class="location-unlock">10000 PTS</div>
+            </div>
+            <div class="location-option locked" data-location="city">
+                <div class="location-info">
+                    <div class="location-name">Urban Jungle</div>
+                    <div class="location-desc">Skyscraper ziplines with moving obstacles</div>
+                </div>
+                <div class="location-unlock">20000 PTS</div>
+            </div>
+        </div>
+        
+        <button class="menu-btn" id="startBtn">
+            <i class="fas fa-play"></i> Start Adventure
+        </button>
+        <button class="menu-btn" id="missionsBtn">
+            <i class="fas fa-tasks"></i> View Missions
+        </button>
+        <button class="menu-btn" id="instructionsBtn">
+            <i class="fas fa-info-circle"></i> How to Play
+        </button>
+    </div>
+    
+    <div class="game-menu hidden" id="missionsMenu">
+        <h1 class="menu-title">Daily Missions</h1>
+        <p>Complete missions to earn bonus rewards!</p>
+        
+        <div class="mission-list">
+            <div class="mission-item">
+                <div class="mission-icon"><i class="fas fa-bolt"></i></div>
+                <div>
+                    <div>Reach 15 m/s speed</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;">Reward: 500 XP</div>
+                </div>
+            </div>
+            <div class="mission-item">
+                <div class="mission-icon"><i class="fas fa-star"></i></div>
+                <div>
+                    <div>Perform 5 style moves</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;">Reward: 300 XP</div>
+                </div>
+            </div>
+            <div class="mission-item">
+                <div class="mission-icon"><i class="fas fa-shield-alt"></i></div>
+                <div>
+                    <div>Avoid all obstacles in one run</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;">Reward: 800 XP</div>
+                </div>
+            </div>
+            <div class="mission-item">
+                <div class="mission-icon"><i class="fas fa-tachometer-alt"></i></div>
+                <div>
+                    <div>Maintain max speed for 3 seconds</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;">Reward: 600 XP</div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="menu-btn" id="backFromMissionsBtn">
+            <i class="fas fa-arrow-left"></i> Back to Main Menu
+        </button>
+    </div>
+    
+    <div class="hint-popup hidden" id="hintPopup">
+        <h2 class="hint-title"><i class="fas fa-lightbulb"></i> Pro Tip</h2>
+        <p class="hint-text" id="hintText">Use the aero tuck position when you need maximum speed!</p>
+        <button class="close-btn" id="closeHintBtn">Got it!</button>
+    </div>
+
+    <script>
+        // Game configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 500,
+            parent: 'gameContainer',
+            backgroundColor: '#4a148c',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 300 },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            },
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                min: {
+                    width: 300,
+                    height: 500
+                },
+                max: {
+                    width: 800,
+                    height: 600
+                }
+            }
+        };
+
+        // Game variables
+        let game;
+        let player;
+        let zipline;
+        let platforms = {};
+        let score = 0;
+        let stylePoints = 0;
+        let speed = 0;
+        let windForce = 0;
+        let currentPose = 'default';
+        let poseTime = 0;
+        let gameStarted = false;
+        let gameOver = false;
+        let autoSolveActive = false;
+        let autoSolveInterval;
+        let selectedCharacter = 'adventurer';
+        let selectedLocation = 'forest';
+        let trees = [];
+        let clouds = [];
+        let currentScene;
+        let obstacles = [];
+        let collectibles = [];
+        let comboMultiplier = 1;
+        let comboTime = 0;
+        let playerLevel = 1;
+        let playerXP = 0;
+        let xpToNextLevel = 1000;
+        let activePowerups = {};
+        let missions = [
+            { id: 1, name: "Reach 15 m/s speed", target: 15, current: 0, type: "speed", completed: false, reward: 500 },
+            { id: 2, name: "Perform 5 style moves", target: 5, current: 0, type: "style", completed: false, reward: 300 },
+            { id: 3, name: "Avoid all obstacles", target: 1, current: 0, type: "obstacles", completed: false, reward: 800 },
+            { id: 4, name: "Maintain max speed", target: 3, current: 0, type: "maxSpeed", completed: false, reward: 600 }
+        ];
+        let maxSpeedTime = 0;
+        let obstaclesHit = 0;
+
+        // UI elements
+        let speedValue, styleValue, scoreValue, windValue;
+        let mainMenu, missionsMenu, hintPopup;
+        let upBtn, downBtn, leftBtn, rightBtn;
+        let superheroBtn, reclineBtn, nohandsBtn, spinBtn;
+        let startBtn, missionsBtn, instructionsBtn, backFromMissionsBtn, closeHintBtn;
+        let characterOptions, locationOptions;
+        let playerLevelText, xpBar;
+        let powerupIndicator;
+
+        // Initialize the game
+        game = new Phaser.Game(config);
+
+        function preload() {
+            // In a real game, we would load assets here
+        }
+
+        function create() {
+            currentScene = this;
+            
+            // Setup game world
+            createGameWorld.call(this);
+            
+            // Setup UI references
+            setupUI();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Setup keyboard controls
+            const keyCodes = Phaser.Input.Keyboard.KeyCodes;
+            this.cursors = this.input.keyboard.createCursorKeys();
+            
+            // Number keys for style moves
+            this.keys = {
+                one: this.input.keyboard.addKey(keyCodes.ONE),
+                two: this.input.keyboard.addKey(keyCodes.TWO),
+                three: this.input.keyboard.addKey(keyCodes.THREE),
+                four: this.input.keyboard.addKey(keyCodes.FOUR),
+                h: this.input.keyboard.addKey(keyCodes.H),
+                a: this.input.keyboard.addKey(keyCodes.A)
+            };
+            
+            // Start with main menu
+            showMainMenu();
+        }
+
+        function update() {
+            if (!gameStarted || gameOver) return;
+            
+            // Handle keyboard inputs
+            if (this.cursors.up.isDown) {
+                setBodyPosition('aero');
+            } else if (this.cursors.down.isDown) {
+                setBodyPosition('stable');
+            }
+            
+            if (this.cursors.left.isDown) {
+                twistBody('left');
+            } else if (this.cursors.right.isDown) {
+                twistBody('right');
+            }
+            
+            if (Phaser.Input.Keyboard.JustDown(this.keys.one)) {
+                activatePose('superhero');
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.keys.two)) {
+                activatePose('recline');
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.keys.three)) {
+                activatePose('nohands');
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.keys.four)) {
+                activatePose('spinning');
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.keys.h)) {
+                showHint();
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.keys.a)) {
+                toggleAutoSolve();
+            }
+            
+            // Update game state
+            updateGame.call(this);
+            
+            // Update UI
+            updateUI();
+            
+            // Handle auto-solve if active
+            if (autoSolveActive) {
+                handleAutoSolve();
+            }
+            
+            // Update powerup timers
+            updatePowerups();
+        }
+
+        function createGameWorld() {
+            // Create background based on selected location
+            createLocationBackground.call(this);
+            
+            // Create the zipline based on location
+            createLocationZipline.call(this);
+            
+            // Create start platform
+            platforms.start = this.add.rectangle(100, 150, 80, 60, 0x5e35b1);
+            this.add.rectangle(100, 150, 60, 40, 0x7e57c2);
+            
+            // Create end platform
+            platforms.end = this.add.rectangle(700, 430, 80, 60, 0x5e35b1);
+            this.add.rectangle(700, 430, 60, 40, 0x7e57c2);
+            
+            // Create obstacles based on location
+            createLocationObstacles.call(this);
+            
+            // Create collectibles
+            createCollectibles.call(this);
+            
+            // Create player character
+            createPlayerCharacter.call(this);
+            
+            // Setup physics for player
+            this.physics.world.enable(player);
+            player.body.setVelocity(0, 0);
+            player.body.setCollideWorldBounds(true);
+            
+            // Setup wind changes based on location
+            setupLocationWind.call(this);
+            
+            // Add ambient animations
+            createAmbientAnimations.call(this);
+        }
+
+        function createLocationBackground() {
+            // Clear previous background elements
+            trees.forEach(tree => {
+                tree.trunk.destroy();
+                tree.treeTop.destroy();
+            });
+            trees = [];
+            
+            clouds.forEach(cloud => cloud.destroy());
+            clouds = [];
+            
+            // Create background based on location
+            const bg = this.add.graphics();
+            
+            switch(selectedLocation) {
+                case 'forest':
+                    bg.fillGradientStyle(0x1b5e20, 0x1b5e20, 0x4a148c, 0x4a148c, 1);
+                    bg.fillRect(0, 0, 800, 500);
+                    
+                    // Forest trees
+                    createForestTrees.call(this);
+                    break;
+                    
+                case 'mountains':
+                    bg.fillGradientStyle(0x37474f, 0x37474f, 0x4a148c, 0x4a148c, 1);
+                    bg.fillRect(0, 0, 800, 500);
+                    
+                    // Mountain peaks
+                    createMountainPeaks.call(this);
+                    break;
+                    
+                case 'canyon':
+                    bg.fillGradientStyle(0x5d4037, 0x5d4037, 0x4a148c, 0x4a148c, 1);
+                    bg.fillRect(0, 0, 800, 500);
+                    
+                    // Canyon walls
+                    createCanyonWalls.call(this);
+                    break;
+                    
+                case 'city':
+                    bg.fillGradientStyle(0x263238, 0x263238, 0x4a148c, 0x4a148c, 1);
+                    bg.fillRect(0, 0, 800, 500);
+                    
+                    // City buildings
+                    createCityBuildings.call(this);
+                    break;
+            }
+        }
+
+        function createForestTrees() {
+            const treeColors = [0x2e7d32, 0x388e3c, 0x43a047];
+            
+            for (let i = 0; i < 12; i++) {
+                const x = Phaser.Math.Between(50, 750);
+                const height = Phaser.Math.Between(80, 120);
+                const color = treeColors[Math.floor(Math.random() * treeColors.length)];
+                
+                // Tree trunk
+                const trunk = this.add.rectangle(x, 400, 15, height, 0x5d4037);
+                
+                // Tree top
+                const treeTop = this.add.ellipse(x, 400 - height/2, 60, 80, color);
+                
+                trees.push({ trunk, treeTop });
+                
+                // Add slight animation to trees
+                this.tweens.add({
+                    targets: [trunk, treeTop],
+                    y: `+=${Phaser.Math.Between(-3, 3)}`,
+                    duration: Phaser.Math.Between(2000, 4000),
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+            
+            // Add clouds
+            for (let i = 0; i < 5; i++) {
+                const cloud = this.add.ellipse(
+                    Phaser.Math.Between(100, 700),
+                    Phaser.Math.Between(50, 150),
+                    Phaser.Math.Between(60, 120),
+                    Phaser.Math.Between(30, 50),
+                    0xffffff,
+                    0.3
+                );
+                clouds.push(cloud);
+                
+                // Animate clouds
+                this.tweens.add({
+                    targets: cloud,
+                    x: cloud.x + Phaser.Math.Between(-100, 100),
+                    duration: Phaser.Math.Between(15000, 25000),
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        }
+
+        function createMountainPeaks() {
+            // Create mountain peaks
+            const mountains = this.add.graphics();
+            mountains.fillStyle(0x5e35b1, 1);
+            
+            // Multiple mountain peaks
+            mountains.fillTriangle(0, 350, 150, 350, 75, 200);
+            mountains.fillTriangle(120, 350, 270, 350, 195, 150);
+            mountains.fillTriangle(240, 350, 390, 350, 315, 220);
+            mountains.fillTriangle(500, 350, 650, 350, 575, 180);
+            mountains.fillTriangle(620, 350, 770, 350, 695, 250);
+            
+            // Add snow caps to some mountains
+            const snow = this.add.graphics();
+            snow.fillStyle(0xffffff, 1);
+            snow.fillTriangle(65, 200, 85, 200, 75, 180);
+            snow.fillTriangle(185, 150, 205, 150, 195, 130);
+            snow.fillTriangle(565, 180, 585, 180, 575, 160);
+            
+            // Add more dramatic clouds
+            for (let i = 0; i < 8; i++) {
+                const cloud = this.add.ellipse(
+                    Phaser.Math.Between(100, 700),
+                    Phaser.Math.Between(30, 120),
+                    Phaser.Math.Between(80, 150),
+                    Phaser.Math.Between(40, 70),
+                    0xffffff,
+                    0.4
+                );
+                clouds.push(cloud);
+                
+                // Faster cloud movement for mountain environment
+                this.tweens.add({
+                    targets: cloud,
+                    x: cloud.x + Phaser.Math.Between(-150, 150),
+                    duration: Phaser.Math.Between(10000, 20000),
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        }
+
+        function createCanyonWalls() {
+            // Create canyon walls
+            const canyonLeft = this.add.graphics();
+            canyonLeft.fillStyle(0x5d4037, 1);
+            canyonLeft.fillRect(0, 0, 150, 500);
+            
+            const canyonRight = this.add.graphics();
+            canyonRight.fillStyle(0x5d4037, 1);
+            canyonRight.fillRect(650, 0, 150, 500);
+            
+            // Add canyon details (rock formations)
+            const rocks = this.add.graphics();
+            rocks.fillStyle(0x6d4c41, 1);
+            
+            // Left side rocks
+            for (let i = 0; i < 10; i++) {
+                const y = Phaser.Math.Between(100, 400);
+                const size = Phaser.Math.Between(10, 30);
+                rocks.fillRect(140, y, size, size);
+            }
+            
+            // Right side rocks
+            for (let i = 0; i < 10; i++) {
+                const y = Phaser.Math.Between(100, 400);
+                const size = Phaser.Math.Between(10, 30);
+                rocks.fillRect(650, y, size, size);
+            }
+            
+            // Add desert-style clouds
+            for (let i = 0; i < 4; i++) {
+                const cloud = this.add.ellipse(
+                    Phaser.Math.Between(200, 600),
+                    Phaser.Math.Between(50, 100),
+                    Phaser.Math.Between(100, 180),
+                    Phaser.Math.Between(50, 80),
+                    0xffffff,
+                    0.2
+                );
+                clouds.push(cloud);
+                
+                // Slow cloud movement for desert environment
+                this.tweens.add({
+                    targets: cloud,
+                    x: cloud.x + Phaser.Math.Between(-50, 50),
+                    duration: Phaser.Math.Between(20000, 30000),
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        }
+
+        function createCityBuildings() {
+            // Create city skyline
+            const buildings = this.add.graphics();
+            buildings.fillStyle(0x37474f, 1);
+            
+            // Various building shapes and heights
+            const buildingData = [
+                { x: 0, width: 60, height: 200 },
+                { x: 70, width: 40, height: 280 },
+                { x: 120, width: 50, height: 220 },
+                { x: 180, width: 70, height: 320 },
+                { x: 260, width: 60, height: 180 },
+                { x: 330, width: 45, height: 250 },
+                { x: 385, width: 65, height: 300 },
+                { x: 460, width: 55, height: 270 },
+                { x: 525, width: 40, height: 230 },
+                { x: 575, width: 70, height: 350 },
+                { x: 655, width: 50, height: 290 },
+                { x: 715, width: 85, height: 320 }
+            ];
+            
+            buildingData.forEach(building => {
+                buildings.fillRect(building.x, 500 - building.height, building.width, building.height);
+                
+                // Add windows
+                const windowColor = 0xffeb3b;
+                const windowGraphics = this.add.graphics();
+                windowGraphics.fillStyle(windowColor, 0.7);
+                
+                const rows = Math.floor(building.height / 40);
+                const cols = Math.floor(building.width / 15);
+                
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        if (Math.random() > 0.3) { // Randomly place windows
+                            windowGraphics.fillRect(
+                                building.x + 5 + col * 15,
+                                500 - building.height + 10 + row * 40,
+                                8, 15
+                            );
+                        }
+                    }
+                }
+            });
+            
+            // Add moving vehicles (as simple shapes)
+            for (let i = 0; i < 3; i++) {
+                const vehicle = this.add.rectangle(
+                    Phaser.Math.Between(-100, 0),
+                    Phaser.Math.Between(450, 480),
+                    Phaser.Math.Between(30, 60),
+                    15,
+                    0xe53935
+                );
+                
+                this.tweens.add({
+                    targets: vehicle,
+                    x: 900,
+                    duration: Phaser.Math.Between(5000, 10000),
+                    repeat: -1,
+                    ease: 'Linear'
+                });
+            }
+        }
+
+        function createLocationZipline() {
+            // Create zipline based on location
+            switch(selectedLocation) {
+                case 'forest':
+                    zipline = this.add.line(0, 0, 100, 120, 700, 400, 0x7e57c2);
+                    break;
+                case 'mountains':
+                    zipline = this.add.line(0, 0, 100, 80, 700, 450, 0x7e57c2);
+                    break;
+                case 'canyon':
+                    zipline = this.add.line(0, 0, 100, 150, 700, 350, 0x7e57c2);
+                    break;
+                case 'city':
+                    zipline = this.add.line(0, 0, 100, 200, 700, 300, 0x7e57c2);
+                    break;
+            }
+            
+            zipline.setLineWidth(6, 6);
+            zipline.setOrigin(0);
+        }
+
+        function createLocationObstacles() {
+            obstacles = [];
+            
+            // Number and type of obstacles based on location
+            let obstacleCount = 0;
+            let obstacleTypes = [];
+            
+            switch(selectedLocation) {
+                case 'forest':
+                    obstacleCount = 4;
+                    obstacleTypes = ['branch', 'bird', 'rock'];
+                    break;
+                case 'mountains':
+                    obstacleCount = 6;
+                    obstacleTypes = ['rock', 'eagle', 'cloud'];
+                    break;
+                case 'canyon':
+                    obstacleCount = 5;
+                    obstacleTypes = ['rock', 'vulture', 'cactus'];
+                    break;
+                case 'city':
+                    obstacleCount = 8;
+                    obstacleTypes = ['drone', 'helicopter', 'sign'];
+                    break;
+            }
+            
+            for (let i = 0; i < obstacleCount; i++) {
+                const x = Phaser.Math.Between(200, 650);
+                const y = Phaser.Math.Between(150, 350);
+                const size = Phaser.Math.Between(20, 40);
+                const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+                
+                let obstacle;
+                let color;
+                
+                switch(type) {
+                    case 'branch':
+                        color = 0x8D6E63;
+                        obstacle = this.add.rectangle(x, y, size * 2, size/2, color);
+                        obstacle.rotation = Phaser.Math.FloatBetween(0, Math.PI);
+                        break;
+                    case 'bird':
+                    case 'eagle':
+                    case 'vulture':
+                        color = type === 'bird' ? 0x795548 : 
+                                type === 'eagle' ? 0x5D4037 : 0x3E2723;
+                        obstacle = this.add.ellipse(x, y, size, size/2, color);
+                        // Animate birds
+                        this.tweens.add({
+                            targets: obstacle,
+                            y: obstacle.y + Phaser.Math.Between(-20, 20),
+                            duration: Phaser.Math.Between(1000, 2000),
+                            yoyo: true,
+                            repeat: -1,
+                            ease: 'Sine.easeInOut'
+                        });
+                        break;
+                    case 'rock':
+                        color = 0x795548;
+                        obstacle = this.add.circle(x, y, size/2, color);
+                        break;
+                    case 'cloud':
+                        color = 0xFFFFFF;
+                        obstacle = this.add.ellipse(x, y, size * 2, size, color, 0.5);
+                        // Move clouds
+                        this.tweens.add({
+                            targets: obstacle,
+                            x: obstacle.x + Phaser.Math.Between(-50, 50),
+                            duration: Phaser.Math.Between(5000, 10000),
+                            yoyo: true,
+                            repeat: -1,
+                            ease: 'Sine.easeInOut'
+                        });
+                        break;
+                    case 'cactus':
+                        color = 0x388E3C;
+                        obstacle = this.add.rectangle(x, y, size/2, size * 1.5, color);
+                        // Add cactus arms
+                        const arm1 = this.add.rectangle(x - size/2, y - size/2, size, size/3, color);
+                        const arm2 = this.add.rectangle(x + size/2, y + size/2, size, size/3, color);
+                        break;
+                    case 'drone':
+                        color = 0x607D8B;
+                        obstacle = this.add.rectangle(x, y, size, size/2, color);
+                        // Animate drone
+                        this.tweens.add({
+                            targets: obstacle,
+                            x: obstacle.x + Phaser.Math.Between(-30, 30),
+                            y: obstacle.y + Phaser.Math.Between(-10, 10),
+                            duration: Phaser.Math.Between(2000, 4000),
+                            yoyo: true,
+                            repeat: -1,
+                            ease: 'Sine.easeInOut'
+                        });
+                        break;
+                    case 'helicopter':
+                        color = 0x455A64;
+                        obstacle = this.add.rectangle(x, y, size * 1.5, size/2, color);
+                        // Add rotor
+                        const rotor = this.add.rectangle(x, y - size/2, size * 2, size/4, 0x78909C);
+                        // Animate helicopter
+                        this.tweens.add({
+                            targets: [obstacle, rotor],
+                            x: obstacle.x + Phaser.Math.Between(-100, 100),
+                            duration: Phaser.Math.Between(3000, 6000),
+                            yoyo: true,
+                            repeat: -1,
+                            ease: 'Sine.easeInOut'
+                        });
+                        // Animate rotor
+                        this.tweens.add({
+                            targets: rotor,
+                            rotation: Math.PI * 2,
+                            duration: 500,
+                            repeat: -1,
+                            ease: 'Linear'
+                        });
+                        break;
+                    case 'sign':
+                        color = 0xFF9800;
+                        obstacle = this.add.rectangle(x, y, size * 1.2, size, color);
+                        // Add sign text
+                        const text = this.add.text(x, y, "!", {
+                            font: "bold " + (size/2) + "px Arial",
+                            fill: "#ffffff"
+                        }).setOrigin(0.5);
+                        break;
+                }
+                
+                if (obstacle) {
+                    obstacles.push(obstacle);
+                    
+                    // Add physics to obstacles
+                    this.physics.world.enable(obstacle);
+                    obstacle.body.setImmovable(true);
+                }
+            }
+        }
+
+        function createCollectibles() {
+            collectibles = [];
+            
+            // Create various collectibles
+            const collectibleCount = 15;
+            
+            for (let i = 0; i < collectibleCount; i++) {
+                const x = Phaser.Math.Between(150, 650);
+                const y = Phaser.Math.Between(100, 300);
+                const types = ['coin', 'star', 'boost', 'shield', 'magnet'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                
+                let collectible;
+                let color;
+                
+                switch(type) {
+                    case 'coin':
+                        color = 0xFFD700;
+                        collectible = this.add.circle(x, y, 10, color);
+                        break;
+                    case 'star':
+                        color = 0x4FC3F7;
+                        collectible = this.add.star(x, y, 5, 10, 5, color);
+                        break;
+                    case 'boost':
+                        color = 0x00E676;
+                        collectible = this.add.triangle(x, y, 0, 15, 10, -10, -10, -10, color);
+                        break;
+                    case 'shield':
+                        color = 0x7E57C2;
+                        collectible = this.add.polygon(x, y, '0 0 10 5 0 10 5 5', color);
+                        break;
+                    case 'magnet':
+                        color = 0xF44336;
+                        collectible = this.add.rectangle(x, y, 15, 8, color);
+                        const magnetTop = this.add.rectangle(x, y - 4, 10, 4, color);
+                        const magnetBottom = this.add.rectangle(x, y + 4, 10, 4, color);
+                        break;
+                }
+                
+                // Add animation to collectibles
+                this.tweens.add({
+                    targets: collectible,
+                    y: collectible.y - 10,
+                    duration: 1000,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+                
+                this.tweens.add({
+                    targets: collectible,
+                    rotation: Math.PI * 2,
+                    duration: 2000,
+                    repeat: -1,
+                    ease: 'Linear'
+                });
+                
+                collectibles.push({ sprite: collectible, type: type });
+                
+                // Add physics to collectibles
+                this.physics.world.enable(collectible);
+            }
+        }
+
+        function setupLocationWind() {
+            // Clear previous wind timer if exists
+            if (currentScene.windTimer) {
+                currentScene.windTimer.remove();
+            }
+            
+            // Setup wind changes based on location
+            let windDelay = 4000;
+            let windRange = { min: -2, max: 2 };
+            
+            switch(selectedLocation) {
+                case 'forest':
+                    windDelay = 4000;
+                    windRange = { min: -2, max: 2 };
+                    break;
+                case 'mountains':
+                    windDelay = 3000;
+                    windRange = { min: -3, max: 3 };
+                    break;
+                case 'canyon':
+                    windDelay = 5000;
+                    windRange = { min: -1.5, max: 1.5 };
+                    break;
+                case 'city':
+                    windDelay = 3500;
+                    windRange = { min: -2.5, max: 2.5 };
+                    break;
+            }
+            
+            currentScene.windTimer = this.time.addEvent({
+                delay: windDelay,
+                callback: changeWind,
+                callbackScope: this,
+                loop: true
+            });
+            
+            // Set initial wind
+            windForce = Phaser.Math.FloatBetween(windRange.min, windRange.max);
+        }
+
+        function createPlayerCharacter() {
+            // Create a more detailed player character
+            player = this.add.container(120, 130);
+            
+            // Character body
+            const body = this.add.ellipse(0, 0, 30, 50, getCharacterColor(selectedCharacter));
+            player.add(body);
+            
+            // Character head
+            const head = this.add.circle(0, -30, 15, 0xffdbac);
+            player.add(head);
+            
+            // Character harness
+            const harness = this.add.rectangle(0, 10, 25, 15, 0x333333);
+            player.add(harness);
+            
+            // Connection point to zipline
+            const connection = this.add.rectangle(0, -20, 5, 25, 0x666666);
+            player.add(connection);
+            
+            // Store body reference for animations
+            player.bodyPart = body;
+            player.head = head;
+            player.harness = harness;
+            
+            // Set initial depth
+            player.depth = 10;
+        }
+
+        function getCharacterColor(character) {
+            switch(character) {
+                case 'adventurer': return 0x4caf50; // Green
+                case 'athlete': return 0x2196f3; // Blue
+                case 'ninja': return 0x607d8b; // Gray
+                default: return 0xba68c8; // Purple
+            }
+        }
+
+        function createAmbientAnimations() {
+            // Add location-specific ambient animations
+            switch(selectedLocation) {
+                case 'forest':
+                    // Add birds flying in the background
+                    for (let i = 0; i < 3; i++) {
+                        const bird = this.add.ellipse(
+                            Phaser.Math.Between(-50, 0),
+                            Phaser.Math.Between(50, 200),
+                            10, 5, 0x795548
+                        );
+                        
+                        this.tweens.add({
+                            targets: bird,
+                            x: 850,
+                            duration: Phaser.Math.Between(15000, 25000),
+                            repeat: -1,
+                            delay: Phaser.Math.Between(0, 10000),
+                            ease: 'Linear'
+                        });
+                    }
+                    break;
+                    
+                case 'mountains':
+                    // Add snow effects
+                    for (let i = 0; i < 5; i++) {
+                        const snowflake = this.add.circle(
+                            Phaser.Math.Between(0, 800),
+                            Phaser.Math.Between(-50, 0),
+                            3, 0xffffff
+                        );
+                        
+                        this.tweens.add({
+                            targets: snowflake,
+                            y: 500,
+                            x: `+=${Phaser.Math.Between(-20, 20)}`,
+                            duration: Phaser.Math.Between(10000, 20000),
+                            repeat: -1,
+                            ease: 'Linear'
+                        });
+                    }
+                    break;
+                    
+                case 'canyon':
+                    // Add dust clouds
+                    for (let i = 0; i < 3; i++) {
+                        const dust = this.add.ellipse(
+                            Phaser.Math.Between(0, 800),
+                            Phaser.Math.Between(400, 500),
+                            Phaser.Math.Between(20, 40),
+                            Phaser.Math.Between(10, 20),
+                            0x8D6E63,
+                            0.3
+                        );
+                        
+                        this.tweens.add({
+                            targets: dust,
+                            scaleX: 2,
+                            scaleY: 2,
+                            alpha: 0,
+                            duration: Phaser.Math.Between(5000, 10000),
+                            repeat: -1,
+                            yoyo: false,
+                            ease: 'Power2'
+                        });
+                    }
+                    break;
+                    
+                case 'city':
+                    // Add flying papers
+                    for (let i = 0; i < 4; i++) {
+                        const paper = this.add.rectangle(
+                            Phaser.Math.Between(0, 800),
+                            Phaser.Math.Between(-50, 0),
+                            10, 15, 0xffffff
+                        );
+                        paper.rotation = Phaser.Math.FloatBetween(0, Math.PI);
+                        
+                        this.tweens.add({
+                            targets: paper,
+                            y: 500,
+                            x: `+=${Phaser.Math.Between(-100, 100)}`,
+                            rotation: `+=${Phaser.Math.FloatBetween(1, 3)}`,
+                            duration: Phaser.Math.Between(8000, 15000),
+                            repeat: -1,
+                            ease: 'Sine.easeInOut'
+                        });
+                    }
+                    break;
+            }
+        }
+
+        function setupUI() {
+            // Get references to UI elements
+            speedValue = document.getElementById('speedValue');
+            styleValue = document.getElementById('styleValue');
+            scoreValue = document.getElementById('scoreValue');
+            windValue = document.getElementById('windValue');
+            
+            mainMenu = document.getElementById('mainMenu');
+            missionsMenu = document.getElementById('missionsMenu');
+            hintPopup = document.getElementById('hintPopup');
+            
+            // Control buttons
+            upBtn = document.getElementById('upBtn');
+            downBtn = document.getElementById('downBtn');
+            leftBtn = document.getElementById('leftBtn');
+            rightBtn = document.getElementById('rightBtn');
+            
+            // Style buttons
+            superheroBtn = document.getElementById('superheroBtn');
+            reclineBtn = document.getElementById('reclineBtn');
+            nohandsBtn = document.getElementById('nohandsBtn');
+            spinBtn = document.getElementById('spinBtn');
+            
+            // Menu buttons
+            startBtn = document.getElementById('startBtn');
+            missionsBtn = document.getElementById('missionsBtn');
+            instructionsBtn = document.getElementById('instructionsBtn');
+            backFromMissionsBtn = document.getElementById('backFromMissionsBtn');
+            closeHintBtn = document.getElementById('closeHintBtn');
+            
+            // Character selection
+            characterOptions = document.querySelectorAll('.character-option');
+            locationOptions = document.querySelectorAll('.location-option');
+            
+            // Progress elements
+            playerLevelText = document.getElementById('playerLevel');
+            xpBar = document.getElementById('xpBar');
+            
+            // Powerup indicator
+            powerupIndicator = document.getElementById('powerupIndicator');
+        }
+
+        function setupEventListeners() {
+            // Control button events
+            upBtn.addEventListener('touchstart', () => setBodyPosition('aero'));
+            downBtn.addEventListener('touchstart', () => setBodyPosition('stable'));
+            leftBtn.addEventListener('touchstart', () => twistBody('left'));
+            rightBtn.addEventListener('touchstart', () => twistBody('right'));
+            
+            // Style button events
+            superheroBtn.addEventListener('touchstart', () => activatePose('superhero'));
+            reclineBtn.addEventListener('touchstart', () => activatePose('recline'));
+            nohandsBtn.addEventListener('touchstart', () => activatePose('nohands'));
+            spinBtn.addEventListener('touchstart', () => activatePose('spinning'));
+            
+            // Menu button events
+            startBtn.addEventListener('click', startGame);
+            missionsBtn.addEventListener('click', showMissions);
+            instructionsBtn.addEventListener('click', showInstructions);
+            backFromMissionsBtn.addEventListener('click', showMainMenu);
+            closeHintBtn.addEventListener('click', closeHint);
+            
+            // Character selection events
+            characterOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    if (option.classList.contains('locked')) return;
+                    
+                    characterOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedCharacter = option.getAttribute('data-character');
+                    
+                    // Update player color if game is running
+                    if (gameStarted && !gameOver && player.bodyPart) {
+                        player.bodyPart.setFillStyle(getCharacterColor(selectedCharacter));
+                    }
+                });
+            });
+            
+            // Location selection events
+            locationOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    if (option.classList.contains('locked')) {
+                        const unlockText = option.querySelector('.location-unlock').textContent;
+                        showHint(`You need ${unlockText} to unlock this location!`);
+                        return;
+                    }
+                    
+                    locationOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedLocation = option.getAttribute('data-location');
+                });
+            });
+        }
+
+        function showMainMenu() {
+            mainMenu.classList.remove('hidden');
+            missionsMenu.classList.add('hidden');
+            
+            // Update player progress
+            updatePlayerProgress();
+        }
+
+        function showMissions() {
+            mainMenu.classList.add('hidden');
+            missionsMenu.classList.remove('hidden');
+        }
+
+        function startGame() {
+            mainMenu.classList.add('hidden');
+            gameStarted = true;
+            gameOver = false;
+            score = 0;
+            stylePoints = 0;
+            speed = 0;
+            windForce = 0;
+            currentPose = 'default';
+            comboMultiplier = 1;
+            comboTime = 0;
+            maxSpeedTime = 0;
+            obstaclesHit = 0;
+            activePowerups = {};
+            
+            // Reset missions progress
+            missions.forEach(mission => {
+                mission.current = 0;
+                mission.completed = false;
+            });
+            
+            // Reset player position and appearance
+            player.x = 120;
+            player.y = 130;
+            player.rotation = 0;
+            if (player.bodyPart) {
+                player.bodyPart.setFillStyle(getCharacterColor(selectedCharacter));
+                player.bodyPart.setSize(30, 50);
+            }
+            
+            // Clear powerup indicators
+            powerupIndicator.innerHTML = '';
+            
+            // Reset obstacles and collectibles
+            obstacles.forEach(obstacle => {
+                obstacle.destroy();
+            });
+            collectibles.forEach(collectible => {
+                collectible.sprite.destroy();
+            });
+            createLocationObstacles.call(currentScene);
+            createCollectibles.call(currentScene);
+        }
+
+        function showInstructions() {
+            const hintText = document.getElementById('hintText');
+            hintText.innerHTML = `
+                <strong>How to Play:</strong><br><br>
+                <strong>Objective:</strong> Complete zipline courses in different locations with maximum speed and style!<br><br>
+                <strong>Controls:</strong><br>
+                • <strong>Arrow Keys:</strong> Control your zipliner<br>
+                • <strong>Up Arrow:</strong> Aero Tuck (Speed+)<br>
+                • <strong>Down Arrow:</strong> Stable Position (Control+)<br>
+                • <strong>Left/Right Arrows:</strong> Twist Body<br>
+                • <strong>Number Keys 1-4:</strong> Style Moves<br><br>
+                <strong>Scoring:</strong><br>
+                • <strong>Speed:</strong> Higher speed = more points<br>
+                • <strong>Style:</strong> Perform tricks for bonus points<br>
+                • <strong>Combo:</strong> Chain moves for multiplier!<br>
+                • <strong>Collectibles:</strong> Grab coins, stars, and powerups<br><br>
+                <strong>Progression:</strong><br>
+                • Complete missions to earn XP<br>
+                • Level up to unlock new locations<br>
+                • Master all locations to become the ultimate zipline champion!
+            `;
+            hintPopup.classList.remove('hidden');
+        }
+
+        function showHint(text) {
+            document.getElementById('hintText').textContent = text;
+            hintPopup.classList.remove('hidden');
+        }
+
+        function closeHint() {
+            hintPopup.classList.add('hidden');
+        }
+
+        function toggleAutoSolve() {
+            autoSolveActive = !autoSolveActive;
+            
+            if (autoSolveActive) {
+                if (gameStarted) {
+                    autoSolveInterval = setInterval(executeAutoSolve, 500);
+                }
+            } else {
+                clearInterval(autoSolveInterval);
+            }
+        }
+
+        function executeAutoSolve() {
+            // Simple AI for auto-solving
+            if (player.x < 400) {
+                // First half - maximize speed
+                setBodyPosition('aero');
+                if (Math.random() > 0.7) activatePose('superhero');
+            } else {
+                // Second half - focus on style and control
+                if (windForce > 1) {
+                    setBodyPosition('stable');
+                } else {
+                    setBodyPosition('aero');
+                }
+                
+                if (Math.random() > 0.8) {
+                    const moves = ['recline', 'nohands', 'spinning'];
+                    const randomMove = moves[Math.floor(Math.random() * moves.length)];
+                    activatePose(randomMove);
+                }
+            }
+        }
+
+        function handleAutoSolve() {
+            // This function is called in update when auto-solve is active
+        }
+
+        function setBodyPosition(position) {
+            if (!gameStarted || gameOver || !player || !player.bodyPart) return;
+            
+            switch(position) {
+                case 'aero':
+                    player.bodyPart.setSize(20, 40);
+                    player.bodyPart.setFillStyle(0x4caf50);
+                    speed = Math.min(speed + 0.5, 15);
+                    
+                    currentScene.tweens.add({
+                        targets: [player.bodyPart, player.head, player.harness],
+                        y: 5,
+                        duration: 200,
+                        ease: 'Back.easeOut'
+                    });
+                    break;
+                    
+                case 'stable':
+                    player.bodyPart.setSize(40, 50);
+                    player.bodyPart.setFillStyle(getCharacterColor(selectedCharacter));
+                    speed = Math.max(speed - 0.3, 3);
+                    
+                    currentScene.tweens.add({
+                        targets: [player.bodyPart, player.head, player.harness],
+                        y: 0,
+                        duration: 200,
+                        ease: 'Back.easeOut'
+                    });
+                    break;
+            }
+        }
+
+        function twistBody(direction) {
+            if (!gameStarted || gameOver) return;
+            
+            if (direction === 'left') {
+                player.rotation -= 0.1;
+            } else {
+                player.rotation += 0.1;
+            }
+            
+            // Add a small style bonus for twisting
+            addStylePoints(5);
+        }
+
+        function activatePose(pose) {
+            if (!gameStarted || gameOver || currentPose !== 'default') return;
+            
+            currentPose = pose;
+            poseTime = 60; // 60 frames = ~1 second
+            
+            // Style-specific effects and bonuses
+            switch(pose) {
+                case 'superhero':
+                    player.bodyPart.setSize(40, 30);
+                    player.bodyPart.setFillStyle(0xff9800);
+                    addStylePoints(100 * comboMultiplier);
+                    
+                    // Update mission progress
+                    updateMissionProgress('style', 1);
+                    
+                    currentScene.tweens.add({
+                        targets: player.bodyPart,
+                        scaleX: 1.2,
+                        scaleY: 0.9,
+                        duration: 300,
+                        yoyo: true,
+                        ease: 'Back.easeOut'
+                    });
+                    break;
+                    
+                case 'recline':
+                    player.bodyPart.setSize(50, 40);
+                    player.bodyPart.setFillStyle(0x9c27b0);
+                    addStylePoints(80 * comboMultiplier);
+                    
+                    // Update mission progress
+                    updateMissionProgress('style', 1);
+                    
+                    currentScene.tweens.add({
+                        targets: [player.bodyPart, player.head, player.harness],
+                        y: 15,
+                        duration: 300,
+                        ease: 'Back.easeOut'
+                    });
+                    break;
+                    
+                case 'nohands':
+                    player.bodyPart.setFillStyle(0xe91e63);
+                    addStylePoints(120 * comboMultiplier);
+                    
+                    // Update mission progress
+                    updateMissionProgress('style', 1);
+                    
+                    currentScene.tweens.add({
+                        targets: player.harness,
+                        alpha: 0,
+                        duration: 300,
+                        yoyo: true,
+                        ease: 'Power2'
+                    });
+                    break;
+                    
+                case 'spinning':
+                    player.bodyPart.setFillStyle(0xffeb3b);
+                    addStylePoints(150 * comboMultiplier);
+                    
+                    // Update mission progress
+                    updateMissionProgress('style', 1);
+                    
+                    currentScene.tweens.add({
+                        targets: player,
+                        rotation: player.rotation + 6.283,
+                        duration: 800,
+                        ease: 'Linear'
+                    });
+                    break;
+            }
+            
+            // Increase combo multiplier
+            comboMultiplier += 0.2;
+            comboTime = 120; // 2 seconds to maintain combo
+        }
+
+        function addStylePoints(points) {
+            stylePoints += Math.floor(points);
+        }
+
+        function changeWind() {
+            if (!gameStarted || gameOver) return;
+            
+            // Randomly change wind force and direction based on location
+            let windRange = { min: -2, max: 2 };
+            
+            switch(selectedLocation) {
+                case 'mountains':
+                    windRange = { min: -3, max: 3 };
+                    break;
+                case 'canyon':
+                    windRange = { min: -1.5, max: 1.5 };
+                    break;
+                case 'city':
+                    windRange = { min: -2.5, max: 2.5 };
+                    break;
+            }
+            
+            windForce = Phaser.Math.FloatBetween(windRange.min, windRange.max);
+        }
+
+        function updateGame() {
+            // Calculate progress along zipline (0 to 1)
+            const progress = (player.x - 120) / (700 - 120);
+            
+            // Calculate position on zipline
+            const lineY = 120 + (progress * 280);
+            const targetY = lineY - 20; // Player hangs below the line
+            
+            // Move player along zipline with speed affected by position and wind
+            const windEffect = windForce * 0.5;
+            const totalSpeed = speed + windEffect;
+            
+            player.x += totalSpeed;
+            player.y = Phaser.Math.Linear(player.y, targetY, 0.1);
+            
+            // Update combo timer
+            if (comboTime > 0) {
+                comboTime--;
+            } else {
+                comboMultiplier = 1;
+            }
+            
+            // Update mission progress for speed
+            updateMissionProgress('speed', speed);
+            
+            // Update mission progress for maintaining max speed
+            if (speed >= 14) {
+                maxSpeedTime += 1/60; // Assuming 60 FPS
+                updateMissionProgress('maxSpeed', maxSpeedTime);
+            } else {
+                maxSpeedTime = 0;
+            }
+            
+            // Check for collision with obstacles
+            let hitObstacle = false;
+            obstacles.forEach(obstacle => {
+                if (obstacle.active && Phaser.Geom.Intersects.RectangleToRectangle(
+                    player.getBounds(),
+                    obstacle.getBounds()
+                )) {
+                    // Collision with obstacle - slow down and lose points
+                    if (!activePowerups.shield) {
+                        speed *= 0.7;
+                        stylePoints = Math.max(0, stylePoints - 50);
+                        obstaclesHit++;
+                        updateMissionProgress('obstacles', obstaclesHit);
+                    }
+                    obstacle.destroy();
+                    hitObstacle = true;
+                    
+                    // Visual feedback for collision
+                    if (!activePowerups.shield) {
+                        currentScene.cameras.main.shake(100, 0.01);
+                    }
+                }
+            });
+            
+            // Check for collection of collectibles
+            collectibles.forEach((collectible, index) => {
+                if (collectible.sprite.active && Phaser.Geom.Intersects.RectangleToRectangle(
+                    player.getBounds(),
+                    collectible.sprite.getBounds()
+                )) {
+                    // Collect the item
+                    switch(collectible.type) {
+                        case 'coin':
+                            score += 100;
+                            break;
+                        case 'star':
+                            stylePoints += 50;
+                            break;
+                        case 'boost':
+                            activatePowerup('boost', 5); // 5 seconds of boost
+                            break;
+                        case 'shield':
+                            activatePowerup('shield', 8); // 8 seconds of shield
+                            break;
+                        case 'magnet':
+                            activatePowerup('magnet', 6); // 6 seconds of magnet
+                            break;
+                    }
+                    
+                    // Visual feedback
+                    const text = currentScene.add.text(collectible.sprite.x, collectible.sprite.y - 20, 
+                        collectible.type === 'coin' ? '+100' : 
+                        collectible.type === 'star' ? '+50 Style' : 
+                        collectible.type.charAt(0).toUpperCase() + collectible.type.slice(1) + '!', 
+                        { font: '16px Arial', fill: '#ffffff' });
+                    currentScene.tweens.add({
+                        targets: text,
+                        y: text.y - 50,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => text.destroy()
+                    });
+                    
+                    collectible.sprite.destroy();
+                    collectibles.splice(index, 1);
+                }
+            });
+            
+            // Update pose timer and reset if needed
+            if (currentPose !== 'default') {
+                poseTime--;
+                if (poseTime <= 0) {
+                    currentPose = 'default';
+                    player.bodyPart.setFillStyle(getCharacterColor(selectedCharacter));
+                    player.bodyPart.setSize(30, 50);
+                    
+                    currentScene.tweens.add({
+                        targets: [player.bodyPart, player.head, player.harness],
+                        y: 0,
+                        duration: 200,
+                        ease: 'Back.easeOut'
+                    });
+                    
+                    player.harness.alpha = 1;
+                }
+            }
+            
+            // Apply powerup effects
+            if (activePowerups.boost) {
+                speed = Math.min(speed + 0.2, 18); // Higher max speed with boost
+            }
+            
+            if (activePowerups.magnet) {
+                // Attract nearby collectibles
+                collectibles.forEach(collectible => {
+                    if (collectible.sprite.active) {
+                        const distance = Phaser.Math.Distance.Between(
+                            player.x, player.y,
+                            collectible.sprite.x, collectible.sprite.y
+                        );
+                        
+                        if (distance < 100) {
+                            const angle = Phaser.Math.Angle.Between(
+                                collectible.sprite.x, collectible.sprite.y,
+                                player.x, player.y
+                            );
+                            
+                            collectible.sprite.x += Math.cos(angle) * 5;
+                            collectible.sprite.y += Math.sin(angle) * 5;
+                        }
+                    }
+                });
+            }
+            
+            // Calculate score based on speed and style
+            score = Math.floor(stylePoints + (speed * 10) + (progress * 1000));
+            
+            // Check for game end (reached platform)
+            if (player.x >= 680 && !gameOver) {
+                endGame(true);
+            }
+            
+            // Check for falling (if player goes too far below the line)
+            if (player.y > 480) {
+                endGame(false);
+            }
+        }
+
+        function activatePowerup(type, duration) {
+            activePowerups[type] = {
+                endTime: Date.now() + duration * 1000
+            };
+            
+            // Create powerup indicator
+            const powerupElement = document.createElement('div');
+            powerupElement.className = 'powerup-icon';
+            
+            let icon, color;
+            switch(type) {
+                case 'boost':
+                    icon = '🚀';
+                    color = '#00E676';
+                    break;
+                case 'shield':
+                    icon = '🛡️';
+                    color = '#7E57C2';
+                    break;
+                case 'magnet':
+                    icon = '🧲';
+                    color = '#F44336';
+                    break;
+            }
+            
+            powerupElement.innerHTML = icon;
+            powerupElement.style.background = color;
+            
+            const timerElement = document.createElement('div');
+            timerElement.className = 'powerup-timer';
+            timerElement.id = `${type}Timer`;
+            timerElement.textContent = duration;
+            
+            const container = document.createElement('div');
+            container.appendChild(powerupElement);
+            container.appendChild(timerElement);
+            
+            powerupIndicator.appendChild(container);
+        }
+
+        function updatePowerups() {
+            const now = Date.now();
+            
+            for (const type in activePowerups) {
+                const powerup = activePowerups[type];
+                const timeLeft = Math.max(0, Math.ceil((powerup.endTime - now) / 1000));
+                
+                // Update timer display
+                const timerElement = document.getElementById(`${type}Timer`);
+                if (timerElement) {
+                    timerElement.textContent = timeLeft;
+                }
+                
+                // Remove expired powerups
+                if (now >= powerup.endTime) {
+                    delete activePowerups[type];
+                    
+                    // Remove from UI
+                    const powerupElement = document.getElementById(`${type}Timer`).parentElement;
+                    if (powerupElement) {
+                        powerupElement.remove();
+                    }
+                }
+            }
+        }
+
+        function updateMissionProgress(type, value) {
+            missions.forEach(mission => {
+                if (mission.type === type && !mission.completed) {
+                    mission.current = Math.max(mission.current, value);
+                    
+                    if (mission.current >= mission.target) {
+                        mission.completed = true;
+                        // Award XP
+                        playerXP += mission.reward;
+                        showHint(`Mission Complete: ${mission.name}! +${mission.reward} XP`);
+                        
+                        // Check for level up
+                        checkLevelUp();
+                    }
+                }
+            });
+        }
+
+        function checkLevelUp() {
+            if (playerXP >= xpToNextLevel) {
+                playerLevel++;
+                playerXP -= xpToNextLevel;
+                xpToNextLevel = Math.floor(xpToNextLevel * 1.5);
+                
+                // Unlock new locations based on level
+                if (playerLevel >= 2) {
+                    document.querySelector('[data-location="mountains"]').classList.remove('locked');
+                }
+                if (playerLevel >= 3) {
+                    document.querySelector('[data-location="canyon"]').classList.remove('locked');
+                }
+                if (playerLevel >= 5) {
+                    document.querySelector('[data-location="city"]').classList.remove('locked');
+                }
+                
+                showHint(`Level Up! You are now Level ${playerLevel}`);
+                updatePlayerProgress();
+            }
+        }
+
+        function updatePlayerProgress() {
+            playerLevelText.textContent = getLevelTitle(playerLevel);
+            xpBar.style.width = `${(playerXP / xpToNextLevel) * 100}%`;
+        }
+
+        function getLevelTitle(level) {
+            if (level < 2) return "Adventurer";
+            if (level < 3) return "Explorer";
+            if (level < 5) return "Daredevil";
+            if (level < 7) return "Extreme Sports Pro";
+            return "Zipline Legend";
+        }
+
+        function updateUI() {
+            speedValue.textContent = speed.toFixed(1);
+            styleValue.textContent = stylePoints;
+            scoreValue.textContent = score;
+            windValue.textContent = windForce.toFixed(1);
+        }
+
+        function endGame(success) {
+            gameOver = true;
+            
+            // Award XP based on performance
+            const performanceXP = Math.floor(score / 10);
+            playerXP += performanceXP;
+            
+            // Check for level up
+            checkLevelUp();
+            
+            // Create game over message
+            const gameOverMenu = document.createElement('div');
+            gameOverMenu.className = 'game-menu';
+            gameOverMenu.innerHTML = `
+                <h1 class="menu-title">${success ? 'Perfect Landing!' : 'Crash Landing!'}</h1>
+                <p>Final Score: ${score}</p>
+                <div class="instructions">
+                    <div class="instruction-item">
+                        <div class="instruction-icon"><i class="fas fa-star"></i></div>
+                        <div>Style Points: ${stylePoints}</div>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="instruction-icon"><i class="fas fa-tachometer-alt"></i></div>
+                        <div>Max Speed: ${speed.toFixed(1)}</div>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="instruction-icon"><i class="fas fa-fire"></i></div>
+                        <div>Max Combo: x${comboMultiplier.toFixed(1)}</div>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="instruction-icon"><i class="fas fa-bolt"></i></div>
+                        <div>XP Earned: +${performanceXP}</div>
+                    </div>
+                </div>
+                <button class="menu-btn" id="restartBtn">
+                    <i class="fas fa-redo"></i> Play Again
+                </button>
+                <button class="menu-btn" id="menuBtn">
+                    <i class="fas fa-home"></i> Main Menu
+                </button>
+            `;
+            
+            document.getElementById('gameContainer').appendChild(gameOverMenu);
+            
+            // Add event listeners to the new buttons
+            document.getElementById('restartBtn').addEventListener('click', () => {
+                document.getElementById('gameContainer').removeChild(gameOverMenu);
+                startGame();
+            });
+            
+            document.getElementById('menuBtn').addEventListener('click', () => {
+                document.getElementById('gameContainer').removeChild(gameOverMenu);
+                showMainMenu();
+            });
+        }
+    </script>
+</body>
+</html>

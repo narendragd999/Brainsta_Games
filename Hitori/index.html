@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
+    <title>Hitori Puzzle — Fixed</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg,#6a11cb 0%,#ffffff 100%); min-height: 100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+        .container { width:100%; max-width:600px; background:rgba(255,255,255,0.95); border-radius:16px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.12); }
+        header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+        h1{color:#6a11cb;font-size:1.6rem}
+        .btn-icon{background:#6a11cb;color:#fff;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer}
+        .game-info{display:flex;justify-content:space-between;margin-bottom:12px;color:#333}
+        .game-board{display:grid;gap:6px;margin:0 auto 12px;max-width:420px}
+        .cell{background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.25rem;user-select:none;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.06);aspect-ratio:1}
+        .cell.shaded{background:#22313f;color:#fff}
+        .cell.circle{background:#3498db;color:#fff;border-radius:50%}
+        .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+        .btn{padding:10px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
+        .btn-primary{background:#3498db;color:#fff}
+        .btn-secondary{background:#6a11cb;color:#fff}
+        .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:center;justify-content:center;z-index:1000}
+        .modal-content{background:#fff;border-radius:12px;padding:18px;max-width:520px;width:90%;}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+        .modal-title{color:#6a11cb;font-size:1.25rem}
+        .modal-close{background:none;border:none;font-size:1.25rem;cursor:pointer}
+        .loader{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:2000}
+        .spinner{width:48px;height:48px;border:5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .hint-indicator{color:#6a11cb;margin-bottom:10px}
+        .win-content{display:flex;flex-direction:column;align-items:center;gap:12px}
+        @media(max-width:520px){.cell{font-size:1rem}}
+=======
+    <title>Hitori Puzzle</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #6a11cb, #fff);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .game-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6a11cb;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin: 10px 0;
+        }
+        
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        
+        .cell:hover {
+            background: #e9ecef;
+        }
+        
+        .cell.shaded {
+            background: #2c3e50;
+            color: white;
+        }
+        
+        .cell.circle {
+            background: #3498db;
+            color: white;
+            border-radius: 50%;
+        }
+        
+        .cell.error {
+            border: 2px solid #e74c3c;
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            flex: 1;
+            margin: 0 5px;
+        }
+        
+        .info-card h3 {
+            font-size: 0.9rem;
+            color: #6a11cb;
+            margin-bottom: 5px;
+        }
+        
+        .info-card p {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .rules-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .modal-header h2 {
+            color: #6a11cb;
+            font-size: 1.5rem;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #777;
+        }
+        
+        .rules-list {
+            list-style: none;
+            margin: 15px 0;
+        }
+        
+        .rules-list li {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .rules-list i {
+            color: #3498db;
+            margin-top: 3px;
+        }
+        
+        .loader {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .difficulty {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .diff-btn {
+            padding: 8px 15px;
+            border: 2px solid #6a11cb;
+            border-radius: 50px;
+            background: white;
+            color: #6a11cb;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .diff-btn.active {
+            background: #6a11cb;
+            color: white;
+        }
+        
+        .result-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .result-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .result-content h2 {
+            color: #6a11cb;
+            margin-bottom: 15px;
+        }
+        
+        .result-content p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        
+        .auto-solve-status {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #6a11cb;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 500px) {
+            .cell {
+                width: 45px;
+                height: 45px;
+                font-size: 1.2rem;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .cell {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
+            
+            .game-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .info-card {
+                margin: 0;
+            }
+            
+            .controls {
+                gap: 8px;
+            }
+            
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+        }
+>>>>>>> 5d4c0fd315980b169f989bb56ecadd5d2e86494d
+    </style>
+</head>
+<body>
+    <div class="container">
+<<<<<<< HEAD
+        <header>
+            <button class="btn-icon" id="instructions-btn"><i class="fas fa-question"></i></button>
+            <h1>HITORI PUZZLE</h1>
+            <button class="btn-icon" id="settings-btn"><i class="fas fa-cog"></i></button>
+        </header>
+
+        <div class="game-info">
+            <div>Moves: <strong id="moves-count">0</strong></div>
+            <div>Hints: <strong id="hints-left">3</strong></div>
+        </div>
+
+        <div class="game-board" id="game-board"></div>
+
+        <div class="hint-indicator" id="hint-indicator">Hint: Click a cell to cycle states (normal → shaded → circle → normal)</div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="check-btn"><i class="fas fa-check-circle"></i> Check</button>
+            <button class="btn btn-secondary" id="hint-btn"><i class="fas fa-lightbulb"></i> Hint</button>
+            <button class="btn btn-primary" id="solve-btn"><i class="fas fa-brain"></i> Solve</button>
+        </div>
+
+        <div class="controls" style="margin-top:6px">
+            <button class="btn btn-secondary" id="restart-btn"><i class="fas fa-redo"></i> Restart</button>
+            <button class="btn btn-primary" id="new-game-btn"><i class="fas fa-plus-circle"></i> New Game</button>
+            <button class="btn btn-secondary" id="undo-btn"><i class="fas fa-undo"></i> Undo</button>
+        </div>
+    </div>
+
+    <!-- Instructions modal -->
+    <div class="modal" id="instructions-modal" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">How to Play Hitori</h2>
+                <button class="modal-close" id="close-instructions">&times;</button>
+            </div>
+            <ul style="text-align:left;line-height:1.6">
+                <li><strong>Rule 1:</strong> Unshaded cells in any row or column must not contain the same number more than once.</li>
+                <li><strong>Rule 2:</strong> Shaded (black) cells cannot be adjacent horizontally or vertically.</li>
+                <li><strong>Rule 3:</strong> All unshaded cells must form a single connected group (orthogonally).</li>
+                <li><strong>Controls:</strong> Click a cell to cycle: <em>normal → shaded → circle → normal</em>. Use Check, Hint, Solve, Undo as needed.</li>
+            </ul>
+            <div style="text-align:right;margin-top:12px">
+                <button class="btn btn-primary" id="start-playing">Start Playing</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings modal -->
+    <div class="modal" id="settings-modal" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Game Settings</h2>
+                <button class="modal-close" id="close-settings">&times;</button>
+            </div>
+            <div style="text-align:left">
+                <label for="board-size">Board Size</label>
+                <select id="board-size" style="width:100%;margin-top:6px;padding:8px;border-radius:8px;border:1px solid #ddd">
+                    <!-- Only sizes with predefined puzzles are shown -->
+                    <option value="5">5x5 (Easy)</option>
+                    <option value="6">6x6 (Medium)</option>
+                </select>
+
+                <div style="margin-top:12px">
+                    <label>Sound Effects</label>
+                    <div style="margin-top:6px"><button class="btn btn-primary" id="sound-toggle">ON</button></div>
+                </div>
+            </div>
+            <div style="text-align:right;margin-top:12px">
+                <button class="btn btn-primary" id="save-settings">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win modal -->
+    <div class="modal" id="win-modal" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">You Win!</h2>
+                <button class="modal-close" id="close-win">&times;</button>
+            </div>
+            <div class="win-content">
+                <div style="font-size:1.1rem;color:#2c3e50"><i class="fas fa-trophy"></i> Congratulations — puzzle solved!</div>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary" id="play-again">Play Again</button>
+                    <button class="btn btn-secondary" id="next-puzzle">Next Puzzle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loader -->
+=======
+        <div class="header">
+            <h1><i class="fas fa-puzzle-piece"></i> Hitori</h1>
+            <p>Shade cells to eliminate duplicate numbers</p>
+        </div>
+        
+        <div class="game-card">
+            <div class="difficulty">
+                <button class="diff-btn active" data-size="5">Easy</button>
+                <button class="diff-btn" data-size="6">Medium</button>
+                <button class="diff-btn" data-size="8">Hard</button>
+            </div>
+            
+            <div class="game-board" id="gameBoard">
+                <!-- Cells will be generated by JavaScript -->
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" id="checkBtn">
+                    <i class="fas fa-check-circle"></i> Check
+                </button>
+                <button class="btn btn-success" id="solveBtn">
+                    <i class="fas fa-robot"></i> Auto-Solve
+                </button>
+                <button class="btn btn-secondary" id="hintBtn">
+                    <i class="fas fa-lightbulb"></i> Hint
+                </button>
+                <button class="btn btn-secondary" id="resetBtn">
+                    <i class="fas fa-redo"></i> Reset
+                </button>
+            </div>
+            
+            <div class="auto-solve-status" id="solveStatus"></div>
+            
+            <div class="game-info">
+                <div class="info-card">
+                    <h3>Time</h3>
+                    <p id="timer">00:00</p>
+                </div>
+                <div class="info-card">
+                    <h3>Moves</h3>
+                    <p id="moves">0</p>
+                </div>
+                <div class="info-card">
+                    <h3>Hints</h3>
+                    <p id="hints">3</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" id="rulesBtn">
+                <i class="fas fa-book"></i> How to Play
+            </button>
+            <button class="btn btn-secondary" id="newGameBtn">
+                <i class="fas fa-plus-circle"></i> New Game
+            </button>
+        </div>
+    </div>
+    
+    <div class="rules-modal" id="rulesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Hitori Rules</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <ul class="rules-list">
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>No number appears more than once in any row or column (unshaded cells)</span>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>Shaded (black) cells cannot be adjacent horizontally or vertically</span>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>All unshaded cells must be connected horizontally or vertically</span>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>Click once to shade a cell, click again to mark with a circle</span>
+                </li>
+            </ul>
+            <button class="btn btn-primary" id="startPlaying">Start Playing</button>
+        </div>
+    </div>
+    
+    <div class="result-modal" id="resultModal">
+        <div class="result-content">
+            <h2 id="resultTitle">Congratulations!</h2>
+            <p id="resultMessage">You've successfully solved the puzzle!</p>
+            <button class="btn btn-primary" id="resultButton">Continue</button>
+        </div>
+    </div>
+    
+>>>>>>> 5d4c0fd315980b169f989bb56ecadd5d2e86494d
+    <div class="loader" id="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+<<<<<<< HEAD
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Game state ---
+            const gameState = {
+                board: [],          // numeric board
+                solution: [],       // 1 = shaded, 0 = unshaded
+                moves: 0,
+                hints: 3,
+                boardSize: 5,
+                soundEnabled: true,
+                history: [],        // {row, col, previousState}
+                currentPuzzle: 0
+            };
+
+            // Predefined puzzles (only 5x5 and 6x6 provided)
+            const puzzles = [
+                // 5x5 puzzle (valid)
+                {
+                    board: [
+                        [1,3,2,5,4],
+                        [2,5,4,1,3],
+                        [3,1,5,4,2],
+                        [4,2,1,3,5],
+                        [5,4,3,2,1]
+                    ],
+                    solution: [
+                        [0,0,0,0,0],
+                        [0,0,0,0,0],
+                        [0,0,0,0,0],
+                        [0,0,0,0,0],
+                        [1,0,0,0,0]
+                    ]
+                },
+                // 6x6 puzzle
+                {
+                    board: [
+                        [3,2,1,4,5,6],
+                        [2,3,4,5,6,1],
+                        [1,4,5,6,3,2],
+                        [4,5,6,1,2,3],
+                        [5,6,3,2,1,4],
+                        [6,1,2,3,4,5]
+                    ],
+                    solution: [
+                        [0,0,0,0,0,0],
+                        [0,1,0,0,0,0],
+                        [0,0,0,0,1,0],
+                        [0,0,0,0,0,0],
+                        [0,0,1,0,0,0],
+                        [0,0,0,0,0,0]
+                    ]
+                }
+            ];
+
+            // Audio (data URIs) - will only play after user interaction in modern browsers
+            const clickSound = new Audio('data:audio/wav;base64,UklGRl4QAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToQAACBgIF/gn6BfYF7gXqBeYF4gXaBdIFygXCBboFsgWqBaIFmgWSBYoFggV6BXIFagViBVoFUgVKBUIFOgUyBSYFHgUSBQoFAgT6BPIE6gTiBNoE0gTKBMoEwgS6BLIEqgSiBJoEkgSKBIoEggR6BHoEcgRqBGIEWgRSBEoEQgQ6BDIEKgQiBBoEEgQCB/oD8gPqA+ID2gPSA8oDwgO6A7IDqgOiA5oDkgOKA4IDegN6A3IDagNiA1oDUgNKA0IDOgM6AzIDKgMiAxoDEgMKAwIC+gL6AvIC6gLiAtoC0gLKAsICugK6ArICqgKiApoCkgKKAoICegJ6AnICagJiAloCUgJKAkICQgI6AjICIgIiAhoCEgIKAgIB+gH6AfIB6gHiAdoB0gHKAcIBugGyAaoBogGaAZIBigGCAXoBegFyAWoBYgFaAVIBSgFCAUIBOgE6ATIBKgEiARoBEgEKAQIA+gD6APIA6gDiANoA0gDKAMoAwgC6ALoAsgCqAKIAmgCSAIoAggB6AHoAcgBqAGIAWgBSAEoAQgA6ADIAKgAiABoAEgACAAID+f/x/+n/4f/Z/9H/yf/B/7n/sf+p/6H/mf+R/4n/gf95/3H/af9h/1n/Uf9J/0H/Of8x/yn/If8Z/xH/Cf8B/vn+8f7p/uH+2f7R/sn+wf65/rH+qf6h/pn+kf6J/oH+ef5x/mn+Yf5Z/lH+Sf5B/jn+Mf4p/iH+Gf4R/gn+Af35/fH96f3h/dn90f3J/cH9uf2x/an9of2Z/ZH9if2B/Xn9cf1p/WH9Wf1R/Un9Qf05/TH9Kf0h/Rn9Ef0J/QH8+fzx/On84fzZ/NH8yfzB/Ln8sfyp/KH8mfyR/In8gfx5/HH8afxh/Fn8UfxJ/EH8Ofwx/Cn8IfwZ/BH8CfwB//n78fvp++H72fvR+8n7wfu5+7H7qfuh+5n7kfuJ+4H7eftx+2n7YftZ+1H7SftB+zn7Mfsp+yH7GfsR+wn7Afr5+vH66frh+tn60frJ+sH6ufqx+qn6ofqZ+pH6ifqB+nn6cfpp+mH6WfpR+kn6Qfo5+jH6Kfoh+hn6EfoJ+gH5+fnx+en54fnZ+dH5yfnB+bn5sfmp+aH5mfmR+Yn5gfl5+XH5aflh+Vn5UflJ+UH5Ofkx+Sn5IfkZ+RH5CfkB+Pn48fjp+OH42fjR+Mn4wfi5+LH4qfih+Jn4kfiJ+IH4efhx+Gn4YfhZ+FH4SfhB+Dn4Mfgp+CH4GfgR+An4Afv59/H36ffh99n30ffJ98H3ufex96n3ofeZ95H3ifeB93n3cfdp92H3WfdR90n3Qfc59zH3Kfch9xn3EfcJ9wH2+fbx9un24fbZ9tH2yfbB9rn2sfap9qH2mfaR9on2gfZ59nH2afZh9ln2UfZJ9kH2OfYx9in2IfYZ9hH2CfYB9fn18fXp9eH32fXR9cn1wfW59bH1qfWh9Zn1kfWJ9YH1efVx9Wn1YfVZ9VH1SfVB9Tn1MfUp9SH1GfUR9Qn1AfT59PH06fTh9Nn00fTJ9MH0ufSx9Kn0ofSZ9JH0ifSB9Hn0cfRp9GH0WfRR9En0QfQ59DH0KfQh9Bn0EfQJ9AH38ffp9+H32ffR98n3wfe597H3qfeg=');
+            const winSound = new Audio('data:audio/wav;base64,UklGRlwQAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YTgQAACBgIF/gn6BfYF7gXqBeYF4gXaBdIFygXCBboFsgWqBaIFmgWSBYoFggV6BXIFagViBVoFUgVKBUIFOgUyBSYFHgUSBQoFAgT6BPIE6gTiBNoE0gTKBMoEwgS6BLIEqgSiBJoEkgSKBIoEggR6BHoEcgRqBGIEWgRSBEoEQgQ6BDIEKgQiBBoEEgQCB/oD8gPqA+ID2gPSA8oDwgO6A7IDqgOiA5oDkgOKA4IDegN6A3IDagNiA1oDUgNKA0IDOgM6AzIDKgMiAxoDEgMKAwIC+gL6AvIC6gLiAtoC0gLKAsICugK6ArICqgKiApoCkgKKAoICegJ6AnICagJiAloCUgJKAkICQgI6AjICIgIiAhoCEgIKAgIB+gH6AfIB6gHiAdoB0gHKAcIBugGyAaoBogGaAZIBigGCAXoBegFyAWoBYgFaAVIBSgFCAUIBOgE6ATIBKgEiARoBEgEKAQIA+gD6APIA6gDiANoA0gDKAMoAwgC6ALoAsgCqAKIAmgCSAIoAggB6AHoAcgBqAGIAWgBSAEoAQgA6ADIAKgAiABoAEgACAAID+f/x/+n/4f/Z/9H/yf/B/7n/sf+p/6H/mf+R/4n/gf95/3H/af9h/1n/Uf9J/0H/Of8x/yn/If8Z/xH/Cf8B/vn+8f7p/uH+2f7R/sn+wf65/rH+qf6h/pn+kf6J/oH+ef5x/mn+Yf5Z/lH+Sf5B/jn+Mf4p/iH+Gf4R/gn+Af35/fH96f3h/dn90f3J/cH9uf2x/an9of2Z/ZH9if2B/Xn9cf1p/WH9Wf1R/Un9Qf05/TH9Kf0h/Rn9Ef0J/QH8+fzx/On84fzZ/NH8yfzB/Ln8sfyp/KH8mfyR/In8gfx5/HH8afxh/Fn8UfxJ/EH8Ofwx/Cn8IfwZ/BH8CfwB//n78fvp++H72fvR+8n7wfu5+7H7qfuh+5n7kfuJ+4H7eftx+2n7YftZ+1H7SftB+zn7Mfsp+yH7GfsR+wn7Afr5+vH66frh+tn60frJ+sH6ufqx+qn6ofqZ+pH6ifqB+nn6cfpp+mH6WfpR+kn6Qfo5+jH6Kfoh+hn6EfoJ+gH5+fnx+en54fnZ+dH5yfnB+bn5sfmp+aH5mfmR+Yn5gfl5+XH5aflh+Vn5UflJ+UH5Ofkx+Sn5IfkZ+RH5CfkB+Pn48fjp+OH42fjR+Mn4wfi5+LH4qfih+Jn4kfiJ+IH4efhx+Gn4YfhZ+FH4SfhB+Dn4Mfgp+CH4GfgR+An4Afv59/H36ffh99n30ffJ98H3ufex96n3ofeZ95H3ifeB93n3cfdp92H3WfdR90n3Qfc59zH3Kfch9xn3EfcJ9wH2+fbx9un24fbZ9tH2yfbB9rn2sfap9qH2mfaR9on2gfZ59nH2afZh9ln2UfZJ9kH2OfYx9in2IfYZ9hH2CfYB9fn18fXp9eH12fXR9cn1wfW59bH1qfWh9Zn1kfWJ9YH1efVx9Wn1YfVZ9VH1SfVB9Tn1MfUp9SH1GfUR9Qn1AfT59PH06fTh9Nn00fTJ9MH0ufSx9Kn0ofSZ9JH0ifSB9Hn0cfRp9GH0WfRR9En0QfQ59DH0KfQh9Bn0EfQJ9AH38ffp9+H32ffR98n3wfe597H3qfeg=');
+
+            // --- Utility helpers ---
+            function showLoader(){ document.getElementById('loader').style.display = 'flex'; }
+            function hideLoader(){ document.getElementById('loader').style.display = 'none'; }
+            function updateUI(){
+                document.getElementById('moves-count').textContent = gameState.moves;
+                document.getElementById('hints-left').textContent = gameState.hints;
+            }
+            function playSound(sound){ if (gameState.soundEnabled){ sound.currentTime = 0; sound.play().catch(()=>{}); } }
+
+            // --- Board generation & rendering ---
+            function generateBoard(){
+                const container = document.getElementById('game-board');
+                container.innerHTML = '';
+
+                // Find puzzles that match requested boardSize
+                let candidates = puzzles.filter(p => p.board.length === gameState.boardSize);
+                let puzzle;
+                if (candidates.length === 0){
+                    // fallback to first puzzle available
+                    puzzle = puzzles[0];
+                    gameState.boardSize = puzzle.board.length;
+                } else {
+                    puzzle = candidates[gameState.currentPuzzle % candidates.length];
+                }
+
+                const size = puzzle.board.length;
+                gameState.board = JSON.parse(JSON.stringify(puzzle.board));
+                gameState.solution = JSON.parse(JSON.stringify(puzzle.solution));
+                gameState.boardSize = size; // ensure consistency
+
+                container.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+
+                for (let r=0; r<size; r++){
+                    for (let c=0; c<size; c++){
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.textContent = gameState.board[r][c];
+                        cell.dataset.row = r;
+                        cell.dataset.col = c;
+                        cell.tabIndex = 0;
+
+                        // click and keyboard handlers
+                        cell.addEventListener('click', () => handleCellClick(r, c));
+                        cell.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCellClick(r, c); } });
+
+                        container.appendChild(cell);
+                    }
+                }
+
+                // Reset counters & history
+                gameState.moves = 0;
+                gameState.hints = 3;
+                gameState.history = [];
+                updateUI();
+            }
+
+            // Handle a cell action (cycle through three states)
+            function handleCellClick(row, col){
+                playSound(clickSound);
+                const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                if (!cell) return;
+
+                // Save previous state BEFORE changing so undo works correctly
+                const previousState = cell.className; // includes 'cell' base class
+                gameState.history.push({ row, col, previousState });
+
+                // Cycle: normal -> shaded -> circle -> normal
+                if (cell.classList.contains('shaded')){
+                    cell.classList.remove('shaded');
+                    cell.classList.add('circle');
+                } else if (cell.classList.contains('circle')){
+=======
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game state variables
+            let boardSize = 5;
+            let gameBoard = [];
+            let solution = [];
+            let moves = 0;
+            let hints = 3;
+            let timer = 0;
+            let timerInterval;
+            let isPlaying = false;
+            let isSolving = false;
+            
+            // DOM elements
+            const boardElement = document.getElementById('gameBoard');
+            const timerElement = document.getElementById('timer');
+            const movesElement = document.getElementById('moves');
+            const hintsElement = document.getElementById('hints');
+            const checkBtn = document.getElementById('checkBtn');
+            const solveBtn = document.getElementById('solveBtn');
+            const hintBtn = document.getElementById('hintBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const newGameBtn = document.getElementById('newGameBtn');
+            const rulesBtn = document.getElementById('rulesBtn');
+            const rulesModal = document.getElementById('rulesModal');
+            const resultModal = document.getElementById('resultModal');
+            const closeModal = document.getElementById('closeModal');
+            const startPlaying = document.getElementById('startPlaying');
+            const resultButton = document.getElementById('resultButton');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+            const loader = document.getElementById('loader');
+            const diffButtons = document.querySelectorAll('.diff-btn');
+            const solveStatus = document.getElementById('solveStatus');
+            
+            // Sample puzzles for each difficulty
+            const puzzles = {
+                5: {
+                    board: [
+                        [1, 2, 3, 4, 5],
+                        [2, 3, 4, 5, 1],
+                        [3, 4, 5, 1, 2],
+                        [4, 5, 1, 2, 3],
+                        [5, 1, 2, 3, 4]
+                    ],
+                    solution: [
+                        [0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 0, 0, 1, 0],
+                        [0, 1, 0, 0, 0]
+                    ]
+                },
+                6: {
+                    board: [
+                        [2, 4, 6, 2, 3, 5],
+                        [3, 5, 1, 4, 6, 2],
+                        [4, 6, 2, 5, 1, 3],
+                        [5, 1, 3, 6, 2, 4],
+                        [6, 2, 4, 1, 3, 5],
+                        [1, 3, 5, 3, 4, 6]
+                    ],
+                    solution: [
+                        [0, 0, 0, 1, 0, 0],
+                        [0, 0, 0, 0, 0, 1],
+                        [0, 0, 1, 0, 0, 0],
+                        [0, 0, 0, 0, 1, 0],
+                        [0, 1, 0, 0, 0, 0],
+                        [0, 0, 0, 1, 0, 0]
+                    ]
+                },
+                8: {
+                    board: [
+                        [1, 2, 3, 4, 5, 6, 7, 8],
+                        [2, 3, 4, 5, 6, 7, 8, 1],
+                        [3, 4, 5, 6, 7, 8, 1, 2],
+                        [4, 5, 6, 7, 8, 1, 2, 3],
+                        [5, 6, 7, 8, 1, 2, 3, 4],
+                        [6, 7, 8, 1, 2, 3, 4, 5],
+                        [7, 8, 1, 2, 3, 4, 5, 6],
+                        [8, 1, 2, 3, 4, 5, 6, 7]
+                    ],
+                    solution: [
+                        [0, 0, 0, 0, 0, 0, 0, 1],
+                        [0, 0, 0, 0, 0, 0, 1, 0],
+                        [0, 0, 0, 0, 0, 1, 0, 0],
+                        [0, 0, 0, 0, 1, 0, 0, 0],
+                        [0, 0, 0, 1, 0, 0, 0, 0],
+                        [0, 0, 1, 0, 0, 0, 0, 0],
+                        [0, 1, 0, 0, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 0, 0, 0, 0]
+                    ]
+                }
+            };
+            
+            // Initialize the game
+            initGame();
+            
+            // Event listeners
+            checkBtn.addEventListener('click', checkSolution);
+            solveBtn.addEventListener('click', autoSolve);
+            hintBtn.addEventListener('click', provideHint);
+            resetBtn.addEventListener('click', resetBoard);
+            newGameBtn.addEventListener('click', initGame);
+            rulesBtn.addEventListener('click', () => rulesModal.style.display = 'flex');
+            closeModal.addEventListener('click', () => rulesModal.style.display = 'none');
+            startPlaying.addEventListener('click', () => rulesModal.style.display = 'none');
+            resultButton.addEventListener('click', () => resultModal.style.display = 'none');
+            
+            diffButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    diffButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    boardSize = parseInt(this.dataset.size);
+                    initGame();
+                });
+            });
+            
+            // Initialize game
+            function initGame() {
+                // Show loader
+                loader.style.display = 'flex';
+                
+                // Reset game state
+                clearInterval(timerInterval);
+                timer = 0;
+                moves = 0;
+                hints = 3;
+                isPlaying = true;
+                isSolving = false;
+                
+                // Update UI
+                timerElement.textContent = '00:00';
+                movesElement.textContent = moves;
+                hintsElement.textContent = hints;
+                solveStatus.textContent = '';
+                
+                // Generate board
+                const puzzle = puzzles[boardSize];
+                gameBoard = JSON.parse(JSON.stringify(puzzle.board));
+                solution = JSON.parse(JSON.stringify(puzzle.solution));
+                
+                // Render board after a short delay to show loader
+                setTimeout(() => {
+                    renderBoard();
+                    loader.style.display = 'none';
+                    startTimer();
+                }, 500);
+            }
+            
+            // Render the game board
+            function renderBoard() {
+                boardElement.innerHTML = '';
+                boardElement.style.gridTemplateColumns = `repeat(${boardSize}, 1fr)`;
+                
+                for (let i = 0; i < boardSize; i++) {
+                    for (let j = 0; j < boardSize; j++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.textContent = gameBoard[i][j];
+                        cell.dataset.row = i;
+                        cell.dataset.col = j;
+                        
+                        cell.addEventListener('click', () => {
+                            if (!isPlaying || isSolving) return;
+                            handleCellClick(i, j, cell);
+                        });
+                        
+                        boardElement.appendChild(cell);
+                    }
+                }
+            }
+            
+            // Handle cell click
+            function handleCellClick(row, col, cell) {
+                playSound('click');
+                
+                if (cell.classList.contains('shaded')) {
+                    cell.classList.remove('shaded');
+                    cell.classList.add('circle');
+                } else if (cell.classList.contains('circle')) {
+>>>>>>> 5d4c0fd315980b169f989bb56ecadd5d2e86494d
+                    cell.classList.remove('circle');
+                } else {
+                    cell.classList.add('shaded');
+                }
+<<<<<<< HEAD
+
+                gameState.moves++;
+                updateUI();
+            }
+
+            // Undo last action
+            function undoLast(){
+                playSound(clickSound);
+                if (gameState.history.length === 0) return;
+                const last = gameState.history.pop();
+                const cell = document.querySelector(`.cell[data-row="${last.row}"][data-col="${last.col}"]`);
+                if (!cell) return;
+                cell.className = last.previousState || 'cell';
+                gameState.moves = Math.max(0, gameState.moves - 1);
+                updateUI();
+            }
+
+            // Validate Hitori rules and return [valid, message]
+            function validateHitoriRulesWithReason(boardState){
+                const size = boardState.length;
+
+                // Rule 1: duplicates in rows/cols for unshaded
+                for (let r=0;r<size;r++){
+                    const seen = new Map();
+                    for (let c=0;c<size;c++){
+                        if (boardState[r][c] === 0){
+                            const num = gameState.board[r][c];
+                            if (seen.has(num)) return [false, `Duplicate number ${num} in row ${r+1}`];
+                            seen.set(num, true);
+                        }
+                    }
+                }
+                for (let c=0;c<size;c++){
+                    const seen = new Map();
+                    for (let r=0;r<size;r++){
+                        if (boardState[r][c] === 0){
+                            const num = gameState.board[r][c];
+                            if (seen.has(num)) return [false, `Duplicate number ${num} in column ${c+1}`];
+                            seen.set(num, true);
+                        }
+                    }
+                }
+
+                // Rule 2: no adjacent shaded
+                for (let r=0;r<size;r++){
+                    for (let c=0;c<size;c++){
+                        if (boardState[r][c] === 1){
+                            if (c < size-1 && boardState[r][c+1] === 1) return [false, `Two shaded cells adjacent at (${r+1},${c+1}) and (${r+1},${c+2})`];
+                            if (r < size-1 && boardState[r+1][c] === 1) return [false, `Two shaded cells adjacent at (${r+1},${c+1}) and (${r+2},${c+1})`];
+                        }
+                    }
+                }
+
+                // Rule 3: connectivity of unshaded
+                if (!areUnshadedCellsConnected(boardState)) return [false, 'Unshaded cells are not all connected'];
+
+                return [true, 'OK'];
+            }
+
+            function areUnshadedCellsConnected(boardState){
+                const size = boardState.length;
+                const visited = Array.from({length:size}, ()=>Array(size).fill(false));
+                let start = null; let totalUnshaded = 0;
+                for (let r=0;r<size;r++){
+                    for (let c=0;c<size;c++){
+                        if (boardState[r][c] === 0){ totalUnshaded++; if (!start) start = [r,c]; }
+                    }
+                }
+                if (totalUnshaded === 0) return false;
+                const queue = [start]; visited[start[0]][start[1]] = true; let seen = 1;
+                const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+                while (queue.length){ const [r,c] = queue.shift(); for (const [dr,dc] of dirs){ const nr=r+dr, nc=c+dc; if (nr>=0 && nr<size && nc>=0 && nc<size && !visited[nr][nc] && boardState[nr][nc]===0){ visited[nr][nc]=true; seen++; queue.push([nr,nc]); } } }
+                return seen === totalUnshaded;
+            }
+
+            // Compare current boardState to predefined solution
+            function boardMatchesSolution(boardState){
+                for (let r=0;r<boardState.length;r++){
+                    for (let c=0;c<boardState.length;c++){
+                        if ((gameState.solution[r] && gameState.solution[r][c]) !== boardState[r][c]) return false;
+                    }
+                }
+                return true;
+            }
+
+            // Build boardState from DOM
+            function buildBoardStateFromDOM(){
+                const size = gameState.boardSize;
+                const cells = document.querySelectorAll('.cell');
+                const state = Array.from({length:size}, ()=>Array(size).fill(0));
+                cells.forEach(cell =>{
+                    const r = parseInt(cell.dataset.row,10);
+                    const c = parseInt(cell.dataset.col,10);
+                    state[r][c] = cell.classList.contains('shaded') ? 1 : 0;
+                });
+                return state;
+            }
+
+            // Check current player solution
+            function checkSolution(){
+                playSound(clickSound);
+                showLoader();
+                setTimeout(()=>{
+                    const state = buildBoardStateFromDOM();
+                    const [valid, msg] = validateHitoriRulesWithReason(state);
+                    hideLoader();
+                    if (valid){
+                        if (boardMatchesSolution(state)){
+                            showWinModal(); playSound(winSound);
+                        } else {
+                            alert('Your board follows the Hitori rules, but does not match the stored solution. Try again or use a hint.');
+                        }
+                    } else {
+                        alert('Invalid solution: ' + msg);
+                    }
+                }, 500);
+            }
+
+            // Provide a single hint (shades one correct cell)
+            function provideHint(){
+                if (gameState.hints <= 0){ alert('No hints remaining'); return; }
+                playSound(clickSound);
+                const size = gameState.boardSize;
+                for (let r=0;r<size;r++){
+                    for (let c=0;c<size;c++){
+                        if (gameState.solution[r][c] === 1){
+                            const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+                            if (cell && !cell.classList.contains('shaded')){
+                                // store previous state then apply
+                                gameState.history.push({row:r,col:c,previousState: cell.className});
+                                cell.classList.remove('circle');
+                                cell.classList.add('shaded');
+                                gameState.hints--; gameState.moves++; updateUI();
+                                return;
+                            }
+                        }
+                    }
+                }
+                alert('No more cells to hint (you may already have shaded all solution cells).');
+            }
+
+            // Auto-solve: apply stored solution
+            function autoSolve(){
+                playSound(clickSound);
+                showLoader();
+                setTimeout(()=>{
+                    const size = gameState.boardSize;
+                    // Clear history (solve is not undoable for simplicity)
+                    gameState.history = [];
+                    for (let r=0;r<size;r++){
+                        for (let c=0;c<size;c++){
+                            const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+                            if (!cell) continue;
+                            cell.classList.remove('circle');
+                            if (gameState.solution[r][c] === 1) cell.classList.add('shaded'); else cell.classList.remove('shaded');
+                        }
+                    }
+                    hideLoader();
+                    // Validate to be sure
+                    const state = buildBoardStateFromDOM();
+                    const [valid, msg] = validateHitoriRulesWithReason(state);
+                    if (valid) { showWinModal(); playSound(winSound); } else { alert('Auto-solve produced an invalid state: ' + msg); }
+                }, 800);
+            }
+
+            // Show win modal
+            function showWinModal(){
+                const modal = document.getElementById('win-modal');
+                modal.style.display = 'flex';
+                modal.setAttribute('aria-hidden','false');
+            }
+            function hideWinModal(){ const modal = document.getElementById('win-modal'); modal.style.display='none'; modal.setAttribute('aria-hidden','true'); }
+
+            // Event listeners for buttons and modals
+            document.getElementById('instructions-btn').addEventListener('click', ()=>{ playSound(clickSound); document.getElementById('instructions-modal').style.display='flex'; });
+            document.getElementById('close-instructions').addEventListener('click', ()=>{ document.getElementById('instructions-modal').style.display='none'; playSound(clickSound); });
+            document.getElementById('start-playing').addEventListener('click', ()=>{ document.getElementById('instructions-modal').style.display='none'; playSound(clickSound); });
+
+            document.getElementById('settings-btn').addEventListener('click', ()=>{ document.getElementById('settings-modal').style.display='flex'; playSound(clickSound); });
+            document.getElementById('close-settings').addEventListener('click', ()=>{ document.getElementById('settings-modal').style.display='none'; playSound(clickSound); });
+
+            document.getElementById('save-settings').addEventListener('click', ()=>{
+                const sizeSelect = document.getElementById('board-size');
+                gameState.boardSize = parseInt(sizeSelect.value,10);
+                gameState.currentPuzzle++; // advance puzzle index
+                document.getElementById('settings-modal').style.display='none';
+                generateBoard(); playSound(clickSound);
+            });
+
+            document.getElementById('check-btn').addEventListener('click', checkSolution);
+            document.getElementById('hint-btn').addEventListener('click', provideHint);
+            document.getElementById('solve-btn').addEventListener('click', autoSolve);
+
+            document.getElementById('restart-btn').addEventListener('click', ()=>{ playSound(clickSound); generateBoard(); });
+            document.getElementById('new-game-btn').addEventListener('click', ()=>{ playSound(clickSound); gameState.currentPuzzle++; generateBoard(); });
+            document.getElementById('undo-btn').addEventListener('click', undoLast);
+
+            document.getElementById('sound-toggle').addEventListener('click', function(){ gameState.soundEnabled = !gameState.soundEnabled; this.textContent = gameState.soundEnabled ? 'ON' : 'OFF'; if (gameState.soundEnabled) playSound(clickSound); });
+
+            // Win modal controls
+            document.getElementById('close-win').addEventListener('click', hideWinModal);
+            document.getElementById('play-again').addEventListener('click', ()=>{ hideWinModal(); generateBoard(); playSound(clickSound); });
+            document.getElementById('next-puzzle').addEventListener('click', ()=>{ hideWinModal(); gameState.currentPuzzle++; generateBoard(); playSound(clickSound); });
+
+            // Initialize
+            generateBoard();
+
+        });
+    </script>
+</body>
+</html>
+=======
+                
+                moves++;
+                movesElement.textContent = moves;
+            }
+            
+            // Check solution
+            function checkSolution() {
+                if (isSolving) return;
+                
+                playSound('click');
+                let correct = true;
+                let hasErrors = false;
+                
+                const cells = document.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    
+                    // Check if cell is correctly shaded
+                    if (cell.classList.contains('shaded') && solution[row][col] !== 1) {
+                        cell.classList.add('error');
+                        correct = false;
+                        hasErrors = true;
+                        setTimeout(() => cell.classList.remove('error'), 1000);
+                    } else if (!cell.classList.contains('shaded') && solution[row][col] === 1) {
+                        cell.classList.add('error');
+                        correct = false;
+                        hasErrors = true;
+                        setTimeout(() => cell.classList.remove('error'), 1000);
+                    }
+                });
+                
+                if (correct) {
+                    showResult('Congratulations!', 'You\'ve successfully solved the puzzle!', 'Continue');
+                    clearInterval(timerInterval);
+                    isPlaying = false;
+                } else if (!hasErrors) {
+                    showResult('Keep Trying', 'Your solution has no errors, but is not complete yet.', 'Continue');
+                }
+            }
+            
+            // Auto solve the puzzle
+            function autoSolve() {
+                if (isSolving) return;
+                
+                playSound('click');
+                isSolving = true;
+                solveStatus.textContent = 'Auto-solving...';
+                
+                const cells = document.querySelectorAll('.cell');
+                let delay = 0;
+                
+                // Animate the solution
+                for (let i = 0; i < boardSize; i++) {
+                    for (let j = 0; j < boardSize; j++) {
+                        const index = i * boardSize + j;
+                        const cell = cells[index];
+                        
+                        setTimeout(() => {
+                            if (solution[i][j] === 1) {
+                                cell.classList.remove('circle');
+                                cell.classList.add('shaded');
+                            } else {
+                                cell.classList.remove('shaded');
+                                cell.classList.remove('circle');
+                            }
+                            
+                            // If this is the last cell
+                            if (i === boardSize - 1 && j === boardSize - 1) {
+                                setTimeout(() => {
+                                    solveStatus.textContent = 'Puzzle solved!';
+                                    showResult('Puzzle Solved', 'The puzzle has been automatically solved.', 'Play Again');
+                                    isPlaying = false;
+                                    isSolving = false;
+                                }, 500);
+                            }
+                        }, delay);
+                        
+                        delay += 100; // 100ms between each cell
+                    }
+                }
+            }
+            
+            // Provide hint
+            function provideHint() {
+                if (hints <= 0) {
+                    alert('No hints left!');
+                    return;
+                }
+                
+                if (isSolving) return;
+                
+                playSound('click');
+                
+                // Find first incorrect cell and show correct state
+                const cells = document.querySelectorAll('.cell');
+                for (let cell of cells) {
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    
+                    // If cell is shaded but shouldn't be
+                    if (cell.classList.contains('shaded') && solution[row][col] !== 1) {
+                        cell.classList.remove('shaded');
+                        hints--;
+                        hintsElement.textContent = hints;
+                        return;
+                    }
+                    
+                    // If cell is not shaded but should be
+                    if (!cell.classList.contains('shaded') && solution[row][col] === 1) {
+                        cell.classList.add('shaded');
+                        hints--;
+                        hintsElement.textContent = hints;
+                        return;
+                    }
+                }
+                
+                // If we get here, the board is correct or we need to find a different hint
+                alert('You\'re on the right track! Keep going.');
+                hints--;
+                hintsElement.textContent = hints;
+            }
+            
+            // Reset board
+            function resetBoard() {
+                if (isSolving) return;
+                
+                playSound('click');
+                const cells = document.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    cell.classList.remove('shaded');
+                    cell.classList.remove('circle');
+                    cell.classList.remove('error');
+                });
+                
+                moves = 0;
+                movesElement.textContent = moves;
+            }
+            
+            // Show result modal
+            function showResult(title, message, buttonText) {
+                resultTitle.textContent = title;
+                resultMessage.textContent = message;
+                resultButton.textContent = buttonText;
+                resultModal.style.display = 'flex';
+            }
+            
+            // Start timer
+            function startTimer() {
+                clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    timer++;
+                    const minutes = Math.floor(timer / 60).toString().padStart(2, '0');
+                    const seconds = (timer % 60).toString().padStart(2, '0');
+                    timerElement.textContent = `${minutes}:${seconds}`;
+                }, 1000);
+            }
+            
+            // Play sound effects
+            function playSound(type) {
+                // In a real implementation, this would play actual sounds
+                console.log(`Playing sound: ${type}`);
+            }
+        });
+    </script>
+</body>
+</html>
+>>>>>>> 5d4c0fd315980b169f989bb56ecadd5d2e86494d

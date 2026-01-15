@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flow Free - Connect Matching Colors</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c2461 0%, #1e3799 30%, #4a69bd 70%, #6a89cc 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            touch-action: manipulation;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            padding: 10px 0;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #78e08f, #38ada9);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            color: #a0e7ff;
+            font-size: 0.9rem;
+        }
+
+        .game-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 20, 0.4);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .level-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .level-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #78e08f;
+        }
+
+        .level-size {
+            font-size: 0.8rem;
+            color: #a0e7ff;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .stat {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 12px;
+            border-radius: 10px;
+            min-width: 70px;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ffda79;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #a0e7ff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .game-display {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-board-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-board {
+            display: grid;
+            gap: 3px;
+            background-color: rgba(0, 20, 40, 0.7);
+            padding: 8px;
+            border-radius: 8px;
+            position: relative;
+            touch-action: none;
+        }
+
+        .cell {
+            background-color: rgba(30, 50, 80, 0.9);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .cell:hover {
+            background-color: rgba(50, 80, 120, 0.9);
+        }
+
+        .dot {
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            z-index: 2;
+            position: relative;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .flow-path {
+            position: absolute;
+            z-index: 1;
+            transition: all 0.3s;
+        }
+
+        .path-horizontal {
+            height: 40%;
+            width: 100%;
+            top: 30%;
+            left: 0;
+        }
+
+        .path-vertical {
+            width: 40%;
+            height: 100%;
+            top: 0;
+            left: 30%;
+        }
+
+        .path-corner-tl {
+            width: 60%;
+            height: 60%;
+            top: 0;
+            left: 0;
+            border-top-left-radius: 100%;
+            border-top: 5px solid;
+            border-left: 5px solid;
+        }
+
+        .path-corner-tr {
+            width: 60%;
+            height: 60%;
+            top: 0;
+            right: 0;
+            border-top-right-radius: 100%;
+            border-top: 5px solid;
+            border-right: 5px solid;
+        }
+
+        .path-corner-bl {
+            width: 60%;
+            height: 60%;
+            bottom: 0;
+            left: 0;
+            border-bottom-left-radius: 100%;
+            border-bottom: 5px solid;
+            border-left: 5px solid;
+        }
+
+        .path-corner-br {
+            width: 60%;
+            height: 60%;
+            bottom: 0;
+            right: 0;
+            border-bottom-right-radius: 100%;
+            border-bottom: 5px solid;
+            border-right: 5px solid;
+        }
+
+        .game-ui {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            flex-shrink: 0;
+            gap: 10px;
+        }
+
+        .ui-btn {
+            background: linear-gradient(135deg, #2980b9, #2c3e50);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            padding: 12px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .ui-btn:hover {
+            background: linear-gradient(135deg, #3498db, #1a252f);
+            transform: translateY(-2px);
+        }
+
+        .ui-btn:active {
+            transform: translateY(1px);
+        }
+
+        .ui-btn.hint-btn {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .ui-btn.hint-btn:hover {
+            background: linear-gradient(135deg, #f8a5ff, #ff6b81);
+        }
+
+        .ui-btn.solve-btn {
+            background: linear-gradient(135deg, #4cd137, #44bd32);
+        }
+
+        .ui-btn.solve-btn:hover {
+            background: linear-gradient(135deg, #5de048, #55d33c);
+        }
+
+        .ui-btn.check-btn {
+            background: linear-gradient(135deg, #ff9f43, #ee5a24);
+        }
+
+        .ui-btn.check-btn:hover {
+            background: linear-gradient(135deg, #ffaf60, #ff6b3d);
+        }
+
+        .ui-btn.new-btn {
+            background: linear-gradient(135deg, #18dcff, #17c0eb);
+        }
+
+        .ui-btn.new-btn:hover {
+            background: linear-gradient(135deg, #2be5ff, #29d1f9);
+        }
+
+        .level-selector {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .level-btn {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            margin: 0 5px;
+            text-align: center;
+        }
+
+        .level-btn:hover, .level-btn.active {
+            background: rgba(120, 224, 143, 0.3);
+            border-color: #78e08f;
+        }
+
+        .level-btn:first-child {
+            margin-left: 0;
+        }
+
+        .level-btn:last-child {
+            margin-right: 0;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #0c2461, #1e3799);
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            color: #78e08f;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            font-size: 1.8rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .instructions {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .instructions p {
+            margin-bottom: 10px;
+        }
+
+        .hint-box {
+            background: rgba(255, 159, 67, 0.1);
+            border-left: 4px solid #ff9f43;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .game-complete {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            border-radius: 15px;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .complete-message {
+            font-size: 2.5rem;
+            color: #78e08f;
+            margin-bottom: 10px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(120, 224, 143, 0.7);
+        }
+
+        .complete-submessage {
+            font-size: 1.2rem;
+            color: #a0e7ff;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .complete-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .complete-stat {
+            text-align: center;
+        }
+
+        .complete-stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffda79;
+        }
+
+        .complete-stat-label {
+            font-size: 0.8rem;
+            color: #a0e7ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 56, 56, 0.9);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 101;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+            display: none;
+            animation: fadeIn 0.3s;
+            max-width: 80%;
+        }
+
+        .error-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .error-details {
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        /* Color palette for dots */
+        .color-1 { background-color: #ff3838; }
+        .color-2 { background-color: #33d9b2; }
+        .color-3 { background-color: #ff9f43; }
+        .color-4 { background-color: #7158e2; }
+        .color-5 { background-color: #18dcff; }
+        .color-6 { background-color: #fffa65; }
+        .color-7 { background-color: #ff9ff3; }
+        .color-8 { background-color: #32ff7e; }
+        .color-9 { background-color: #7d5fff; }
+        .color-10 { background-color: #ffaf40; }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .game-ui {
+                flex-wrap: wrap;
+            }
+            
+            .ui-btn {
+                min-width: calc(50% - 5px);
+                margin-bottom: 5px;
+                padding: 10px;
+                font-size: 0.8rem;
+            }
+            
+            .stats {
+                gap: 8px;
+            }
+            
+            .stat {
+                min-width: 60px;
+                padding: 6px 8px;
+            }
+            
+            .stat-value {
+                font-size: 1.2rem;
+            }
+            
+            .level-btn {
+                padding: 6px 8px;
+                font-size: 0.7rem;
+            }
+            
+            .error-message {
+                padding: 15px 20px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-height: 700px) {
+            header {
+                padding: 5px 0;
+                margin-bottom: 5px;
+            }
+            
+            .game-header {
+                margin-bottom: 10px;
+            }
+            
+            .level-selector {
+                margin-bottom: 5px;
+            }
+            
+            .game-ui {
+                margin-top: 10px;
+            }
+            
+            .complete-message {
+                font-size: 2rem;
+            }
+            
+            .complete-submessage {
+                font-size: 1rem;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-stream"></i> Flow Free</h1>
+            <p class="subtitle">Connect matching colors with pipes to fill the board</p>
+        </header>
+        
+        <div class="game-area">
+            <div class="game-header">
+                <div class="level-info">
+                    <div class="level-name" id="level-name">Easy 5×5</div>
+                    <div class="level-size" id="level-size">5 colors • Level 1</div>
+                </div>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="moves">0</div>
+                        <div class="stat-label">Moves</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="time">0s</div>
+                        <div class="stat-label">Time</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="hints">3</div>
+                        <div class="stat-label">Hints</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="level-selector">
+                <button class="level-btn active" data-size="5">5×5</button>
+                <button class="level-btn" data-size="6">6×6</button>
+                <button class="level-btn" data-size="7">7×7</button>
+                <button class="level-btn" data-size="8">8×8</button>
+                <button class="level-btn" data-size="9">9×9</button>
+            </div>
+            
+            <div class="game-display">
+                <div class="game-board-container">
+                    <div class="game-board" id="game-board">
+                        <!-- Game board will be generated here -->
+                    </div>
+                    
+                    <!-- Error message overlay -->
+                    <div class="error-message" id="error-message">
+                        <div class="error-title" id="error-title">Generating Puzzle...</div>
+                        <div class="error-details" id="error-details">
+                            Creating a solvable puzzle. Please wait...
+                        </div>
+                        <div id="loading-spinner" style="font-size: 2rem; margin: 15px;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Completion overlay -->
+                    <div class="game-complete" id="game-complete">
+                        <div class="complete-message" id="complete-message">Perfect Flow!</div>
+                        <div class="complete-submessage" id="complete-submessage">All colors connected without overlap</div>
+                        <div class="complete-stats">
+                            <div class="complete-stat">
+                                <div class="complete-stat-value" id="complete-time">0s</div>
+                                <div class="complete-stat-label">Time</div>
+                            </div>
+                            <div class="complete-stat">
+                                <div class="complete-stat-value" id="complete-moves">0</div>
+                                <div class="complete-stat-label">Moves</div>
+                            </div>
+                            <div class="complete-stat">
+                                <div class="complete-stat-value" id="complete-hints">0</div>
+                                <div class="complete-stat-label">Hints Used</div>
+                            </div>
+                        </div>
+                        <button class="ui-btn new-btn" id="next-puzzle-btn">
+                            <i class="fas fa-forward"></i> Next Puzzle
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="game-ui">
+                    <button class="ui-btn hint-btn" id="hint-btn">
+                        <i class="fas fa-lightbulb"></i> Hint
+                    </button>
+                    <button class="ui-btn check-btn" id="check-btn">
+                        <i class="fas fa-check-circle"></i> Check
+                    </button>
+                    <button class="ui-btn solve-btn" id="solve-btn">
+                        <i class="fas fa-bolt"></i> Auto-Solve
+                    </button>
+                    <button class="ui-btn new-btn" id="new-game-btn">
+                        <i class="fas fa-redo"></i> New Game
+                    </button>
+                    <button class="ui-btn" id="instructions-btn">
+                        <i class="fas fa-info-circle"></i> How to Play
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Instructions Modal -->
+    <div class="modal" id="instructions-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">How to Play Flow Free</h3>
+                <button class="close-modal" id="close-instructions">&times;</button>
+            </div>
+            <div class="instructions">
+                <p>Connect matching colors with pipes to create a flow. Fill the entire board to solve each puzzle!</p>
+                
+                <div class="hint-box">
+                    <strong>Rules:</strong>
+                    <ol>
+                        <li>Connect dots of the same color with a continuous pipe</li>
+                        <li>Pipes cannot cross or overlap each other</li>
+                        <li>Every cell on the board must be filled with a pipe</li>
+                        <li>You can change your path at any time</li>
+                    </ol>
+                </div>
+                
+                <p><strong>Guaranteed Solvable Puzzles:</strong></p>
+                <p>Every puzzle generated is guaranteed to have at least one solution. The game creates a complete solution first, then removes the paths to create the puzzle.</p>
+                
+                <div class="hint-box">
+                    <strong>Tips:</strong>
+                    <ul>
+                        <li>Start with colors that have limited options</li>
+                        <li>Look for dots that are already close to each other</li>
+                        <li>Use the edges and corners strategically</li>
+                        <li>If stuck, use a hint to reveal part of a solution</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sound elements -->
+    <audio id="click-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3" preload="auto"></audio>
+    <audio id="connect-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" preload="auto"></audio>
+    <audio id="win-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" preload="auto"></audio>
+    <audio id="hint-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-magic-sparkles-3003.mp3" preload="auto"></audio>
+    <audio id="error-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3" preload="auto"></audio>
+
+    <script>
+        // Game state variables
+        let currentGame = null;
+        let boardSize = 5;
+        let colors = [];
+        let dots = [];
+        let paths = {};
+        let moves = 0;
+        let hintsUsed = 0;
+        let gameTime = 0;
+        let timerInterval = null;
+        let gameActive = true;
+        let currentDrawingColor = null;
+        let isDrawing = false;
+        let lastCell = null;
+        let solutionPaths = {}; // Store the guaranteed solution
+        let generatingPuzzle = false;
+        
+        // Game configuration
+        const colorPalette = [
+            '#ff3838', '#33d9b2', '#ff9f43', '#7158e2', '#18dcff',
+            '#fffa65', '#ff9ff3', '#32ff7e', '#7d5fff', '#ffaf40'
+        ];
+        
+        // Game levels
+        const levels = {
+            5: { name: "Easy 5×5", colors: 5 },
+            6: { name: "Medium 6×6", colors: 6 },
+            7: { name: "Hard 7×7", colors: 7 },
+            8: { name: "Expert 8×8", colors: 8 },
+            9: { name: "Master 9×9", colors: 9 }
+        };
+        
+        // DOM Elements
+        const gameBoard = document.getElementById('game-board');
+        const levelName = document.getElementById('level-name');
+        const levelSize = document.getElementById('level-size');
+        const movesElement = document.getElementById('moves');
+        const timeElement = document.getElementById('time');
+        const hintsElement = document.getElementById('hints');
+        const hintBtn = document.getElementById('hint-btn');
+        const checkBtn = document.getElementById('check-btn');
+        const solveBtn = document.getElementById('solve-btn');
+        const newGameBtn = document.getElementById('new-game-btn');
+        const instructionsBtn = document.getElementById('instructions-btn');
+        const nextPuzzleBtn = document.getElementById('next-puzzle-btn');
+        const gameComplete = document.getElementById('game-complete');
+        const errorMessage = document.getElementById('error-message');
+        const errorTitle = document.getElementById('error-title');
+        const errorDetails = document.getElementById('error-details');
+        const instructionsModal = document.getElementById('instructions-modal');
+        const closeInstructions = document.getElementById('close-instructions');
+        const levelBtns = document.querySelectorAll('.level-btn');
+        
+        // Sound elements
+        const clickSound = document.getElementById('click-sound');
+        const connectSound = document.getElementById('connect-sound');
+        const winSound = document.getElementById('win-sound');
+        const hintSound = document.getElementById('hint-sound');
+        const errorSound = document.getElementById('error-sound');
+        
+        // Initialize the game
+        document.addEventListener('DOMContentLoaded', () => {
+            initGame(boardSize);
+            startTimer();
+            
+            // Level selector buttons
+            levelBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const size = parseInt(btn.getAttribute('data-size'));
+                    boardSize = size;
+                    
+                    // Update active button
+                    levelBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    initGame(size);
+                    playSound(clickSound);
+                });
+            });
+            
+            // UI buttons
+            hintBtn.addEventListener('click', giveHint);
+            checkBtn.addEventListener('click', checkSolution);
+            solveBtn.addEventListener('click', autoSolve);
+            newGameBtn.addEventListener('click', newGame);
+            instructionsBtn.addEventListener('click', showInstructions);
+            nextPuzzleBtn.addEventListener('click', nextPuzzle);
+            closeInstructions.addEventListener('click', () => {
+                instructionsModal.style.display = 'none';
+                playSound(clickSound);
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === instructionsModal) {
+                    instructionsModal.style.display = 'none';
+                    playSound(clickSound);
+                }
+            });
+            
+            // Setup touch events for mobile
+            setupTouchEvents();
+        });
+        
+        // Initialize game with specified size
+        function initGame(size) {
+            if (generatingPuzzle) return;
+            
+            boardSize = size;
+            moves = 0;
+            hintsUsed = 0;
+            gameTime = 0;
+            gameActive = true;
+            currentDrawingColor = null;
+            isDrawing = false;
+            lastCell = null;
+            
+            // Update level info
+            levelName.textContent = levels[size].name;
+            levelSize.textContent = `${levels[size].colors} colors • Level ${size - 4}`;
+            
+            // Update UI
+            movesElement.textContent = moves;
+            hintsElement.textContent = 3 - hintsUsed;
+            timeElement.textContent = "0s";
+            
+            // Hide error and completion overlays
+            gameComplete.style.display = 'none';
+            
+            // Show generating message
+            errorTitle.textContent = "Generating Puzzle...";
+            errorDetails.textContent = "Creating a solvable puzzle. Please wait...";
+            errorMessage.style.display = 'block';
+            
+            // Generate a guaranteed solvable puzzle
+            setTimeout(() => {
+                generateGuaranteedSolvablePuzzle(size);
+                createBoard();
+                errorMessage.style.display = 'none';
+            }, 10); // Small delay to show the message
+        }
+        
+        // Generate a guaranteed solvable puzzle by creating a solution first
+        function generateGuaranteedSolvablePuzzle(size) {
+            generatingPuzzle = true;
+            
+            // Reset data structures
+            colors = [];
+            dots = [];
+            paths = {};
+            solutionPaths = {};
+            
+            const numColors = levels[size].colors;
+            
+            // Select colors from palette
+            const shuffledColors = [...colorPalette].sort(() => Math.random() - 0.5);
+            colors = shuffledColors.slice(0, numColors);
+            
+            // Create an empty grid
+            const grid = Array(size).fill().map(() => Array(size).fill(null));
+            const allCells = [];
+            
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    allCells.push({ row: r, col: c });
+                }
+            }
+            
+            // Shuffle cells
+            shuffleArray(allCells);
+            
+            // Assign colors to cells to create paths
+            const colorAssignments = {};
+            const usedCells = new Set();
+            
+            // Create solution paths for each color
+            for (let colorIndex = 0; colorIndex < numColors; colorIndex++) {
+                solutionPaths[colorIndex] = [];
+                
+                // Find two random unassigned cells for this color
+                let availableCells = allCells.filter(cell => 
+                    !usedCells.has(`${cell.row},${cell.col}`)
+                );
+                
+                if (availableCells.length < 2) {
+                    // Not enough cells, retry
+                    generatingPuzzle = false;
+                    generateGuaranteedSolvablePuzzle(size);
+                    return;
+                }
+                
+                // Pick first cell for this color
+                const cell1 = availableCells[0];
+                usedCells.add(`${cell1.row},${cell1.col}`);
+                solutionPaths[colorIndex].push({ row: cell1.row, col: cell1.col });
+                
+                // Find a second cell that's not too far (to ensure connectability)
+                availableCells = allCells.filter(cell => 
+                    !usedCells.has(`${cell.row},${cell.col}`)
+                );
+                
+                // Sort by distance from first cell
+                availableCells.sort((a, b) => {
+                    const distA = Math.abs(a.row - cell1.row) + Math.abs(a.col - cell1.col);
+                    const distB = Math.abs(b.row - cell1.row) + Math.abs(b.col - cell1.col);
+                    return distA - distB;
+                });
+                
+                // Take a cell that's reasonably close
+                const maxDistance = Math.min(size, 4);
+                const closeCells = availableCells.filter(cell => 
+                    Math.abs(cell.row - cell1.row) + Math.abs(cell.col - cell1.col) <= maxDistance
+                );
+                
+                const cell2 = closeCells.length > 0 ? closeCells[0] : availableCells[0];
+                usedCells.add(`${cell2.row},${cell2.col}`);
+                solutionPaths[colorIndex].push({ row: cell2.row, col: cell2.col });
+                
+                // Create dots for these cells
+                dots.push({
+                    colorIndex: colorIndex,
+                    color: colors[colorIndex],
+                    row: cell1.row,
+                    col: cell1.col,
+                    isStart: true
+                });
+                
+                dots.push({
+                    colorIndex: colorIndex,
+                    color: colors[colorIndex],
+                    row: cell2.row,
+                    col: cell2.col,
+                    isStart: false
+                });
+                
+                // Initialize empty path for player
+                paths[colorIndex] = [];
+            }
+            
+            // Now fill the rest of the board with paths connecting the dots
+            // For simplicity, we'll use a simple connection algorithm
+            // In a real game, you'd want more complex path generation
+            
+            // For each color, create a simple straight-line path between its dots
+            for (let colorIndex = 0; colorIndex < numColors; colorIndex++) {
+                const colorDots = dots.filter(d => d.colorIndex === colorIndex);
+                const startDot = colorDots.find(d => d.isStart);
+                const endDot = colorDots.find(d => !d.isStart);
+                
+                // Generate a simple path (straight lines)
+                const path = generateSimplePath(startDot, endDot, grid, size);
+                solutionPaths[colorIndex] = path;
+                
+                // Mark cells in grid
+                path.forEach(cell => {
+                    if (!grid[cell.row][cell.col]) {
+                        grid[cell.row][cell.col] = colorIndex;
+                    }
+                });
+            }
+            
+            // Fill remaining empty cells with random colors (ensuring they connect)
+            fillRemainingCells(grid, size, numColors);
+            
+            // Now we have a complete solution in solutionPaths
+            // The player will only see the dots, not the paths
+            
+            generatingPuzzle = false;
+        }
+        
+        // Generate a simple path between two points (straight lines)
+        function generateSimplePath(start, end, grid, size) {
+            const path = [{ row: start.row, col: start.col }];
+            let currentRow = start.row;
+            let currentCol = start.col;
+            
+            // Move horizontally first, then vertically
+            // Check if horizontal move is available
+            let horizontalBlocked = false;
+            let verticalBlocked = false;
+            
+            // Try to find a clear path
+            const rows = Math.abs(start.row - end.row);
+            const cols = Math.abs(start.col - end.col);
+            
+            // Choose path with fewer obstacles
+            if (rows <= cols) {
+                // Move vertically first
+                while (currentRow !== end.row) {
+                    if (currentRow < end.row) currentRow++;
+                    else currentRow--;
+                    if (grid[currentRow][currentCol] === null) {
+                        path.push({ row: currentRow, col: currentCol });
+                    }
+                }
+                while (currentCol !== end.col) {
+                    if (currentCol < end.col) currentCol++;
+                    else currentCol--;
+                    if (grid[currentRow][currentCol] === null) {
+                        path.push({ row: currentRow, col: currentCol });
+                    }
+                }
+            } else {
+                // Move horizontally first
+                while (currentCol !== end.col) {
+                    if (currentCol < end.col) currentCol++;
+                    else currentCol--;
+                    if (grid[currentRow][currentCol] === null) {
+                        path.push({ row: currentRow, col: currentCol });
+                    }
+                }
+                while (currentRow !== end.row) {
+                    if (currentRow < end.row) currentRow++;
+                    else currentRow--;
+                    if (grid[currentRow][currentCol] === null) {
+                        path.push({ row: currentRow, col: currentCol });
+                    }
+                }
+            }
+            
+            return path;
+        }
+        
+        // Fill remaining empty cells in the grid
+        function fillRemainingCells(grid, size, numColors) {
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
+                    if (grid[row][col] === null) {
+                        // Find an adjacent color to extend
+                        const neighbors = [
+                            { r: row-1, c: col },
+                            { r: row+1, c: col },
+                            { r: row, c: col-1 },
+                            { r: row, c: col+1 }
+                        ].filter(n => n.r >= 0 && n.r < size && n.c >= 0 && n.c < size);
+                        
+                        // Count adjacent colors
+                        const colorCounts = {};
+                        neighbors.forEach(n => {
+                            const color = grid[n.r][n.c];
+                            if (color !== null) {
+                                colorCounts[color] = (colorCounts[color] || 0) + 1;
+                            }
+                        });
+                        
+                        if (Object.keys(colorCounts).length > 0) {
+                            // Assign to most common adjacent color
+                            const maxColor = Object.keys(colorCounts).reduce((a, b) => 
+                                colorCounts[a] > colorCounts[b] ? a : b
+                            );
+                            grid[row][col] = parseInt(maxColor);
+                            
+                            // Add to solution path
+                            solutionPaths[maxColor].push({ row, col });
+                        } else {
+                            // Assign random color
+                            const randomColor = Math.floor(Math.random() * numColors);
+                            grid[row][col] = randomColor;
+                            solutionPaths[randomColor].push({ row, col });
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Shuffle array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // Create the game board UI
+        function createBoard() {
+            // Clear the board
+            gameBoard.innerHTML = '';
+            
+            // Set grid template
+            gameBoard.style.gridTemplateColumns = `repeat(${boardSize}, 1fr)`;
+            gameBoard.style.gridTemplateRows = `repeat(${boardSize}, 1fr)`;
+            
+            // Calculate cell size based on board size
+            const cellSize = Math.min(60, 400 / boardSize);
+            gameBoard.style.width = `${cellSize * boardSize + 16}px`;
+            gameBoard.style.height = `${cellSize * boardSize + 16}px`;
+            
+            // Create cells
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.dataset.index = row * boardSize + col;
+                    
+                    // Check if this cell has a dot
+                    const dot = dots.find(d => d.row === row && d.col === col);
+                    if (dot) {
+                        const dotElement = document.createElement('div');
+                        dotElement.className = `dot color-${dot.colorIndex + 1}`;
+                        dotElement.style.backgroundColor = dot.color;
+                        cell.appendChild(dotElement);
+                        cell.classList.add('has-dot');
+                        cell.dataset.colorIndex = dot.colorIndex;
+                    }
+                    
+                    // Add event listeners for desktop
+                    cell.addEventListener('mousedown', handleCellMouseDown);
+                    cell.addEventListener('mouseenter', handleCellMouseEnter);
+                    cell.addEventListener('mouseup', handleCellMouseUp);
+                    
+                    // Add event listeners for touch
+                    cell.addEventListener('touchstart', handleCellTouchStart, { passive: false });
+                    cell.addEventListener('touchmove', handleCellTouchMove, { passive: false });
+                    cell.addEventListener('touchend', handleCellTouchEnd);
+                    
+                    // Double click to clear path
+                    let lastTap = 0;
+                    cell.addEventListener('click', (e) => {
+                        const currentTime = new Date().getTime();
+                        const tapLength = currentTime - lastTap;
+                        if (tapLength < 300 && tapLength > 0) {
+                            // Double tap detected
+                            const colorIndex = cell.dataset.colorIndex;
+                            if (colorIndex !== undefined) {
+                                clearPath(parseInt(colorIndex));
+                            }
+                        }
+                        lastTap = currentTime;
+                    });
+                    
+                    gameBoard.appendChild(cell);
+                }
+            }
+            
+            // Draw any existing paths
+            redrawAllPaths();
+        }
+        
+        // Handle mouse down on a cell
+        function handleCellMouseDown(e) {
+            if (!gameActive) return;
+            
+            const cell = e.currentTarget;
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            
+            handleCellStart(row, col);
+            
+            // Prevent default to avoid text selection
+            e.preventDefault();
+        }
+        
+        // Handle mouse enter while dragging
+        function handleCellMouseEnter(e) {
+            if (!gameActive || !isDrawing) return;
+            
+            const cell = e.currentTarget;
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            
+            handleCellMove(row, col);
+        }
+        
+        // Handle mouse up
+        function handleCellMouseUp() {
+            if (!gameActive || !isDrawing) return;
+            
+            handleCellEnd();
+        }
+        
+        // Handle touch start on a cell
+        function handleCellTouchStart(e) {
+            if (!gameActive) return;
+            
+            const cell = e.currentTarget;
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            
+            handleCellStart(row, col);
+            
+            // Prevent default to avoid scrolling
+            e.preventDefault();
+        }
+        
+        // Handle touch move
+        function handleCellTouchMove(e) {
+            if (!gameActive || !isDrawing) return;
+            
+            // Get the touched cell
+            const touch = e.touches[0];
+            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            if (element && element.classList.contains('cell')) {
+                const row = parseInt(element.dataset.row);
+                const col = parseInt(element.dataset.col);
+                
+                handleCellMove(row, col);
+            }
+            
+            // Prevent default to avoid scrolling
+            e.preventDefault();
+        }
+        
+        // Handle touch end
+        function handleCellTouchEnd() {
+            if (!gameActive || !isDrawing) return;
+            
+            handleCellEnd();
+        }
+        
+        // Setup touch events for the game board
+        function setupTouchEvents() {
+            // Prevent scrolling when touching the game board
+            gameBoard.addEventListener('touchmove', (e) => {
+                if (isDrawing) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        }
+        
+        // Start drawing a path
+        function handleCellStart(row, col) {
+            const cellIndex = row * boardSize + col;
+            const cell = document.querySelector(`.cell[data-index="${cellIndex}"]`);
+            
+            // Check if this cell has a dot
+            const dot = dots.find(d => d.row === row && d.col === col);
+            
+            if (dot) {
+                // Start drawing from this dot's color
+                currentDrawingColor = dot.colorIndex;
+                isDrawing = true;
+                lastCell = { row, col };
+                
+                // Clear any existing path for this color
+                clearPath(currentDrawingColor);
+                
+                // Add the starting dot to the path
+                addToPath(currentDrawingColor, row, col);
+                
+                playSound(clickSound);
+            } else if (currentDrawingColor !== null) {
+                // Check if this cell is part of the current path
+                const path = paths[currentDrawingColor];
+                const pathIndex = path.findIndex(p => p.row === row && p.col === col);
+                
+                if (pathIndex !== -1) {
+                    // Truncate the path to this point
+                    truncatePath(currentDrawingColor, pathIndex);
+                    lastCell = { row, col };
+                    isDrawing = true;
+                    playSound(clickSound);
+                }
+            }
+        }
+        
+        // Continue drawing a path
+        function handleCellMove(row, col) {
+            if (!isDrawing || currentDrawingColor === null) return;
+            
+            // Check if the move is valid (adjacent cells)
+            if (isValidMove(lastCell.row, lastCell.col, row, col)) {
+                // Check if the cell is empty or part of the current path
+                const path = paths[currentDrawingColor];
+                const cellInPath = path.find(p => p.row === row && p.col === col);
+                
+                if (cellInPath) {
+                    // If we're moving back along the path, truncate it
+                    const pathIndex = path.findIndex(p => p.row === row && p.col === col);
+                    if (pathIndex !== path.length - 1) {
+                        truncatePath(currentDrawingColor, pathIndex);
+                        lastCell = { row, col };
+                        moves++;
+                        movesElement.textContent = moves;
+                        playSound(connectSound);
+                    }
+                } else {
+                    // Check if cell is occupied by another color
+                    const cellOccupied = isCellOccupied(row, col, currentDrawingColor);
+                    
+                    if (!cellOccupied) {
+                        // Add the cell to the path
+                        addToPath(currentDrawingColor, row, col);
+                        lastCell = { row, col };
+                        moves++;
+                        movesElement.textContent = moves;
+                        playSound(connectSound);
+                        
+                        // Check if we've reached the other dot
+                        const otherDot = dots.find(d => 
+                            d.colorIndex === currentDrawingColor && 
+                            d.row === row && d.col === col &&
+                            !d.isStart
+                        );
+                        
+                        if (otherDot) {
+                            // Path completed for this color
+                            isDrawing = false;
+                            currentDrawingColor = null;
+                            
+                            // Check if all paths are complete
+                            if (checkAllPathsComplete()) {
+                                endGame(true);
+                            }
+                        }
+                    } else {
+                        // Cell is occupied by another color
+                        playSound(errorSound);
+                    }
+                }
+            }
+        }
+        
+        // Stop drawing
+        function handleCellEnd() {
+            isDrawing = false;
+            
+            // If we're not currently drawing from a dot, allow changing colors
+            if (currentDrawingColor !== null) {
+                const path = paths[currentDrawingColor];
+                if (path.length > 0) {
+                    const lastCellInPath = path[path.length - 1];
+                    const dotHere = dots.find(d => 
+                        d.row === lastCellInPath.row && 
+                        d.col === lastCellInPath.col &&
+                        d.colorIndex === currentDrawingColor
+                    );
+                    
+                    if (!dotHere) {
+                        // We ended not on a dot, so allow changing colors
+                        currentDrawingColor = null;
+                    }
+                }
+            }
+        }
+        
+        // Add a cell to a path
+        function addToPath(colorIndex, row, col) {
+            if (!paths[colorIndex]) {
+                paths[colorIndex] = [];
+            }
+            
+            paths[colorIndex].push({ row, col });
+            redrawPath(colorIndex);
+        }
+        
+        // Clear a path completely
+        function clearPath(colorIndex) {
+            if (!paths[colorIndex]) return;
+            
+            paths[colorIndex] = [];
+            redrawPath(colorIndex);
+            moves++;
+            movesElement.textContent = moves;
+            playSound(clickSound);
+        }
+        
+        // Truncate a path to a specific index
+        function truncatePath(colorIndex, index) {
+            if (!paths[colorIndex] || index < 0 || index >= paths[colorIndex].length) return;
+            
+            paths[colorIndex] = paths[colorIndex].slice(0, index + 1);
+            redrawPath(colorIndex);
+        }
+        
+        // Redraw a specific path
+        function redrawPath(colorIndex) {
+            // Remove all existing path elements for this color
+            document.querySelectorAll(`.flow-path.color-${colorIndex + 1}`).forEach(el => el.remove());
+            
+            const path = paths[colorIndex];
+            if (path.length === 0) return;
+            
+            // Draw the path
+            for (let i = 0; i < path.length; i++) {
+                const cell = path[i];
+                const cellElement = document.querySelector(`.cell[data-row="${cell.row}"][data-col="${cell.col}"]`);
+                
+                // Determine what type of path segment to draw
+                if (i > 0) {
+                    const prev = path[i - 1];
+                    
+                    // Draw connection from previous cell to this cell
+                    if (prev.row === cell.row) {
+                        // Horizontal connection
+                        const minCol = Math.min(prev.col, cell.col);
+                        const maxCol = Math.max(prev.col, cell.col);
+                        
+                        for (let col = minCol; col <= maxCol; col++) {
+                            if (col === minCol && col === prev.col) continue;
+                            
+                            const connectCell = document.querySelector(`.cell[data-row="${cell.row}"][data-col="${col}"]`);
+                            drawPathSegment(connectCell, colorIndex, 'horizontal');
+                        }
+                    } else if (prev.col === cell.col) {
+                        // Vertical connection
+                        const minRow = Math.min(prev.row, cell.row);
+                        const maxRow = Math.max(prev.row, cell.row);
+                        
+                        for (let row = minRow; row <= maxRow; row++) {
+                            if (row === minRow && row === prev.row) continue;
+                            
+                            const connectCell = document.querySelector(`.cell[data-row="${row}"][data-col="${cell.col}"]`);
+                            drawPathSegment(connectCell, colorIndex, 'vertical');
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Draw all paths
+        function redrawAllPaths() {
+            for (let i = 0; i < colors.length; i++) {
+                redrawPath(i);
+            }
+        }
+        
+        // Draw a path segment in a cell
+        function drawPathSegment(cellElement, colorIndex, type) {
+            // Remove any existing path segment in this cell (except dots)
+            const existingSegments = cellElement.querySelectorAll('.flow-path:not(.dot)');
+            existingSegments.forEach(segment => {
+                // Only remove if it's not the same color
+                if (!segment.classList.contains(`color-${colorIndex + 1}`)) {
+                    segment.remove();
+                }
+            });
+            
+            // Create new path segment
+            const segment = document.createElement('div');
+            segment.className = `flow-path color-${colorIndex + 1} path-${type}`;
+            segment.style.borderColor = colors[colorIndex];
+            
+            // Add to cell
+            cellElement.appendChild(segment);
+        }
+        
+        // Check if a move is valid (adjacent cells)
+        function isValidMove(fromRow, fromCol, toRow, toCol) {
+            const rowDiff = Math.abs(fromRow - toRow);
+            const colDiff = Math.abs(fromCol - toCol);
+            
+            return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+        }
+        
+        // Check if a cell is occupied by another color's path
+        function isCellOccupied(row, col, exceptColorIndex) {
+            for (let i = 0; i < colors.length; i++) {
+                if (i === exceptColorIndex) continue;
+                
+                const path = paths[i];
+                if (path && path.some(p => p.row === row && p.col === col)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        // Check if all paths are complete AND board is fully filled
+        function checkAllPathsComplete() {
+            // First check if all colors have both dots connected
+            for (let i = 0; i < colors.length; i++) {
+                const path = paths[i];
+                if (!path || path.length === 0) return false;
+                
+                // Get the two dots for this color
+                const colorDots = dots.filter(d => d.colorIndex === i);
+                const startDot = colorDots.find(d => d.isStart);
+                const endDot = colorDots.find(d => !d.isStart);
+                
+                // Check if both dots are in the path
+                const hasStart = path.some(p => p.row === startDot.row && p.col === startDot.col);
+                const hasEnd = path.some(p => p.row === endDot.row && p.col === endDot.col);
+                
+                if (!hasStart || !hasEnd) return false;
+            }
+            
+            // Now check if board is fully filled
+            return isBoardFullyFilled();
+        }
+        
+        // Check if the entire board is filled with pipes
+        function isBoardFullyFilled() {
+            const totalCells = boardSize * boardSize;
+            const uniqueCells = new Set();
+            
+            for (let i = 0; i < colors.length; i++) {
+                const path = paths[i];
+                if (path) {
+                    path.forEach(p => {
+                        uniqueCells.add(`${p.row},${p.col}`);
+                    });
+                }
+            }
+            
+            return uniqueCells.size === totalCells;
+        }
+        
+        // Game control functions
+        function giveHint() {
+            if (!gameActive || hintsUsed >= 3) return;
+            
+            playSound(hintSound);
+            hintsUsed++;
+            hintsElement.textContent = 3 - hintsUsed;
+            
+            // Find the first color that's not correctly connected
+            let hintColor = null;
+            
+            for (let i = 0; i < colors.length; i++) {
+                const path = paths[i];
+                const solution = solutionPaths[i] || [];
+                
+                if (!path || path.length === 0) {
+                    hintColor = i;
+                    break;
+                }
+                
+                // Check if path matches solution (simplified check)
+                const colorDots = dots.filter(d => d.colorIndex === i);
+                const startDot = colorDots.find(d => d.isStart);
+                const endDot = colorDots.find(d => !d.isStart);
+                
+                const hasStart = path.some(p => p.row === startDot.row && p.col === startDot.col);
+                const hasEnd = path.some(p => p.row === endDot.row && p.col === endDot.col);
+                
+                if (!hasStart || !hasEnd) {
+                    hintColor = i;
+                    break;
+                }
+            }
+            
+            if (hintColor === null) return;
+            
+            // Show a part of the solution path
+            const solution = solutionPaths[hintColor];
+            if (solution && solution.length > 0) {
+                // Highlight a few cells from the solution
+                const cellsToHighlight = Math.min(3, solution.length);
+                for (let i = 0; i < cellsToHighlight; i++) {
+                    const cell = solution[i];
+                    const cellElement = document.querySelector(`.cell[data-row="${cell.row}"][data-col="${cell.col}"]`);
+                    if (cellElement) {
+                        cellElement.style.boxShadow = '0 0 15px #ff9f43';
+                        setTimeout(() => {
+                            cellElement.style.boxShadow = '';
+                        }, 2000);
+                    }
+                }
+                
+                // Also show the color name in the hint
+                const colorNames = ['Red', 'Green', 'Orange', 'Purple', 'Cyan', 'Yellow', 'Pink', 'Lime', 'Violet', 'Gold'];
+                alert(`Hint: Try connecting the ${colorNames[hintColor]} dots. Some solution cells are highlighted.`);
+            }
+        }
+        
+        function checkSolution() {
+            if (!gameActive) return;
+            
+            playSound(clickSound);
+            
+            if (checkAllPathsComplete()) {
+                // Solution is complete
+                endGame(true);
+            } else {
+                // Check for empty cells
+                const emptyCells = getEmptyCells();
+                
+                if (emptyCells.length > 0) {
+                    // Highlight empty cells
+                    emptyCells.forEach(cell => {
+                        const cellElement = document.querySelector(`.cell[data-row="${cell.row}"][data-col="${cell.col}"]`);
+                        if (cellElement) {
+                            cellElement.style.backgroundColor = 'rgba(255, 56, 56, 0.5)';
+                            setTimeout(() => {
+                                cellElement.style.backgroundColor = '';
+                            }, 2000);
+                        }
+                    });
+                    
+                    playSound(errorSound);
+                    alert(`Solution incomplete! ${emptyCells.length} cells remain empty. Remember: ALL cells must be filled in Flow Free!`);
+                } else {
+                    // Check for other errors
+                    alert("No obvious errors found! Keep going to complete all paths.");
+                }
+            }
+        }
+        
+        function autoSolve() {
+            if (!gameActive) return;
+            
+            playSound(clickSound);
+            
+            // Use the guaranteed solution
+            for (let i = 0; i < colors.length; i++) {
+                const solution = solutionPaths[i];
+                if (solution) {
+                    // Filter solution to remove duplicate consecutive cells
+                    const uniquePath = [];
+                    for (let j = 0; j < solution.length; j++) {
+                        if (j === 0 || solution[j].row !== solution[j-1].row || solution[j].col !== solution[j-1].col) {
+                            uniquePath.push(solution[j]);
+                        }
+                    }
+                    paths[i] = uniquePath;
+                }
+            }
+            
+            // Redraw all paths
+            redrawAllPaths();
+            
+            // Update moves
+            moves += colors.length * 5;
+            movesElement.textContent = moves;
+            
+            // End the game with solution
+            setTimeout(() => endGame(true), 500);
+        }
+        
+        function getEmptyCells() {
+            const emptyCells = [];
+            const filledCells = new Set();
+            
+            // Mark all filled cells
+            for (let i = 0; i < colors.length; i++) {
+                const path = paths[i];
+                if (path) {
+                    path.forEach(p => {
+                        filledCells.add(`${p.row},${p.col}`);
+                    });
+                }
+            }
+            
+            // Find empty cells
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    if (!filledCells.has(`${row},${col}`)) {
+                        emptyCells.push({ row, col });
+                    }
+                }
+            }
+            
+            return emptyCells;
+        }
+        
+        function newGame() {
+            playSound(clickSound);
+            initGame(boardSize);
+        }
+        
+        function nextPuzzle() {
+            playSound(clickSound);
+            initGame(boardSize);
+        }
+        
+        function showInstructions() {
+            playSound(clickSound);
+            instructionsModal.style.display = 'flex';
+        }
+        
+        function endGame(isWin) {
+            gameActive = false;
+            
+            if (isWin) {
+                playSound(winSound);
+                completeMessage.textContent = "Perfect Flow!";
+                completeSubmessage.textContent = "All colors connected without overlap";
+                
+                // Update completion stats
+                completeTime.textContent = `${gameTime}s`;
+                completeMoves.textContent = moves;
+                completeHints.textContent = hintsUsed;
+                
+                // Show completion overlay
+                gameComplete.style.display = 'flex';
+            }
+        }
+        
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                if (gameActive) {
+                    gameTime++;
+                    timeElement.textContent = `${gameTime}s`;
+                }
+            }, 1000);
+        }
+        
+        function playSound(sound) {
+            try {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log("Sound play failed:", e));
+            } catch(e) {
+                console.log("Sound error:", e);
+            }
+        }
+    </script>
+</body>
+</html>

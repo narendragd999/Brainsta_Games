@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>जल पहेली - Connected Pipe Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #071024, #083b62);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .game-header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .game-title {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            color: #4facfe;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-subtitle {
+            font-size: 1.1rem;
+            color: #a0d2ff;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        #gameContainer {
+            width: 100%;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            background: #0a1a32;
+        }
+        
+        .overlay-ui {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 10px;
+            width: 1000px;
+            max-width: calc(100% - 40px);
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px;
+            pointer-events: auto;
+        }
+        
+        .btn {
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            border: none;
+            color: #062033;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn:disabled {
+            background: linear-gradient(90deg, #3a5a78, #4a8a94);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .info {
+            background: rgba(255, 255, 255, 0.06);
+            padding: 8px 12px;
+            border-radius: 8px;
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 800px;
+            margin-top: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .instructions h3 {
+            color: #4facfe;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            list-style-type: none;
+            padding-left: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .instructions li::before {
+            content: "•";
+            color: #00f2fe;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .level-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .level-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .level-dot.active {
+            background: #4facfe;
+            box-shadow: 0 0 8px #4facfe;
+        }
+        
+        .level-dot.completed {
+            background: #2ecc71;
+        }
+        
+        @media (max-width: 768px) {
+            .topbar {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .game-title {
+                font-size: 2rem;
+            }
+            
+            .game-subtitle {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <h1 class="game-title">जल पहेली</h1>
+            <p class="game-subtitle">पाइपों को जोड़कर पानी को स्रोत से लक्ष्य तक पहुँचाएं</p>
+        </div>
+        
+        <div id="gameContainer"></div>
+        
+        <div class="overlay-ui">
+            <div class="topbar">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button id="startBtn" class="btn">▶ खेल शुरू करें</button>
+                    <button id="resetBtn" class="btn" disabled>↺ रीसेट</button>
+                    <button id="hintBtn" class="btn">💡 संकेत</button>
+                    <button id="autoSolveBtn" class="btn">🤖 ऑटो सॉल्व</button>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <div class="info">स्तर: <span id="levelDisplay">1</span></div>
+                    <div class="info">पानी: <span id="waterDisplay">0%</span></div>
+                    <div class="info">चालें: <span id="movesDisplay">0</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="level-indicator">
+            <div class="level-dot active" data-level="0"></div>
+            <div class="level-dot" data-level="1"></div>
+            <div class="level-dot" data-level="2"></div>
+            <div class="level-dot" data-level="3"></div>
+            <div class="level-dot" data-level="4"></div>
+        </div>
+        
+        <div class="instructions">
+            <h3>खेलने का तरीका:</h3>
+            <ul>
+                <li>पाइपों को ड्रैग करके स्थानांतरित करें और डबल-क्लिक करके घुमाएं</li>
+                <li>पानी को स्रोत (💧) से लक्ष्य (🎯) तक पहुँचाने के लिए पाइपों को जोड़ें</li>
+                <li>लक्ष्य को 80% भरने पर आप स्तर पूरा करेंगे</li>
+                <li>कम चालों में स्तर पूरा करने के लिए प्रयास करें</li>
+                <li>ऑटो सॉल्व बटन समाधान चरण-दर-चरण दिखाएगा</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Game levels configuration
+        const LEVELS = [
+            {
+                name: "प्रारंभिक स्तर",
+                pipes: [
+                    {x: 300, y: 300, w: 200, h: 28, rot: 0, movable: true},
+                    {x: 500, y: 400, w: 180, h: 28, rot: 45, movable: true}
+                ],
+                platforms: [
+                    {x: 400, y: 500, w: 300, h: 20, rot: 0}
+                ],
+                source: {x: 200, y: 200},
+                target: {x: 650, y: 350, w: 120, h: 80},
+                targetCapacity: 60,
+                hint: "पहले पाइप को स्रोत के नीचे रखें और दूसरे को लक्ष्य की ओर मोड़ें।",
+                solution: [
+                    {index: 0, x: 250, y: 250, rot: 0},
+                    {index: 1, x: 450, y: 350, rot: 45}
+                ]
+            },
+            {
+                name: "वक्र पथ",
+                pipes: [
+                    {x: 250, y: 250, w: 180, h: 28, rot: 0, movable: true},
+                    {x: 350, y: 350, w: 180, h: 28, rot: 90, movable: true},
+                    {x: 450, y: 450, w: 180, h: 28, rot: 180, movable: true}
+                ],
+                platforms: [
+                    {x: 200, y: 550, w: 400, h: 20, rot: 0},
+                    {x: 600, y: 400, w: 150, h: 20, rot: 90}
+                ],
+                source: {x: 200, y: 150},
+                target: {x: 650, y: 300, w: 120, h: 80},
+                targetCapacity: 70,
+                hint: "पाइपों को Z-आकार में व्यवस्थित करें ताकि पानी लक्ष्य तक पहुँच सके।",
+                solution: [
+                    {index: 0, x: 250, y: 200, rot: 0},
+                    {index: 1, x: 350, y: 300, rot: 45},
+                    {index: 2, x: 500, y: 250, rot: 135}
+                ]
+            },
+            {
+                name: "अवरोधों से बचें",
+                pipes: [
+                    {x: 300, y: 250, w: 200, h: 28, rot: 0, movable: true},
+                    {x: 450, y: 350, w: 180, h: 28, rot: 45, movable: true},
+                    {x: 550, y: 250, w: 180, h: 28, rot: 135, movable: true}
+                ],
+                platforms: [
+                    {x: 400, y: 500, w: 300, h: 20, rot: 0},
+                    {x: 350, y: 350, w: 100, h: 20, rot: 45},
+                    {x: 550, y: 150, w: 100, h: 20, rot: 0}
+                ],
+                source: {x: 150, y: 200},
+                target: {x: 700, y: 200, w: 120, h: 80},
+                targetCapacity: 80,
+                hint: "पाइपों को इस तरह सेट करें कि पानी अवरोधों से टकराए बिना लक्ष्य तक पहुँचे।",
+                solution: [
+                    {index: 0, x: 250, y: 250, rot: 0},
+                    {index: 1, x: 400, y: 300, rot: 45},
+                    {index: 2, x: 600, y: 250, rot: 180}
+                ]
+            }
+        ];
+
+        // Game state
+        let currentLevel = 0;
+        let gameStarted = false;
+        let moves = 0;
+        let waterInTarget = 0;
+        let targetCapacity = 80;
+        let emitterTimer = 0;
+        let emitRate = 100;
+        let completedLevels = [];
+        let isAutoSolving = false;
+        let autoSolveStep = 0;
+
+        // Phaser game configuration
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'gameContainer',
+            width: 800,
+            height: 600,
+            backgroundColor: '#071026',
+            physics: { 
+                default: 'arcade', 
+                arcade: { 
+                    gravity: { y: 400 }, 
+                    debug: false 
+                } 
+            },
+            scene: { preload, create, update }
+        };
+
+        // Create Phaser game instance
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            // Preload assets if needed
+        }
+
+        function create() {
+            // UI elements
+            const startBtn = document.getElementById('startBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const hintBtn = document.getElementById('hintBtn');
+            const autoSolveBtn = document.getElementById('autoSolveBtn');
+            const levelDisplay = document.getElementById('levelDisplay');
+            const waterDisplay = document.getElementById('waterDisplay');
+            const movesDisplay = document.getElementById('movesDisplay');
+
+            // Create game object groups
+            this.pipes = this.add.group();
+            this.platforms = this.add.group();
+            this.particles = this.physics.add.group({ 
+                collideWorldBounds: true, 
+                bounceX: 0.1,  // Reduced bounce to prevent water from bouncing out
+                bounceY: 0.1   // Reduced bounce to prevent water from bouncing out
+            });
+            this.waterInPipes = this.add.group();
+
+            // Load the current level
+            loadLevel.call(this, currentLevel);
+
+            // Set up physics - no collision with pipes to prevent bouncing
+            this.physics.add.collider(this.particles, this.platforms);
+            // We're removing collision with pipes to prevent water from bouncing out
+
+            // Create target zone for water collection
+            if (this.targetZone) this.targetZone.destroy();
+            this.targetZone = this.add.zone(this.target.x, this.target.y, this.target.w, this.target.h).setOrigin(0.5);
+            this.physics.world.enable(this.targetZone);
+            this.targetZone.body.setAllowGravity(false);
+            this.targetZone.body.setImmovable(true);
+            this.physics.add.overlap(this.particles, this.targetZone, (p) => { collectToTarget.call(this, p); }, null, this);
+
+            // Button event listeners
+            startBtn.addEventListener('click', () => { 
+                if (isAutoSolving) return;
+                gameStarted = true; 
+                startBtn.disabled = true; 
+                resetBtn.disabled = false; 
+                emitterTimer = 0; 
+            });
+            
+            resetBtn.addEventListener('click', () => { 
+                if (isAutoSolving) return;
+                resetLevel.call(this); 
+            });
+            
+            hintBtn.addEventListener('click', () => { 
+                if (isAutoSolving) return;
+                showHint(currentLevel); 
+            });
+            
+            autoSolveBtn.addEventListener('click', () => { 
+                if (isAutoSolving) return;
+                startAutoSolve.call(this); 
+            });
+
+            // Double-click to rotate pipes
+            this.input.on('gameobjectdown', (pointer, obj) => {
+                if (isAutoSolving) return;
+                if (!obj.movable) return;
+                
+                const now = pointer.downTime || Date.now();
+                if (obj._lastClick && (now - obj._lastClick) < 300) {
+                    rotateObject(obj, 45);
+                    obj._lastClick = 0;
+                    moves++;
+                    movesDisplay.textContent = moves;
+                    if (obj.body && obj.body.updateFromGameObject) obj.body.updateFromGameObject();
+                } else { 
+                    obj._lastClick = now; 
+                }
+            });
+
+            // Dragging functionality for pipes
+            this.input.setDraggable(this.pipes.getChildren());
+            this.input.on('dragstart', (pointer, obj) => { 
+                if (isAutoSolving) return;
+                if (obj.movable) obj.setFillStyle(0x999999); 
+            });
+            
+            this.input.on('drag', (pointer, obj, dragX, dragY) => { 
+                if (isAutoSolving) return;
+                if (obj.movable) {
+                    obj.x = dragX; 
+                    obj.y = dragY; 
+                    if (obj.body && obj.body.updateFromGameObject) obj.body.updateFromGameObject(); 
+                    moves++; 
+                    movesDisplay.textContent = moves; 
+                }
+            });
+            
+            this.input.on('dragend', (pointer, obj) => { 
+                if (isAutoSolving) return;
+                if (obj.movable) obj.setFillStyle(0xe74c3c); 
+                if (obj.body && obj.body.updateFromGameObject) obj.body.updateFromGameObject(); 
+            });
+
+            // Store UI references
+            this._ui = { startBtn, resetBtn, hintBtn, autoSolveBtn, levelDisplay, waterDisplay, movesDisplay };
+            
+            // Initialize UI
+            levelDisplay.textContent = currentLevel + 1;
+            waterDisplay.textContent = '0%';
+            movesDisplay.textContent = '0';
+            
+            // Update level indicator
+            updateLevelIndicator();
+        }
+
+        function update(time, dt) {
+            if (!gameStarted) return;
+            
+            // Emit water particles at regular intervals
+            emitterTimer += dt;
+            if (emitterTimer >= emitRate) { 
+                emitterTimer = 0; 
+                emitWater.call(this); 
+            }
+            
+            // Clean up particles that go off screen
+            this.particles.getChildren().forEach(p => { 
+                if (p.y > 650 || p.x < -50 || p.x > 850) p.destroy(); 
+            });
+            
+            // Update water flow in pipes
+            updateWaterInPipes.call(this);
+            
+            // Check for particles near pipes and redirect them
+            redirectParticlesNearPipes.call(this);
+        }
+
+        // Helper functions
+        function loadLevel(index) {
+            // Clear existing objects
+            if (this.particles) this.particles.clear(true, true);
+            if (this.pipes) this.pipes.clear(true, true);
+            if (this.platforms) this.platforms.clear(true, true);
+            if (this.waterInPipes) this.waterInPipes.clear(true, true);
+
+            // Get level configuration
+            const lvl = LEVELS[index];
+            this.source = { x: lvl.source.x, y: lvl.source.y };
+            this.target = { x: lvl.target.x, y: lvl.target.y, w: lvl.target.w, h: lvl.target.h };
+            targetCapacity = lvl.targetCapacity;
+
+            // Create source visualization
+            if (this.sourceSprite) this.sourceSprite.destroy();
+            this.sourceSprite = this.add.rectangle(this.source.x, this.source.y, 64, 64, 0x3498db).setStrokeStyle(3, 0x1f6fb0);
+            this.add.text(this.source.x, this.source.y, '💧', { fontSize: '26px' }).setOrigin(0.5);
+
+            // Create target visualization
+            if (this.targetSprite) this.targetSprite.destroy();
+            this.targetSprite = this.add.rectangle(this.target.x, this.target.y, this.target.w, this.target.h, 0x2ecc71).setStrokeStyle(3, 0x1f9a59);
+            this.add.text(this.target.x, this.target.y, '🎯', { fontSize: '28px' }).setOrigin(0.5);
+
+            // Create pipes
+            lvl.pipes.forEach((cfg, index) => {
+                const pipe = this.add.rectangle(cfg.x, cfg.y, cfg.w, cfg.h, 0xe74c3c).setOrigin(0.5);
+                pipe.setRotation(Phaser.Math.DegToRad(cfg.rot || 0));
+                pipe.movable = !!cfg.movable;
+                pipe.setInteractive({ useHandCursor: true });
+                pipe.index = index;
+                
+                if (pipe.movable) this.input.setDraggable(pipe);
+                
+                this.add.existing(pipe); 
+                this.pipes.add(pipe);
+                this.physics.add.existing(pipe, true);
+            });
+
+            // Create platforms
+            lvl.platforms.forEach(cfg => {
+                const plat = this.add.rectangle(cfg.x, cfg.y, cfg.w, cfg.h, 0xf39c12).setOrigin(0.5);
+                plat.setRotation(Phaser.Math.DegToRad(cfg.rot || 0));
+                this.add.existing(plat); 
+                this.platforms.add(plat);
+                this.physics.add.existing(plat, true);
+            });
+
+            // Reset game state
+            moves = 0;
+            waterInTarget = 0;
+            isAutoSolving = false;
+            autoSolveStep = 0;
+        }
+
+        function emitWater() {
+            // Create a water particle
+            const p = this.add.circle(this.source.x, this.source.y + 28, 5, 0x4fc3f7);
+            this.particles.add(p);
+            this.physics.world.enable(p);
+            p.body.setCircle(6);
+            p.body.setBounce(0.1);
+            p.body.setAllowGravity(true);
+            
+            // Set initial velocity
+            const vx = Phaser.Math.Between(-10, 10);
+            p.body.velocity.x = vx; 
+            p.body.velocity.y = 100 + Phaser.Math.Between(-20, 40);
+            p._born = this.time.now;
+        }
+
+        function redirectParticlesNearPipes() {
+            // Redirect particles that are near pipes
+            this.particles.getChildren().forEach(particle => {
+                this.pipes.getChildren().forEach(pipe => {
+                    // Calculate distance between particle and pipe
+                    const distance = Phaser.Math.Distance.Between(particle.x, particle.y, pipe.x, pipe.y);
+                    
+                    // If particle is close to the pipe, redirect it
+                    if (distance < 100) {
+                        redirectParticle(particle, pipe);
+                    }
+                });
+            });
+        }
+
+        function redirectParticle(particle, pipe) {
+            // Calculate the pipe's direction vector
+            const pipeAngle = pipe.rotation;
+            const pipeDirectionX = Math.cos(pipeAngle);
+            const pipeDirectionY = Math.sin(pipeAngle);
+            
+            // Project the particle's velocity onto the pipe's direction
+            const dotProduct = particle.body.velocity.x * pipeDirectionX + particle.body.velocity.y * pipeDirectionY;
+            
+            // Set the particle's velocity to follow the pipe's direction
+            const speed = Math.max(100, Math.abs(dotProduct));
+            particle.body.velocity.x = pipeDirectionX * speed;
+            particle.body.velocity.y = pipeDirectionY * speed;
+            
+            // Reduce gravity effect when in pipe
+            particle.body.gravity.y = 100;
+            
+            // Add visual effect for water in pipe
+            if (Math.random() < 0.2) {
+                const waterDrop = this.add.circle(particle.x, particle.y, 3, 0x4fc3f7);
+                this.waterInPipes.add(waterDrop);
+                
+                // Remove water drop after a short time
+                this.time.delayedCall(300, () => {
+                    if (waterDrop && waterDrop.active) waterDrop.destroy();
+                });
+            }
+        }
+
+        function updateWaterInPipes() {
+            // Update water visualization in pipes
+            this.waterInPipes.getChildren().forEach(drop => {
+                // Make water drops follow pipe direction
+                this.pipes.getChildren().forEach(pipe => {
+                    const distance = Phaser.Math.Distance.Between(drop.x, drop.y, pipe.x, pipe.y);
+                    if (distance < 80) {
+                        const pipeAngle = pipe.rotation;
+                        const pipeDirectionX = Math.cos(pipeAngle);
+                        const pipeDirectionY = Math.sin(pipeAngle);
+                        
+                        drop.x += pipeDirectionX * 3;
+                        drop.y += pipeDirectionY * 3;
+                    }
+                });
+                
+                // Remove if out of bounds
+                if (drop.y > 650 || drop.x < -50 || drop.x > 850) drop.destroy();
+            });
+        }
+
+        function collectToTarget(particle) {
+            if (particle._collected) return;
+            
+            particle._collected = true;
+            particle.destroy();
+            waterInTarget++;
+            
+            // Update water percentage
+            const percent = Math.min(100, Math.floor((waterInTarget / targetCapacity) * 100));
+            document.getElementById('waterDisplay').textContent = percent + '%';
+            
+            // Check if level is complete
+            if (percent >= 80) levelComplete.call(this);
+        }
+
+        function levelComplete() {
+            gameStarted = false;
+            
+            // Mark level as completed
+            if (!completedLevels.includes(currentLevel)) {
+                completedLevels.push(currentLevel);
+                updateLevelIndicator();
+            }
+            
+            // Create completion message
+            const txt = this.add.text(400, 250, 'स्तर पूरा हुआ!', { fontSize: '42px', color: '#2ecc71' }).setOrigin(0.5);
+            const btn = this.add.rectangle(400, 340, 220, 64, 0x2ecc71).setInteractive({ useHandCursor: true });
+            const btxt = this.add.text(400, 340, 'अगला स्तर', { fontSize: '22px', color: '#062033' }).setOrigin(0.5);
+            
+            btn.on('pointerdown', () => {
+                txt.destroy(); 
+                btn.destroy(); 
+                btxt.destroy();
+                
+                // Move to next level or restart if it's the last level
+                if (currentLevel < LEVELS.length - 1) {
+                    currentLevel++;
+                    resetLevel.call(this, true);
+                } else {
+                    // Game completed
+                    const congrats = this.add.text(400, 250, 'सभी स्तर पूरे!', { fontSize: '42px', color: '#4facfe' }).setOrigin(0.5);
+                    const restartBtn = this.add.rectangle(400, 340, 220, 64, 0x4facfe).setInteractive({ useHandCursor: true });
+                    const restartTxt = this.add.text(400, 340, 'फिर से खेलें', { fontSize: '22px', color: '#062033' }).setOrigin(0.5);
+                    
+                    restartBtn.on('pointerdown', () => {
+                        congrats.destroy();
+                        restartBtn.destroy();
+                        restartTxt.destroy();
+                        currentLevel = 0;
+                        completedLevels = [];
+                        resetLevel.call(this, true);
+                    });
+                }
+            });
+        }
+
+        function resetLevel(skipStop) {
+            // Reset game state
+            this.particles.clear(true, true);
+            this.pipes.clear(true, true);
+            this.platforms.clear(true, true);
+            this.waterInPipes.clear(true, true);
+            
+            gameStarted = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('resetBtn').disabled = true;
+            
+            // Reload level
+            loadLevel.call(this, currentLevel);
+            
+            // Update UI
+            document.getElementById('levelDisplay').textContent = currentLevel + 1;
+            document.getElementById('waterDisplay').textContent = '0%';
+            document.getElementById('movesDisplay').textContent = '0';
+        }
+
+        function rotateObject(obj, deg) {
+            obj.rotation += Phaser.Math.DegToRad(deg);
+            if (obj.body && obj.body.updateFromGameObject) obj.body.updateFromGameObject();
+        }
+
+        function showHint(level) {
+            const hint = LEVELS[level].hint;
+            alert('स्तर ' + (level + 1) + ' संकेत:\n' + hint);
+        }
+
+        function updateLevelIndicator() {
+            const dots = document.querySelectorAll('.level-dot');
+            dots.forEach((dot, index) => {
+                dot.classList.remove('active', 'completed');
+                
+                if (index === currentLevel) {
+                    dot.classList.add('active');
+                } else if (completedLevels.includes(index)) {
+                    dot.classList.add('completed');
+                }
+            });
+        }
+
+        function startAutoSolve() {
+            if (isAutoSolving) return;
+            
+            isAutoSolving = true;
+            gameStarted = false;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('resetBtn').disabled = true;
+            document.getElementById('hintBtn').disabled = true;
+            document.getElementById('autoSolveBtn').disabled = true;
+            
+            autoSolveStep = 0;
+            const solution = LEVELS[currentLevel].solution;
+            
+            // Reset pipes to initial positions
+            this.pipes.getChildren().forEach(pipe => {
+                const initialPos = LEVELS[currentLevel].pipes[pipe.index];
+                pipe.x = initialPos.x;
+                pipe.y = initialPos.y;
+                pipe.rotation = Phaser.Math.DegToRad(initialPos.rot || 0);
+                if (pipe.body && pipe.body.updateFromGameObject) pipe.body.updateFromGameObject();
+            });
+            
+            // Start auto-solving animation
+            autoSolveNextStep.call(this, solution);
+        }
+
+        function autoSolveNextStep(solution) {
+            if (autoSolveStep >= solution.length) {
+                // All steps completed, start water flow
+                this.time.delayedCall(1000, () => {
+                    gameStarted = true;
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('resetBtn').disabled = false;
+                    document.getElementById('hintBtn').disabled = false;
+                    document.getElementById('autoSolveBtn').disabled = false;
+                    isAutoSolving = false;
+                });
+                return;
+            }
+            
+            const step = solution[autoSolveStep];
+            const pipe = this.pipes.getChildren().find(p => p.index === step.index);
+            
+            if (pipe) {
+                // Highlight the pipe being moved
+                pipe.setFillStyle(0xffff00);
+                
+                // Animate pipe movement
+                this.tweens.add({
+                    targets: pipe,
+                    x: step.x,
+                    y: step.y,
+                    rotation: Phaser.Math.DegToRad(step.rot),
+                    duration: 1000,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        if (pipe.body && pipe.body.updateFromGameObject) pipe.body.updateFromGameObject();
+                        pipe.setFillStyle(0xe74c3c);
+                        
+                        // Move to next step
+                        autoSolveStep++;
+                        this.time.delayedCall(500, () => {
+                            autoSolveNextStep.call(this, solution);
+                        });
+                    }
+                });
+            } else {
+                autoSolveStep++;
+                autoSolveNextStep.call(this, solution);
+            }
+        }
+    </script>
+</body>
+</html>

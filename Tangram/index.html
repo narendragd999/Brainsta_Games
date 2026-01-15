@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Mobile Tangram — 25 Puzzles</title>
+
+  <!-- jQuery & jQuery UI -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js"></script>
+
+  <!-- touchPunch -> small snippet to make jQuery UI draggable work with touch -->
+  <script>
+  /*! jQuery UI Touch Punch 0.2.3 - modified inline (tiny) */
+  (function ($) {
+    if (!$.ui || !('ontouchend' in document)) return;
+    var _mouseInit = $.ui.mouse.prototype._mouseInit;
+    $.ui.mouse.prototype._mouseInit = function () {
+      this.element.bind('touchstart.' + this.widgetName, $.proxy(function (event) {
+        if (event.originalEvent.touches.length > 1) return;
+        this._touchEvent = event.originalEvent.changedTouches[0];
+        this._touchHandled = true;
+        this._mouseDown(event);
+      }, this));
+      _mouseInit.call(this);
+    };
+  })(jQuery);
+  </script>
+
+  <style>
+    :root { --accent: #2b9ed8; --bg:#f6f5f3; --card:#ffffff; --muted:#7f8c8d; }
+    html,body { height:100%; margin:0; font-family:Inter, system-ui, Arial; background: linear-gradient(180deg,#f7f9fb, #eceff1); -webkit-tap-highlight-color: transparent; }
+    .app { display:flex; flex-direction:column; height:100vh; }
+    header { padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--card); box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+    header h1 { margin:0; font-size:16px; letter-spacing:0.2px; }
+    header small { color:var(--muted); font-size:12px; display:block; }
+    main { flex:1; display:flex; overflow:hidden; }
+
+    /* Menu / Grid */
+    #menu { width:100%; padding:14px; display:flex; flex-direction:column; align-items:center; gap:12px; overflow:auto; }
+    #levelGrid { width:100%; max-width:760px; display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+    .levelBtn { background:var(--card); border-radius:10px; border:1px solid rgba(0,0,0,0.06); padding:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; min-height:64px; transition: transform 0.1s; }
+    .levelBtn.locked { opacity:0.45; filter:grayscale(0.15); cursor:default; }
+    .levelNum { font-weight:700; font-size:18px; color:#1f2d3d; }
+    .stars { font-size:12px; color:#f1c40f; }
+
+    /* Game area */
+    #game { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:8px; gap:8px; overflow:hidden; }
+    #tray { width:100%; max-width:920px; min-height:88px; background:rgba(255,255,255,0.8); border-radius:10px; display:flex; gap:8px; align-items:center; justify-content:center; padding:8px; position:relative; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+    .block { position:absolute; touch-action:none; user-select:none; -webkit-user-select:none; will-change:transform,left,top; transform-origin:center center; box-shadow:0 2px 6px rgba(0,0,0,0.18); transition: box-shadow 0.2s; }
+    .block:hover { box-shadow:0 4px 12px rgba(0,0,0,0.25); }
+
+    /* piece shapes (CSS triangles & shapes) */
+    #large1{ width:0;height:0;border-left:110px solid transparent;border-right:110px solid transparent;border-bottom:160px solid #e74c3c; border-radius:2px; }
+    #large2{ width:0;height:0;border-left:110px solid #007bff;border-right:110px solid transparent;border-bottom:0 solid transparent; transform-origin:0 0; transform:rotate(90deg); }
+    #medium{ width:0;height:0;border-left:78px solid transparent;border-right:78px solid transparent;border-bottom:110px solid #f1c40f; }
+    #small1{ width:0;height:0;border-left:55px solid transparent;border-right:55px solid transparent;border-bottom:80px solid #27ae60; }
+    #small2{ width:0;height:0;border-left:55px solid #e91e63;border-right:55px solid transparent;border-bottom:0 solid transparent; transform-origin:0 0; transform:rotate(90deg); }
+    #square{ width:80px;height:80px;background:#f39c12;border-radius:6px; }
+    #para{ width:110px;height:78px;background:#9b59b6; transform:skewX(-26.565deg); border-radius:6px; }
+
+    /* canvas target */
+    #canvasWrap { display:flex; align-items:center; justify-content:center; width:100%; flex:1; padding:8px; }
+    #target { width:88vw; max-width:400px; height:88vw; max-height:400px; border-radius:12px; background:rgba(255,255,255,0.9); border:3px dashed rgba(0,0,0,0.08); touch-action:none; box-shadow:0 6px 18px rgba(18,38,63,0.06); }
+
+    /* controls */
+    .controls { display:flex; gap:8px; margin-top:6px; align-items:center; justify-content:center; flex-wrap:wrap; }
+    .btn { padding:10px 14px; background:var(--accent); color:#fff; border-radius:10px; border:none; font-weight:600; font-size:14px; cursor:pointer; transition: background 0.2s; }
+    .btn:hover { background: #1e7bb0; }
+    .btn.ghost { background:transparent; color:var(--accent); border:1px solid rgba(43,158,216,0.18); }
+    .btn.ghost:hover { background: rgba(43,158,216,0.05); }
+
+    /* status */
+    .statusRow { display:flex; gap:10px; align-items:center; font-size:13px; color:var(--muted); margin-top:6px; }
+
+    /* small */
+    .topRowRight { display:flex; gap:8px; align-items:center; }
+    .smallBtn { background:transparent; border:1px solid rgba(0,0,0,0.06); padding:8px 10px; border-radius:8px; font-size:13px; cursor:pointer; transition: background 0.2s; }
+    .smallBtn:hover { background: rgba(0,0,0,0.03); }
+
+    /* responsive adjustments */
+    @media (max-width:520px) {
+      #levelGrid { grid-template-columns:repeat(4,1fr); }
+      header h1 { font-size:14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Mobile Tangram</h1>
+        <small>25 classic puzzles — drag, rotate, solve!</small>
+      </div>
+      <div class="topRowRight">
+        <button class="smallBtn" id="btnResetAll">Reset Progress</button>
+        <button class="smallBtn" id="btnMenu">Levels</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- MENU -->
+      <section id="menu" aria-hidden="false">
+        <div style="text-align:center;">
+          <strong style="font-size:15px">Select Level</strong>
+          <div style="color:var(--muted); font-size:13px">Complete a level to unlock the next. Tap a tile to play.</div>
+        </div>
+        <div id="levelGrid" aria-hidden="false"></div>
+      </section>
+
+      <!-- GAME -->
+      <section id="game" style="display:none; width:100%; flex-direction:column; align-items:center;">
+        <div id="tray" aria-hidden="false">
+          <!-- pieces are absolute-positioned inside tray area -->
+          <div id="large1" class="block piece" data-piece="large1"></div>
+          <div id="large2" class="block piece" data-piece="large2"></div>
+          <div id="medium" class="block piece" data-piece="medium"></div>
+          <div id="small1" class="block piece" data-piece="small1"></div>
+          <div id="small2" class="block piece" data-piece="small2"></div>
+          <div id="square" class="block piece" data-piece="square"></div>
+          <div id="para" class="block piece" data-piece="para"></div>
+        </div>
+
+        <div id="canvasWrap">
+          <canvas id="target"></canvas>
+        </div>
+
+        <div class="controls">
+          <button class="btn" id="btnReset">Reset</button>
+          <button class="btn ghost" id="btnBack">Back</button>
+          <button class="btn" id="btnHint">Hint</button>
+          <div style="width:8px"></div>
+          <div class="statusRow" id="statusRow">
+            <div id="timer">⏱ 00:00</div>
+            <div id="levelLabel">Level 1</div>
+            <div id="starsLabel">☆☆☆</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- small beep audio for success -->
+  <audio id="winSound">
+    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=" type="audio/wav">
+  </audio>
+
+  <script>
+  (function($){
+    // ---------- Game data ----------
+    const TOTAL = 25;
+    // Minimal silhouette paths for demo. Replace with richer Path2D for real puzzles.
+    // Paths are in canvas coordinates centered at 0,0; we'll scale/translate when drawing.
+    const PUZZLES = {};
+    const NAMES = ["Dog","Heart","House","Angel","Horse","Kangaroo","Cow","Camel","Rhino","Giraffe","Turtle","Crab","Eagle","Rooster","Turkey","Swan","Windmill","Castle","Barn","Bridge","Fir Tree","Fish","Boy","Boat","Lamp"];
+    for(let i=1;i<=TOTAL;i++){
+      // simple placeholder shapes (you can replace with actual Vector paths)
+      PUZZLES[i] = { name: NAMES[i-1] || `P${i}`,
+                     draw(ctx, size){
+                       // example: each level shows a different silhouette variant using simple shapes
+                       ctx.save();
+                       ctx.translate(size/2, size/2);
+                       ctx.scale(size/320, size/320);
+                       ctx.fillStyle = 'rgba(0,0,0,0.22)';
+                       ctx.beginPath();
+                       if (i%5===1) { ctx.moveTo(-30,80); ctx.lineTo(0,-120); ctx.lineTo(60,80); ctx.closePath(); }
+                       else if (i%5===2) { ctx.moveTo(-80,-10); ctx.arc(0,0,90,0,Math.PI*2); ctx.closePath(); }
+                       else if (i%5===3) { ctx.rect(-100,-100,200,200); }
+                       else if (i%5===4) { ctx.moveTo(-120,60); ctx.quadraticCurveTo(0,-120,120,60); ctx.lineTo(0,120); ctx.closePath(); }
+                       else { ctx.moveTo(-120,-40); ctx.lineTo(0,-120); ctx.lineTo(120,-40); ctx.lineTo(0,120); ctx.closePath(); }
+                       ctx.fill();
+                       ctx.restore();
+                     }
+                   };
+    }
+
+    // ---------- Storage helpers ----------
+    function getProgress() {
+      const raw = localStorage.getItem('tangram_progress');
+      if (!raw) {
+        // store structure { unlocked:1, stars: {1:3,2:2,...} }
+        const obj = { unlocked:1, stars:{} };
+        localStorage.setItem('tangram_progress', JSON.stringify(obj));
+        return obj;
+      }
+      try { return JSON.parse(raw); } catch(e){ return { unlocked:1, stars:{} }; }
+    }
+    function saveProgress(obj){ localStorage.setItem('tangram_progress', JSON.stringify(obj)); }
+
+    // ---------- UI elements ----------
+    const $menu = $('#menu'), $game = $('#game'), $levelGrid = $('#levelGrid');
+    const targetCanvas = $('#target')[0];
+    const targetCtx = targetCanvas.getContext('2d');
+    const $timer = $('#timer'), $levelLabel = $('#levelLabel'), $starsLabel = $('#starsLabel');
+    const $pieces = $('.piece');
+    const progress = getProgress();
+
+    // piece initial positions (scattered) relative to tray
+    const initialPositions = {
+      large1: {x:20,y:12,rot:0}, large2:{x:120,y:10,rot:90},
+      medium:{x:220,y:12,rot:0}, small1:{x:320,y:12,rot:0}, small2:{x:20,y:110,rot:90},
+      square:{x:120,y:110,rot:0}, para:{x:220,y:110,rot:0}
+    };
+
+    let currentLevel = null;
+    let timerInterval = null;
+    let startTime = null;
+
+    // ---------- Canvas sizing & draw ----------
+    function resizeCanvas() {
+      targetCanvas.width = targetCanvas.offsetWidth;
+      targetCanvas.height = targetCanvas.offsetHeight;
+      if (currentLevel !== null) {
+        drawSilhouette(currentLevel);
+      }
+    }
+
+    function drawSilhouette(level){
+      targetCtx.clearRect(0,0,targetCanvas.width,targetCanvas.height);
+      if (!PUZZLES[level]) return;
+      PUZZLES[level].draw(targetCtx, targetCanvas.width);
+    }
+
+    $(window).on('resize', resizeCanvas);
+
+    // ---------- Level Grid Builder ----------
+    function buildLevelGrid(){
+      const prog = getProgress();
+      let html = '';
+      for(let i=1;i<=TOTAL;i++){
+        const locked = i>prog.unlocked;
+        const s = prog.stars[i] || 0;
+        const starStr = '★'.repeat(s) + '☆'.repeat(3-s);
+        html += `<div class="levelBtn ${locked? 'locked':''}" data-level="${i}" ${locked? '':'role="button"'} style="text-align:center;">
+                   <div class="levelNum">${i}</div>
+                   <div style="font-size:12px;color:var(--muted)">${PUZZLES[i].name}</div>
+                   <div class="stars">${starStr}</div>
+                 </div>`;
+      }
+      $levelGrid.html(html);
+    }
+
+    function startTimer(){
+      startTime = Date.now();
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(()=>{
+        const sec = Math.floor((Date.now()-startTime)/1000);
+        const m = Math.floor(sec/60); const s = sec%60;
+        $timer.text(`⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
+      }, 500);
+    }
+    function stopTimer(){
+      if (timerInterval) { clearInterval(timerInterval); timerInterval=null; }
+      if (!startTime) return 0;
+      const elapsed = Math.floor((Date.now()-startTime)/1000);
+      startTime = null;
+      return elapsed;
+    }
+
+    // ---------- piece utilities ----------
+    // Set pieces initial positions in tray (absolute)
+    function resetPiecesToTray(){
+      $pieces.each(function(){
+        const id = $(this).attr('id');
+        const pos = initialPositions[id] || {x:10,y:10,rot:0};
+        // position relative to tray
+        $(this).css({ left: pos.x+'px', top: pos.y+'px', transform: `rotate(${pos.rot}deg)` });
+        $(this).data('rot', pos.rot || 0);
+      });
+    }
+
+    // Make pieces draggable
+    $pieces.draggable({
+      containment: '#game',
+      stack: '.piece',
+      start: function(){ $(this).css('z-index', 9999); },
+      stop: function(){ $(this).css('z-index',''); }
+    });
+
+    // Rotation: double-tap or double-click rotates 45deg
+    (function addDoubleTapRotate(){
+      let lastTap = 0;
+      $pieces.on('touchend dblclick', function(e){
+        e.preventDefault();
+        const now = Date.now();
+        if (now - lastTap < 350){
+          // treat as double-tap
+          const $el = $(this);
+          let rot = ($el.data('rot')||0) + 45;
+          $el.css('transform', `rotate(${rot}deg)`);
+          $el.data('rot', rot%360);
+        }
+        lastTap = now;
+      });
+      // desktop double-click (fallback)
+      $pieces.on('dblclick', function(e){
+        e.preventDefault();
+        const $el = $(this);
+        let rot = ($el.data('rot')||0) + 45;
+        $el.css('transform', `rotate(${rot}deg)`);
+        $el.data('rot', rot%360);
+      });
+    })();
+
+    // ---------- simple completion check ----------
+    // Criteria: center point of each piece must lie inside target canvas bounding box
+    function isPieceCenterInsideCanvas($el){
+      const pieceRect = $el[0].getBoundingClientRect();
+      const canvasRect = targetCanvas.getBoundingClientRect();
+      const cx = (pieceRect.left + pieceRect.right)/2;
+      const cy = (pieceRect.top + pieceRect.bottom)/2;
+      return (cx >= canvasRect.left && cx <= canvasRect.right && cy >= canvasRect.top && cy <= canvasRect.bottom);
+    }
+
+    function checkCompletion(){
+      // all 7 pieces inside?
+      let inside = 0;
+      $pieces.each(function(){
+        if (isPieceCenterInsideCanvas($(this))) inside++;
+      });
+      if (inside === 7){
+        // completed
+        onLevelComplete();
+      } else {
+        // update small UI (how many placed)
+        $starsLabel.text(`${inside}/7 placed`);
+      }
+    }
+
+    // run a periodic check while playing (lightweight)
+    let checkInterval = null;
+    function startAutoCheck(){ if (checkInterval) clearInterval(checkInterval); checkInterval = setInterval(checkCompletion, 600); }
+    function stopAutoCheck(){ if (checkInterval) clearInterval(checkInterval); checkInterval = null; }
+
+    // ---------- star rating logic ----------
+    // thresholds (seconds): under 20 -> 3 stars, under 50 -> 2 stars, else 1 star
+    function computeStarsForTime(t){
+      if (t <= 20) return 3;
+      if (t <= 50) return 2;
+      return 1;
+    }
+
+    // ---------- level flow ----------
+    function startLevel(level){
+      currentLevel = level;
+      $('#menu').hide();
+      $('#game').show();
+      $('#btnMenu').text('Levels');
+      $levelLabel.text(`Level ${level}: ${PUZZLES[level].name}`);
+      $starsLabel.text('0/7 placed');
+      resetPiecesToTray();
+      resizeCanvas();
+      startTimer();
+      startAutoCheck();
+    }
+
+    function onLevelComplete(){
+      stopAutoCheck();
+      const elapsed = stopTimer();
+      const stars = computeStarsForTime(elapsed);
+      // save progress
+      const prog = getProgress();
+      if (!prog.stars) prog.stars = {};
+      const prev = prog.stars[currentLevel] || 0;
+      if (stars > prev) prog.stars[currentLevel] = stars;
+      // unlock next
+      if (currentLevel >= prog.unlocked && prog.unlocked < TOTAL) prog.unlocked = currentLevel + 1;
+      saveProgress(prog);
+      // show win UX
+      $starsLabel.text('★'.repeat(stars) + '☆'.repeat(3-stars));
+      // tiny beep
+      try { document.getElementById('winSound').play().catch(()=>{}); } catch(e){}
+      // animate brief confetti-ish scale on target
+      const $target = $('#target');
+      const originalWidth = $target.width();
+      $target.animate({ width: originalWidth * 1.04 }, 120).animate({ width: originalWidth }, 120);
+      // return to menu after a short delay
+      setTimeout(()=>{
+        buildLevelGrid();
+        showMenu();
+      }, 900);
+    }
+
+    function showMenu(){
+      $('#game').hide();
+      $('#menu').show();
+      currentLevel = null;
+      stopAutoCheck();
+      if (timerInterval) { clearInterval(timerInterval); timerInterval=null; }
+      $timer.text('⏱ 00:00');
+    }
+
+    // ---------- hints ----------
+    let hintShown = false;
+    function showHint(){
+      if (!currentLevel || hintShown) return;
+      hintShown = true;
+      const $p = $pieces.first();
+      const original = { left: $p.css('left'), top: $p.css('top'), rot: $p.data('rot')||0 };
+      const canvasRect = targetCanvas.getBoundingClientRect();
+      const trayRect = $('#tray')[0].getBoundingClientRect();
+      const px = (canvasRect.left - trayRect.left) + canvasRect.width/2 - $p.width()/2;
+      const py = (canvasRect.top - trayRect.top) + canvasRect.height/2 - $p.height()/2;
+      $p.animate({ left: px+'px', top: py+'px' }, 450, ()=> {
+        setTimeout(()=> {
+          $p.animate({ left: original.left, top: original.top, transform: `rotate(${original.rot}deg)` }, 450, ()=> { 
+            $p.data('rot', original.rot);
+            hintShown=false; 
+          });
+        }, 650);
+      });
+    }
+
+    // ---------- event binding ----------
+    buildLevelGrid();
+    resizeCanvas();
+    resetPiecesToTray();
+
+    $levelGrid.on('click', '.levelBtn:not(.locked)', function(){
+      const lvl = parseInt($(this).data('level'));
+      startLevel(lvl);
+    }).on('click', '.levelBtn.locked', function(){
+      // locked -> do small shake
+      $(this).animate({ left: '+=8px' }, 60).animate({ left: '-=8px' }, 60);
+    });
+
+    $('#btnBack, #btnMenu').on('click', showMenu);
+    $('#btnReset').on('click', resetPiecesToTray);
+    $('#btnHint').on('click', showHint);
+    $('#btnResetAll').on('click', ()=>{
+      if (!confirm('Reset all progress and stars?')) return;
+      localStorage.removeItem('tangram_progress');
+      getProgress(); // reinitialize
+      buildLevelGrid();
+      alert('Progress reset.');
+    });
+
+    // pieces move check on drag stop
+    $pieces.on('dragstop touchend mouseup', function(){
+      // small debounce
+      setTimeout(checkCompletion, 220);
+    });
+
+    // accessibility: ensure menu toggle
+    $('#btnMenu').on('click', ()=> { 
+      if ($game.is(':visible')) showMenu(); 
+    });
+
+  })(jQuery);
+  </script>
+</body>
+</html>

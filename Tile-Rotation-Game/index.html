@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tile Rotation - Path Puzzle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100vh;
+            justify-content: center;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 18px;
+            color: #764ba2;
+        }
+
+        .game-board {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .grid {
+            display: grid;
+            gap: 8px;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .tile {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .tile:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .tile:active {
+            transform: scale(0.95);
+        }
+
+        .tile.connected {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            border-color: #4CAF50;
+        }
+
+        .tile.source {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-color: #f5576c;
+        }
+
+        .tile.target {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-color: #00f2fe;
+        }
+
+        .tile svg {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: white;
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-new {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-check {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-hint {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+        }
+
+        .btn-solve {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
+        .btn-help {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            grid-column: 1 / -1;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .modal-content ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .close-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+            color: #667eea;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+
+        .message.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 400px) {
+            .tile {
+                width: 50px;
+                height: 50px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            button {
+                padding: 10px 15px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-height: 700px) {
+            .container {
+                gap: 8px;
+            }
+
+            .header, .game-board, .controls {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Tile Rotation Puzzle</h1>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Moves</span>
+                    <span class="stat-value" id="moves">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Level</span>
+                    <span class="stat-value" id="level">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Hints</span>
+                    <span class="stat-value" id="hints">3</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-board">
+            <div class="grid" id="grid"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-new" onclick="newPuzzle()">🎲 New Puzzle</button>
+            <button class="btn-check" onclick="checkSolution()">✓ Check</button>
+            <button class="btn-hint" onclick="useHint()" id="hintBtn">💡 Hint</button>
+            <button class="btn-solve" onclick="autoSolve()">🤖 Auto-Solve</button>
+            <button class="btn-help" onclick="showInstructions()">❓ How to Play</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2>📖 How to Play</h2>
+            <p><strong>Objective:</strong> Connect the red source tile to the blue target tile by rotating the path tiles.</p>
+            
+            <p><strong>Rules:</strong></p>
+            <ul>
+                <li>Click/tap any tile to rotate it 90° clockwise</li>
+                <li>Create a continuous path from source (red) to target (blue)</li>
+                <li>All tiles must be connected in the final solution</li>
+                <li>Green tiles indicate successful connections</li>
+            </ul>
+
+            <p><strong>Controls:</strong></p>
+            <ul>
+                <li><strong>New Puzzle:</strong> Generate a new random puzzle</li>
+                <li><strong>Check:</strong> Verify if your solution is correct</li>
+                <li><strong>Hint:</strong> Highlight one incorrectly rotated tile (3 per level)</li>
+                <li><strong>Auto-Solve:</strong> Automatically solve the current puzzle</li>
+            </ul>
+
+            <p><strong>Tip:</strong> Start from the source and work your way to the target!</p>
+            
+            <button class="close-btn" onclick="hideInstructions()">Got it!</button>
+        </div>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <script>
+        // Audio Context for sound effects
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(frequency, duration, type = 'sine') {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playRotateSound() {
+            playSound(400, 0.1, 'square');
+        }
+
+        function playSuccessSound() {
+            playSound(523.25, 0.1, 'sine');
+            setTimeout(() => playSound(659.25, 0.1, 'sine'), 100);
+            setTimeout(() => playSound(783.99, 0.2, 'sine'), 200);
+        }
+
+        function playErrorSound() {
+            playSound(200, 0.2, 'sawtooth');
+        }
+
+        function playHintSound() {
+            playSound(800, 0.15, 'sine');
+        }
+
+        // Game state
+        let gridSize = 5;
+        let tiles = [];
+        let solution = [];
+        let moves = 0;
+        let level = 1;
+        let hintsRemaining = 3;
+        let sourcePos = null;
+        let targetPos = null;
+
+        // Tile types: 0=straight, 1=corner, 2=t-junction, 3=cross
+        const tileTypes = [
+            { type: 0, paths: [[0, 2], [1, 3]] }, // Straight
+            { type: 1, paths: [[0, 1]] },         // Corner
+            { type: 2, paths: [[0, 1, 2]] },      // T-junction
+            { type: 3, paths: [[0, 1, 2, 3]] }    // Cross
+        ];
+
+        function drawTile(rotation, type, isSource = false, isTarget = false) {
+            const svg = document.createElementNS('[http://www.w3.org/2000/svg'](http://www.w3.org/2000/svg'), 'svg');
+            svg.setAttribute('viewBox', '0 0 100 100');
+            
+            const paths = tileTypes[type].paths;
+            const strokeColor = isSource ? '#fff' : isTarget ? '#fff' : '#667eea';
+            const strokeWidth = isSource || isTarget ? 8 : 6;
+            
+            paths.forEach(pathDirs => {
+                pathDirs.forEach(dir => {
+                    const angle = ((dir + rotation) % 4) * 90;
+                    const line = document.createElementNS('[http://www.w3.org/2000/svg'](http://www.w3.org/2000/svg'), 'line');
+                    
+                    let x1 = 50, y1 = 50, x2 = 50, y2 = 50;
+                    
+                    switch(angle) {
+                        case 0: y1 = 0; break;    // Top
+                        case 90: x1 = 100; break; // Right
+                        case 180: y1 = 100; break;// Bottom
+                        case 270: x1 = 0; break;  // Left
+                    }
+                    
+                    line.setAttribute('x1', x1);
+                    line.setAttribute('y1', y1);
+                    line.setAttribute('x2', x2);
+                    line.setAttribute('y2', y2);
+                    line.setAttribute('stroke', strokeColor);
+                    line.setAttribute('stroke-width', strokeWidth);
+                    line.setAttribute('stroke-linecap', 'round');
+                    
+                    svg.appendChild(line);
+                });
+            });
+            
+            // Add center dot
+            const circle = document.createElementNS('[http://www.w3.org/2000/svg'](http://www.w3.org/2000/svg'), 'circle');
+            

@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pulley System Puzzle - Complete Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: white;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            padding: 10px 0;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .pulley-counter {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .pulley-counter i {
+            margin-right: 8px;
+            color: #26d0ce;
+        }
+
+        .level-indicator {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .level-indicator i {
+            margin-right: 8px;
+            color: #ffc107;
+        }
+
+        .tutorial-indicator {
+            background-color: rgba(255, 193, 7, 0.9);
+            color: #333;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .tutorial-indicator i {
+            margin-right: 8px;
+        }
+
+        .game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        #puzzleCanvas {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            width: 100%;
+            touch-action: none;
+        }
+
+        .ui-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 8px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+        }
+
+        .control-btn {
+            background: linear-gradient(145deg, #2a3a9c, #1a2980);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            padding: 12px 5px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            min-height: 70px;
+        }
+
+        .control-btn i {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .control-btn:hover, .control-btn:active {
+            background: linear-gradient(145deg, #3a4aac, #2a3a9c);
+            transform: translateY(-2px);
+        }
+
+        .control-btn:active {
+            transform: translateY(1px);
+        }
+
+        .control-btn.check {
+            background: linear-gradient(145deg, #28a745, #1e7e34);
+        }
+
+        .control-btn.solve {
+            background: linear-gradient(145deg, #ffc107, #e0a800);
+        }
+
+        .control-btn.hint {
+            background: linear-gradient(145deg, #17a2b8, #138496);
+        }
+
+        .control-btn.new {
+            background: linear-gradient(145deg, #dc3545, #c82333);
+        }
+
+        .control-btn.tutorial {
+            background: linear-gradient(145deg, #9c27b0, #7b1fa2);
+        }
+
+        .instructions-popup, .tutorial-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .instructions-content, .tutorial-content {
+            background: linear-gradient(145deg, #2a3a9c, #1a2980);
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .instructions-content h2, .tutorial-content h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #26d0ce;
+        }
+
+        .instructions-content p {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .instructions-content ul {
+            margin-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .instructions-content li {
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .close-btn, .tutorial-btn {
+            background: linear-gradient(145deg, #dc3545, #c82333);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover, .close-btn:active,
+        .tutorial-btn:hover, .tutorial-btn:active {
+            background: linear-gradient(145deg, #e04a59, #d93748);
+        }
+
+        .tutorial-step {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #26d0ce;
+        }
+
+        .tutorial-step h3 {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .tutorial-step h3 i {
+            margin-right: 10px;
+            color: #ffc107;
+        }
+
+        .tutorial-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .tutorial-btn.next {
+            background: linear-gradient(145deg, #28a745, #1e7e34);
+        }
+
+        .tutorial-btn.skip {
+            background: linear-gradient(145deg, #6c757d, #545b62);
+        }
+
+        .tutorial-btn.prev {
+            background: linear-gradient(145deg, #17a2b8, #138496);
+        }
+
+        .feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px 30px;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: none;
+            z-index: 50;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .feedback.correct {
+            color: #28a745;
+            border: 3px solid #28a745;
+        }
+
+        .feedback.incorrect {
+            color: #dc3545;
+            border: 3px solid #dc3545;
+        }
+
+        .hint-display {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(23, 162, 184, 0.9);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            display: none;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .tutorial-highlight {
+            position: absolute;
+            border: 3px dashed #ffc107;
+            border-radius: 10px;
+            z-index: 150;
+            pointer-events: none;
+            animation: pulse 2s infinite;
+        }
+
+        .tutorial-arrow {
+            position: absolute;
+            z-index: 151;
+            pointer-events: none;
+            color: #ffc107;
+            font-size: 2rem;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .tutorial-demo-pulley {
+            position: absolute;
+            z-index: 100;
+            pointer-events: none;
+            transition: all 1s ease;
+        }
+
+        @media (min-width: 768px) {
+            .control-btn {
+                font-size: 1rem;
+                padding: 15px 5px;
+            }
+            
+            .ui-panel {
+                grid-template-columns: repeat(6, 1fr);
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+        }
+
+        @media (max-height: 700px) {
+            .control-btn {
+                min-height: 60px;
+                padding: 8px 5px;
+                font-size: 0.8rem;
+            }
+            
+            .control-btn i {
+                font-size: 1.1rem;
+                margin-bottom: 3px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1><i class="fas fa-weight-hanging"></i> Pulley System Puzzle</h1>
+            <div class="game-info">
+                <div class="pulley-counter"><i class="fas fa-cogs"></i> Pulleys: <span id="pulleyCount">0</span></div>
+                <div class="level-indicator"><i class="fas fa-chart-line"></i> Level: <span id="level">1</span></div>
+            </div>
+            <div class="tutorial-indicator" id="tutorialIndicator">
+                <i class="fas fa-graduation-cap"></i> Tutorial Active
+            </div>
+        </header>
+        
+        <div class="game-area">
+            <canvas id="puzzleCanvas"></canvas>
+            
+            <div class="feedback" id="feedback"></div>
+            <div class="hint-display" id="hintDisplay"></div>
+            
+            <div class="tutorial-overlay" id="tutorialOverlay">
+                <div class="tutorial-content" id="tutorialContent">
+                    <!-- Tutorial content will be injected here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="ui-panel">
+            <button class="control-btn tutorial" id="tutorialBtn">
+                <i class="fas fa-graduation-cap"></i> Tutorial
+            </button>
+            <button class="control-btn hint" id="hintBtn">
+                <i class="fas fa-lightbulb"></i> Hint
+            </button>
+            <button class="control-btn check" id="checkBtn">
+                <i class="fas fa-check-circle"></i> Check Solution
+            </button>
+            <button class="control-btn solve" id="solveBtn">
+                <i class="fas fa-bolt"></i> Auto-Solve
+            </button>
+            <button class="control-btn" id="instructionsBtn">
+                <i class="fas fa-question-circle"></i> Instructions
+            </button>
+            <button class="control-btn new" id="newPuzzleBtn">
+                <i class="fas fa-redo"></i> New Puzzle
+            </button>
+            <button class="control-btn" id="soundToggle">
+                <i class="fas fa-volume-up"></i> Sound On
+            </button>
+        </div>
+        
+        <div class="instructions-popup" id="instructionsPopup">
+            <div class="instructions-content">
+                <h2>How to Play Pulley System Puzzle</h2>
+                <p>Your goal is to arrange pulleys to lift the weight with minimal effort.</p>
+                
+                <ul>
+                    <li><strong>Drag and drop</strong> pulleys from the inventory to the mounting points.</li>
+                    <li>Connect pulleys by <strong>dragging the rope</strong> from one pulley to another.</li>
+                    <li>Each pulley system has a <strong>mechanical advantage</strong> that reduces the force needed.</li>
+                    <li><strong>Fixed pulleys</strong> change the direction of force.</li>
+                    <li><strong>Movable pulleys</strong> provide a mechanical advantage of 2.</li>
+                    <li><strong>Compound systems</strong> multiply the mechanical advantage.</li>
+                </ul>
+                
+                <p><strong>Objective:</strong> Create a pulley system that requires exactly <strong>25N</strong> of force to lift the <strong>100N weight</strong> (mechanical advantage of 4).</p>
+                <p>You win when your system matches the required mechanical advantage!</p>
+                
+                <button class="close-btn" id="closeInstructions">Got It!</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('puzzleCanvas');
+        const ctx = canvas.getContext('2d');
+        const feedback = document.getElementById('feedback');
+        const hintDisplay = document.getElementById('hintDisplay');
+        const pulleyCount = document.getElementById('pulleyCount');
+        const levelElement = document.getElementById('level');
+        const tutorialIndicator = document.getElementById('tutorialIndicator');
+        const tutorialOverlay = document.getElementById('tutorialOverlay');
+        const tutorialContent = document.getElementById('tutorialContent');
+        
+        // Game state
+        let gameState = {
+            level: 1,
+            pulleys: [],
+            ropes: [],
+            draggedPulley: null,
+            draggedRopeEnd: null,
+            mouseX: 0,
+            mouseY: 0,
+            isDragging: false,
+            soundEnabled: true,
+            inventoryPulleys: 4,
+            targetForce: 25,
+            weight: 100,
+            solutionFound: false,
+            hintsUsed: 0,
+            tutorial: {
+                active: false,
+                currentStep: 0,
+                totalSteps: 7,
+                demoPulleys: [],
+                highlights: [],
+                arrows: [],
+                mountPoints: []
+            }
+        };
+        
+        // Sound effects
+        const sounds = {
+            click: new Audio(),
+            correct: new Audio(),
+            incorrect: new Audio(),
+            pulleyPlace: new Audio(),
+            ropeConnect: new Audio(),
+            nextStep: new Audio()
+        };
+        
+        // Initialize sounds
+        function initSounds() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            function createBeepSound(frequency, duration, type = 'sine') {
+                return function() {
+                    if (!gameState.soundEnabled) return;
+                    
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = type;
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + duration / 1000);
+                };
+            }
+            
+            sounds.click.play = createBeepSound(800, 100);
+            sounds.correct.play = createBeepSound(1200, 500);
+            sounds.incorrect.play = createBeepSound(400, 500, 'square');
+            sounds.pulleyPlace.play = createBeepSound(600, 200);
+            sounds.ropeConnect.play = createBeepSound(1000, 300);
+            sounds.nextStep.play = createBeepSound(1000, 300);
+        }
+        
+        // Initialize the game
+        function initGame() {
+            resizeCanvas();
+            initSounds();
+            createNewPuzzle();
+            setupEventListeners();
+            gameLoop();
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // Canvas interactions
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', handleTouchStart);
+            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchend', handleTouchEnd);
+            
+            // UI buttons
+            document.getElementById('hintBtn').addEventListener('click', showHint);
+            document.getElementById('checkBtn').addEventListener('click', checkSolution);
+            document.getElementById('solveBtn').addEventListener('click', autoSolve);
+            document.getElementById('instructionsBtn').addEventListener('click', showInstructions);
+            document.getElementById('newPuzzleBtn').addEventListener('click', createNewPuzzle);
+            document.getElementById('soundToggle').addEventListener('click', toggleSound);
+            document.getElementById('closeInstructions').addEventListener('click', hideInstructions);
+            document.getElementById('tutorialBtn').addEventListener('click', startTutorial);
+            
+            // Window resize
+            window.addEventListener('resize', resizeCanvas);
+        }
+        
+        // Resize canvas
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            drawGame();
+        }
+        
+        // Create a new puzzle
+        function createNewPuzzle() {
+            sounds.click.play();
+            
+            // Reset game state
+            gameState.pulleys = [];
+            gameState.ropes = [];
+            gameState.draggedPulley = null;
+            gameState.draggedRopeEnd = null;
+            gameState.solutionFound = false;
+            gameState.hintsUsed = 0;
+            gameState.inventoryPulleys = 4 + Math.floor(gameState.level / 2);
+            
+            // Update level display
+            pulleyCount.textContent = gameState.inventoryPulleys;
+            
+            // Hide feedback and hints
+            feedback.style.display = 'none';
+            hintDisplay.style.display = 'none';
+            
+            // Create fixed mounting points
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            
+            // Ceiling mounting points
+            const mountPoints = 3;
+            for (let i = 0; i < mountPoints; i++) {
+                gameState.pulleys.push({
+                    x: canvasWidth * 0.2 + (i * canvasWidth * 0.3),
+                    y: canvasHeight * 0.15,
+                    type: 'fixed',
+                    isMountPoint: true,
+                    radius: 20,
+                    connectedTo: null
+                });
+            }
+            
+            // Weight at the bottom
+            gameState.weight = {
+                x: canvasWidth * 0.5,
+                y: canvasHeight * 0.85,
+                width: 60,
+                height: 80,
+                mass: 100
+            };
+            
+            // Initialize tutorial demo pulleys
+            gameState.tutorial.demoPulleys = [
+                {
+                    x: canvasWidth * 0.5,
+                    y: canvasHeight * 0.8,
+                    type: 'movable',
+                    radius: 25,
+                    color: '#e74c3c',
+                    targetX: null,
+                    targetY: null,
+                    visible: false
+                },
+                {
+                    x: canvasWidth * 0.5,
+                    y: canvasHeight * 0.8,
+                    type: 'movable',
+                    radius: 25,
+                    color: '#e74c3c',
+                    targetX: null,
+                    targetY: null,
+                    visible: false
+                }
+            ];
+            
+            drawGame();
+        }
+        
+        // Handle mouse down
+        function handleMouseDown(e) {
+            if (gameState.tutorial.active) {
+                // During tutorial, only allow interaction if it's part of the tutorial step
+                if (gameState.tutorial.currentStep >= 2) {
+                    // Allow interaction from step 2 onward
+                    const rect = canvas.getBoundingClientRect();
+                    gameState.mouseX = e.clientX - rect.left;
+                    gameState.mouseY = e.clientY - rect.top;
+                    handleInteractionStart(gameState.mouseX, gameState.mouseY);
+                    
+                    // If tutorial step 2 and user clicks on inventory, advance tutorial
+                    if (gameState.tutorial.currentStep === 2 && gameState.mouseY > canvas.height * 0.7) {
+                        advanceTutorial();
+                    }
+                }
+            } else {
+                const rect = canvas.getBoundingClientRect();
+                gameState.mouseX = e.clientX - rect.left;
+                gameState.mouseY = e.clientY - rect.top;
+                handleInteractionStart(gameState.mouseX, gameState.mouseY);
+            }
+        }
+        
+        // Handle mouse move
+        function handleMouseMove(e) {
+            if (!gameState.isDragging) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            gameState.mouseX = e.clientX - rect.left;
+            gameState.mouseY = e.clientY - rect.top;
+            handleInteractionMove(gameState.mouseX, gameState.mouseY);
+        }
+        
+        // Handle mouse up
+        function handleMouseUp() {
+            handleInteractionEnd();
+        }
+        
+        // Handle touch start
+        function handleTouchStart(e) {
+            e.preventDefault();
+            if (gameState.tutorial.active && gameState.tutorial.currentStep < 2) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            gameState.mouseX = touch.clientX - rect.left;
+            gameState.mouseY = touch.clientY - rect.top;
+            
+            handleInteractionStart(gameState.mouseX, gameState.mouseY);
+        }
+        
+        // Handle touch move
+        function handleTouchMove(e) {
+            if (!gameState.isDragging) return;
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            gameState.mouseX = touch.clientX - rect.left;
+            gameState.mouseY = touch.clientY - rect.top;
+            
+            handleInteractionMove(gameState.mouseX, gameState.mouseY);
+        }
+        
+        // Handle touch end
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            handleInteractionEnd();
+        }
+        
+        // Handle interaction start
+        function handleInteractionStart(x, y) {
+            // Check if clicking on a pulley to drag
+            for (let i = gameState.pulleys.length - 1; i >= 0; i--) {
+                const pulley = gameState.pulleys[i];
+                const distance = Math.sqrt((x - pulley.x) ** 2 + (y - pulley.y) ** 2);
+                
+                if (distance <= pulley.radius && !pulley.isMountPoint) {
+                    gameState.draggedPulley = pulley;
+                    gameState.isDragging = true;
+                    sounds.click.play();
+                    return;
+                }
+            }
+            
+            // Check if clicking on inventory to create a new pulley
+            if (y > canvas.height * 0.7 && gameState.inventoryPulleys > 0) {
+                gameState.draggedPulley = {
+                    x: x,
+                    y: y,
+                    type: 'movable',
+                    isMountPoint: false,
+                    radius: 25,
+                    connectedTo: null
+                };
+                gameState.isDragging = true;
+                sounds.click.play();
+                return;
+            }
+            
+            // Check if clicking near a pulley to start a rope connection
+            for (let i = gameState.pulleys.length - 1; i >= 0; i--) {
+                const pulley = gameState.pulleys[i];
+                const distance = Math.sqrt((x - pulley.x) ** 2 + (y - pulley.y) ** 2);
+                
+                if (distance <= pulley.radius + 10) {
+                    gameState.draggedRopeEnd = { 
+                        x: pulley.x, 
+                        y: pulley.y,
+                        startX: pulley.x,
+                        startY: pulley.y
+                    };
+                    gameState.isDragging = true;
+                    sounds.click.play();
+                    return;
+                }
+            }
+        }
+        
+        // Handle interaction move
+        function handleInteractionMove(x, y) {
+            if (gameState.draggedPulley) {
+                gameState.draggedPulley.x = x;
+                gameState.draggedPulley.y = y;
+                drawGame();
+            }
+            
+            if (gameState.draggedRopeEnd) {
+                gameState.draggedRopeEnd.x = x;
+                gameState.draggedRopeEnd.y = y;
+                drawGame();
+            }
+        }
+        
+        // Handle interaction end
+        function handleInteractionEnd() {
+            if (gameState.draggedPulley) {
+                // If pulley is placed near a mount point, attach it
+                let attached = false;
+                for (const mount of gameState.pulleys) {
+                    if (mount.isMountPoint) {
+                        const distance = Math.sqrt(
+                            (gameState.draggedPulley.x - mount.x) ** 2 + 
+                            (gameState.draggedPulley.y - mount.y) ** 2
+                        );
+                        
+                        if (distance < 100) {
+                            gameState.draggedPulley.x = mount.x;
+                            gameState.draggedPulley.y = mount.y + 80;
+                            
+                            // Add to pulleys array if it's a new pulley
+                            if (!gameState.pulleys.includes(gameState.draggedPulley)) {
+                                gameState.pulleys.push(gameState.draggedPulley);
+                                gameState.inventoryPulleys--;
+                                pulleyCount.textContent = gameState.inventoryPulleys;
+                                sounds.pulleyPlace.play();
+                            }
+                            
+                            attached = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // If it's a new pulley not attached to a mount, remove it
+                if (!attached && !gameState.pulleys.includes(gameState.draggedPulley)) {
+                    gameState.draggedPulley = null;
+                }
+            }
+            
+            if (gameState.draggedRopeEnd) {
+                // Check if rope end is near another pulley to connect
+                for (const pulley of gameState.pulleys) {
+                    if (!pulley.isMountPoint) {
+                        const distance = Math.sqrt(
+                            (gameState.draggedRopeEnd.x - pulley.x) ** 2 + 
+                            (gameState.draggedRopeEnd.y - pulley.y) ** 2
+                        );
+                        
+                        if (distance < 40) {
+                            // Create a rope connection
+                            gameState.ropes.push({
+                                start: { x: gameState.draggedRopeEnd.startX, y: gameState.draggedRopeEnd.startY },
+                                end: { x: pulley.x, y: pulley.y }
+                            });
+                            sounds.ropeConnect.play();
+                            
+                            // If in tutorial and connecting first rope, advance
+                            if (gameState.tutorial.active && gameState.tutorial.currentStep === 3) {
+                                setTimeout(() => advanceTutorial(), 500);
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                // Check if rope end is near weight to connect
+                const distanceToWeight = Math.sqrt(
+                    (gameState.draggedRopeEnd.x - gameState.weight.x) ** 2 + 
+                    (gameState.draggedRopeEnd.y - (gameState.weight.y - 40)) ** 2
+                );
+                
+                if (distanceToWeight < 40) {
+                    // Create a rope connection to weight
+                    gameState.ropes.push({
+                        start: { x: gameState.draggedRopeEnd.startX, y: gameState.draggedRopeEnd.startY },
+                        end: { x: gameState.weight.x, y: gameState.weight.y - 40 }
+                    });
+                    sounds.ropeConnect.play();
+                    
+                    // If in tutorial and connecting to weight, advance
+                    if (gameState.tutorial.active && gameState.tutorial.currentStep === 4) {
+                        setTimeout(() => advanceTutorial(), 500);
+                    }
+                }
+            }
+            
+            gameState.draggedPulley = null;
+            gameState.draggedRopeEnd = null;
+            gameState.isDragging = false;
+            drawGame();
+        }
+        
+        // Show hint
+        function showHint() {
+            sounds.click.play();
+            gameState.hintsUsed++;
+            
+            const hints = [
+                "Try using movable pulleys to increase mechanical advantage.",
+                "Each movable pulley doubles the mechanical advantage.",
+                "Connect pulleys in series to multiply the advantage.",
+                `You need a mechanical advantage of ${gameState.weight.mass / gameState.targetForce}.`,
+                "Start with a fixed pulley at the top, then add movable ones below.",
+                "Remember: more pulleys = less force needed to lift the weight."
+            ];
+            
+            const hintIndex = Math.min(gameState.hintsUsed - 1, hints.length - 1);
+            const hint = hints[hintIndex] || hints[hints.length - 1];
+            
+            hintDisplay.textContent = hint;
+            hintDisplay.style.display = 'block';
+            
+            setTimeout(() => {
+                hintDisplay.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Check solution
+        function checkSolution() {
+            sounds.click.play();
+            
+            // Calculate mechanical advantage based on pulley arrangement
+            let movablePulleys = 0;
+            
+            // Count movable pulleys that are connected
+            for (const pulley of gameState.pulleys) {
+                if (pulley.type === 'movable' && !pulley.isMountPoint) {
+                    // Check if this pulley is connected to something
+                    let isConnected = false;
+                    for (const rope of gameState.ropes) {
+                        const distanceToStart = Math.sqrt(
+                            (pulley.x - rope.start.x) ** 2 + (pulley.y - rope.start.y) ** 2
+                        );
+                        const distanceToEnd = Math.sqrt(
+                            (pulley.x - rope.end.x) ** 2 + (pulley.y - rope.end.y) ** 2
+                        );
+                        
+                        if (distanceToStart < 40 || distanceToEnd < 40) {
+                            isConnected = true;
+                            break;
+                        }
+                    }
+                    
+                    if (isConnected) movablePulleys++;
+                }
+            }
+            
+            // Mechanical advantage formula: 2^n where n is number of movable pulleys
+            const mechanicalAdvantage = Math.pow(2, movablePulleys);
+            const requiredForce = gameState.weight.mass / mechanicalAdvantage;
+            
+            // Check if solution is correct (within 5% of target)
+            const forceDifference = Math.abs(requiredForce - gameState.targetForce);
+            const tolerance = gameState.targetForce * 0.05;
+            
+            if (forceDifference <= tolerance && movablePulleys > 0) {
+                // Correct solution
+                feedback.textContent = `Correct! Force needed: ${requiredForce.toFixed(1)}N`;
+                feedback.className = 'feedback correct';
+                feedback.style.display = 'block';
+                sounds.correct.play();
+                
+                gameState.solutionFound = true;
+                
+                // If in tutorial and checking solution, advance
+                if (gameState.tutorial.active && gameState.tutorial.currentStep === 5) {
+                    setTimeout(() => advanceTutorial(), 1500);
+                    return;
+                }
+                
+                // Auto advance to next level after 2 seconds
+                setTimeout(() => {
+                    if (gameState.solutionFound) {
+                        gameState.level++;
+                        levelElement.textContent = gameState.level;
+                        createNewPuzzle();
+                    }
+                }, 2000);
+            } else {
+                // Incorrect solution
+                feedback.textContent = `Not quite. Try again! Current force: ${requiredForce.toFixed(1)}N`;
+                feedback.className = 'feedback incorrect';
+                feedback.style.display = 'block';
+                sounds.incorrect.play();
+                
+                setTimeout(() => {
+                    feedback.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // Auto-solve the puzzle
+        function autoSolve() {
+            sounds.click.play();
+            
+            // Clear existing pulleys (except mount points)
+            gameState.pulleys = gameState.pulleys.filter(p => p.isMountPoint);
+            gameState.ropes = [];
+            
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            
+            // Create optimal solution (2 movable pulleys for mechanical advantage of 4)
+            const mountPoints = gameState.pulleys.filter(p => p.isMountPoint);
+            
+            // First movable pulley attached to first mount point
+            if (mountPoints.length > 0 && gameState.inventoryPulleys >= 2) {
+                const firstPulley = {
+                    x: mountPoints[0].x,
+                    y: mountPoints[0].y + 80,
+                    type: 'movable',
+                    isMountPoint: false,
+                    radius: 25,
+                    connectedTo: null
+                };
+                gameState.pulleys.push(firstPulley);
+                gameState.inventoryPulleys--;
+                
+                // Second movable pulley attached to first one
+                const secondPulley = {
+                    x: firstPulley.x,
+                    y: firstPulley.y + 120,
+                    type: 'movable',
+                    isMountPoint: false,
+                    radius: 25,
+                    connectedTo: null
+                };
+                gameState.pulleys.push(secondPulley);
+                gameState.inventoryPulleys--;
+                
+                // Connect mount point to first pulley
+                gameState.ropes.push({
+                    start: { x: mountPoints[0].x, y: mountPoints[0].y },
+                    end: { x: firstPulley.x, y: firstPulley.y }
+                });
+                
+                // Connect first pulley to second pulley
+                gameState.ropes.push({
+                    start: { x: firstPulley.x, y: firstPulley.y },
+                    end: { x: secondPulley.x, y: secondPulley.y }
+                });
+                
+                // Connect second pulley to weight
+                gameState.ropes.push({
+                    start: { x: secondPulley.x, y: secondPulley.y },
+                    end: { x: gameState.weight.x, y: gameState.weight.y - 40 }
+                });
+                
+                pulleyCount.textContent = gameState.inventoryPulleys;
+                drawGame();
+                
+                // Show solution feedback
+                setTimeout(() => {
+                    feedback.textContent = "Auto-solved! Mechanical advantage of 4 achieved.";
+                    feedback.className = 'feedback correct';
+                    feedback.style.display = 'block';
+                    sounds.correct.play();
+                    
+                    // Auto advance to next level
+                    setTimeout(() => {
+                        gameState.level++;
+                        levelElement.textContent = gameState.level;
+                        createNewPuzzle();
+                    }, 2000);
+                }, 500);
+            }
+        }
+        
+        // Show instructions
+        function showInstructions() {
+            sounds.click.play();
+            document.getElementById('instructionsPopup').style.display = 'flex';
+        }
+        
+        // Hide instructions
+        function hideInstructions() {
+            sounds.click.play();
+            document.getElementById('instructionsPopup').style.display = 'none';
+        }
+        
+        // Toggle sound
+        function toggleSound() {
+            sounds.click.play();
+            gameState.soundEnabled = !gameState.soundEnabled;
+            const soundBtn = document.getElementById('soundToggle');
+            
+            if (gameState.soundEnabled) {
+                soundBtn.innerHTML = '<i class="fas fa-volume-up"></i> Sound On';
+            } else {
+                soundBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Sound Off';
+            }
+        }
+        
+        // Start tutorial
+        function startTutorial() {
+            sounds.click.play();
+            gameState.tutorial.active = true;
+            tutorialIndicator.style.display = 'inline-flex';
+            gameState.tutorial.currentStep = 0;
+            
+            // Reset game state for tutorial
+            createNewPuzzle();
+            
+            // Show tutorial overlay
+            tutorialOverlay.style.display = 'flex';
+            
+            // Show first tutorial step
+            showTutorialStep();
+        }
+        
+        // Show current tutorial step
+        function showTutorialStep() {
+            sounds.nextStep.play();
+            
+            // Clear previous highlights and arrows
+            gameState.tutorial.highlights = [];
+            gameState.tutorial.arrows = [];
+            
+            // Hide demo pulleys
+            gameState.tutorial.demoPulleys.forEach(pulley => pulley.visible = false);
+            
+            // Show different content based on current step
+            switch(gameState.tutorial.currentStep) {
+                case 0:
+                    showTutorialStep0();
+                    break;
+                case 1:
+                    showTutorialStep1();
+                    break;
+                case 2:
+                    showTutorialStep2();
+                    break;
+                case 3:
+                    showTutorialStep3();
+                    break;
+                case 4:
+                    showTutorialStep4();
+                    break;
+                case 5:
+                    showTutorialStep5();
+                    break;
+                case 6:
+                    showTutorialStep6();
+                    break;
+            }
+            
+            // Update tutorial navigation buttons
+            updateTutorialButtons();
+            
+            drawGame();
+        }
+        
+        // Tutorial step 0: Welcome
+        function showTutorialStep0() {
+            tutorialContent.innerHTML = `
+                <h2>Welcome to Pulley System Puzzle!</h2>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-bullseye"></i> Objective</h3>
+                    <p>Your goal is to build a pulley system that can lift a <strong>100N weight</strong> using only <strong>25N of force</strong>.</p>
+                    <p>This requires a mechanical advantage of 4:1.</p>
+                </div>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-cogs"></i> How Pulleys Work</h3>
+                    <p><strong>Movable pulleys</strong> (red) provide a 2:1 mechanical advantage.</p>
+                    <p>Connect them in series to multiply the advantage!</p>
+                    <p>2 movable pulleys = 2 × 2 = 4:1 advantage</p>
+                </div>
+            `;
+        }
+        
+        // Tutorial step 1: Overview
+        function showTutorialStep1() {
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            
+            // Highlight inventory area
+            gameState.tutorial.highlights.push({
+                x: 0,
+                y: canvasHeight * 0.7,
+                width: canvasWidth,
+                height: canvasHeight * 0.3,
+                label: "Pulley Inventory"
+            });
+            
+            // Highlight mount points
+            gameState.tutorial.highlights.push({
+                x: canvasWidth * 0.2 - 40,
+                y: canvasHeight * 0.15 - 40,
+                width: canvasWidth * 0.6,
+                height: 80,
+                label: "Mounting Points"
+            });
+            
+            // Highlight weight
+            gameState.tutorial.highlights.push({
+                x: gameState.weight.x - 40,
+                y: gameState.weight.y - 50,
+                width: 80,
+                height: 100,
+                label: "100N Weight"
+            });
+            
+            tutorialContent.innerHTML = `
+                <h2>Step 1: Game Overview</h2>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-map"></i> Game Layout</h3>
+                    <p>1. <strong>Inventory Area</strong> (bottom): Drag pulleys from here</p>
+                    <p>2. <strong>Mounting Points</strong> (top): Place pulleys here</p>
+                    <p>3. <strong>Weight</strong> (bottom center): This is what you need to lift</p>
+                </div>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-play-circle"></i> Watch Demonstration</h3>
+                    <p>Look at the highlighted areas on the screen.</p>
+                    <p>Next, we'll show you how to place your first pulley.</p>
+                </div>
+            `;
+        }
+        
+        // Tutorial step 2: Placing pulleys
+        function showTutorialStep2() {
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            
+            // Clear previous highlights
+            gameState.tutorial.highlights = [];
+            
+            // Highlight first mount point
+            gameState.tutorial.highlights.push({
+                x: canvasWidth * 0.3 - 40,
+                y: canvasHeight * 0.15 - 40,
+                width: 80,
+                height: 80,
+                label: "Mount Point"
+            });
+            
+            // Add arrow from inventory to mount point
+            gameState.tutorial.arrows.push({
+                fromX: canvasWidth * 0.5,
+                fromY: canvasHeight * 0.85,
+                toX: canvasWidth * 0.3,
+                toY: canvasHeight * 0.15 + 80,
+                label: "Drag here"
+            });
+            
+            tutorialContent.innerHTML = `
+                <h2>Step 2: Place Your First Pulley</h2>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-hand-pointer"></i> Your Turn!</h3>
+                    <p>1. <strong>Click and drag</strong> a pulley from the inventory</p>
+                    <p>2. Drop it onto the <strong>highlighted mount point</strong></p>
+                    <p>3. The pulley will snap into place automatically</p>
+                </div>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-lightbulb"></i> Tip</h3>
+                    <p>You can drag from any red circle in the inventory area.</p>
+                    <p>Try it now! The game is waiting for your input.</p>
+                </div>
+            `;
+        }
+        
+        // Tutorial step 3: Connecting pulleys
+        function showTutorialStep3() {
+            // Clear highlights
+            gameState.tutorial.highlights = [];
+            
+            // Wait for player to place a pulley
+            if (gameState.pulleys.filter(p => !p.isMountPoint).length === 0) {
+                // Player hasn't placed a pulley yet, add one for them
+                const firstPulley = {
+                    x: canvas.width * 0.3,
+                    y: canvas.height * 0.15 + 80,
+                    type: 'movable',
+                    isMountPoint: false,
+                    radius: 25,
+                    connectedTo: null
+                };
+                gameState.pulleys.push(firstPulley);
+                gameState.inventoryPulleys--;
+                pulleyCount.textContent = gameState.inventoryPulleys;
+            }
+            
+            // Highlight the placed pulley
+            const placedPulleys = gameState.pulleys.filter(p => !p.isMountPoint);
+            if (placedPulleys.length > 0) {
+                const firstPulley = placedPulleys[0];
+                
+                gameState.tutorial.highlights.push({
+                    x: firstPulley.x - 35,
+                    y: firstPulley.y - 35,
+                    width: 70,
+                    height: 70,
+                    label: "Your Pulley"
+                });
+                
+                // Add arrow from pulley to empty space
+                gameState.tutorial.arrows.push({
+                    fromX: firstPulley.x,
+                    fromY: firstPulley.y,
+                    toX: firstPulley.x + 100,
+                    toY: firstPulley.y,
+                    label: "Drag from center"
+                });
+            }
+            
+            tutorialContent.innerHTML = `
+                <h2>Step 3: Add a Second Pulley</h2>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-layer-group"></i> Building the System</h3>
+                    <p>1. First, <strong>place another pulley</strong> on a different mount point</p>
+                    <p>2. Then <strong>click and drag</strong> from the center of your first pulley</p>
+                    <p>3. Drag to the center of the second pulley to connect them</p>
+                </div>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-lightbulb"></i> Pro Tip</h3>
+                    <p>Each movable pulley <strong>doubles</strong> the mechanical advantage.</p>
+                    <p>2 movable pulleys = 4x advantage (2 × 2 = 4).</p>
+                </div>
+            `;
+        }
+        
+        // Tutorial step 4: Connecting to weight
+        function showTutorialStep4() {
+            // Clear highlights
+            gameState.tutorial.highlights = [];
+            
+            // Make sure we have two pulleys
+            while (gameState.pulleys.filter(p => !p.isMountPoint).length < 2 && gameState.inventoryPulleys > 0) {
+                const mountPoints = gameState.pulleys.filter(p => p.isMountPoint);
+                if (mountPoints.length > 1) {
+                    const secondPulley = {
+                        x: mountPoints[1].x,
+                        y: mountPoints[1].y + 80,
+                        type: 'movable',
+                        isMountPoint: false,
+                        radius: 25,
+                        connectedTo: null
+                    };
+                    gameState.pulleys.push(secondPulley);
+                    gameState.inventoryPulleys--;
+                    pulleyCount.textContent = gameState.inventoryPulleys;
+                }
+            }
+            
+            // Highlight second pulley and weight
+            const placedPulleys = gameState.pulleys.filter(p => !p.isMountPoint);
+            if (placedPulleys.length > 1) {
+                const secondPulley = placedPulleys[1];
+                
+                gameState.tutorial.highlights.push({
+                    x: secondPulley.x - 35,
+                    y: secondPulley.y - 35,
+                    width: 70,
+                    height: 70,
+                    label: "Second Pulley"
+                });
+                
+                gameState.tutorial.highlights.push({
+                    x: gameState.weight.x - 40,
+                    y: gameState.weight.y - 50,
+                    width: 80,
+                    height: 100,
+                    label: "100N Weight"
+                });
+                
+                // Add arrow from pulley to weight
+                gameState.tutorial.arrows.push({
+                    fromX: secondPulley.x,
+                    fromY: secondPulley.y,
+                    toX: gameState.weight.x,
+                    toY: gameState.weight.y - 40,
+                    label: "Connect to weight"
+                });
+            }
+            
+            tutorialContent.innerHTML = `
+                <h2>Step 4: Connect to the Weight</h2>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-weight-hanging"></i> Completing the System</h3>
+                    <p>1. Click and drag from the <strong>second pulley</strong></p>
+                    <p>2. Drag to the <strong>top of the weight</strong></p>
+                    <p>3. Release to connect the weight to your pulley system</p>
+                </div>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-calculator"></i> Physics Check</h3>
+                    <p>With 2 movable pulleys connected in series:</p>
+                    <p>Mechanical Advantage = 2 × 2 = <strong>4:1</strong></p>
+                    <p>Force needed = 100N ÷ 4 = <strong>25N ✓</strong></p>
+                </div>
+            `;
+        }
+        
+        // Tutorial step 5: Check solution
+        function showTutorialStep5() {
+            // Clear highlights
+            gameState.tutorial.highlights = [];
+            
+            // Highlight check button area
+            gameState.tutorial.highlights.push({
+                x: canvas.width * 0.1,
+                y: canvas.height * 0.9,
+                width: canvas.width * 0.8,
+                height: 60,
+                label: "Check Solution Button"
+            });
+            
+            tutorialContent.innerHTML = `
+                <h2>Step 5: Check Your Solution</h2>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-check-circle"></i> Verifying Your System</h3>
+                    <p>1. Once your pulley system is complete...</p>
+                    <p>2. Click the <strong>"Check Solution"</strong> button below</p>
+                    <p>3. The game will calculate if your system provides the needed mechanical advantage</p>
+                </div>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-trophy"></i> Success!</h3>
+                    <p>If correct, you'll advance to the next level with a more challenging puzzle!</p>
+                    <p>If not, you'll get feedback on how to improve your system.</p>
+                </div>
+            `;
+        }
+        
+        // Tutorial step 6: Complete
+        function showTutorialStep6() {
+            tutorialContent.innerHTML = `
+                <h2>Tutorial Complete! 🎉</h2>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-gamepad"></i> Ready to Play</h3>
+                    <p>You now know how to:</p>
+                    <ul style="text-align: left; margin: 15px 0; padding-left: 20px;">
+                        <li>Drag and place pulleys</li>
+                        <li>Connect pulleys with ropes</li>
+                        <li>Build a complete pulley system</li>
+                        <li>Check your solution</li>
+                    </ul>
+                </div>
+                <div class="tutorial-step">
+                    <h3><i class="fas fa-rocket"></i> Additional Features</h3>
+                    <p><strong>Hint Button:</strong> Get help if you're stuck</p>
+                    <p><strong>Auto-Solve:</strong> See the optimal solution</p>
+                    <p><strong>New Puzzle:</strong> Generate a new challenge</p>
+                </div>
+            `;
+            
+            // End tutorial after a few seconds
+            setTimeout(() => {
+                endTutorial();
+            }, 3000);
+        }
+        
+        // Update tutorial navigation buttons
+        function updateTutorialButtons() {
+            let buttonsHTML = '';
+            
+            if (gameState.tutorial.currentStep === 0) {
+                buttonsHTML = `
+                    <div class="tutorial-buttons">
+                        <button class="tutorial-btn skip" id="skipTutorialBtn">
+                            Skip Tutorial
+                        </button>
+                        <button class="tutorial-btn next" id="nextStepBtn">
+                            Next
+                        </button>
+                    </div>
+                `;
+            } else if (gameState.tutorial.currentStep < gameState.tutorial.totalSteps - 1) {
+                buttonsHTML = `
+                    <div class="tutorial-buttons">
+                        <button class="tutorial-btn prev" id="prevStepBtn">
+                            Previous
+                        </button>
+                        <button class="tutorial-btn next" id="nextStepBtn">
+                            Next
+                        </button>
+                    </div>
+                `;
+            } else if (gameState.tutorial.currentStep === gameState.tutorial.totalSteps - 1) {
+                buttonsHTML = `
+                    <div class="tutorial-buttons">
+                        <button class="tutorial-btn prev" id="prevStepBtn">
+                            Previous
+                        </button>
+                        <button class="tutorial-btn next" id="finishTutorialBtn">
+                            Finish
+                        </button>
+                    </div>
+                `;
+            }
+            
+            tutorialContent.innerHTML += buttonsHTML;
+            
+            // Add event listeners
+            setTimeout(() => {
+                if (document.getElementById('skipTutorialBtn')) {
+                    document.getElementById('skipTutorialBtn').addEventListener('click', endTutorial);
+                }
+                if (document.getElementById('prevStepBtn')) {
+                    document.getElementById('prevStepBtn').addEventListener('click', () => {
+                        gameState.tutorial.currentStep--;
+                        showTutorialStep();
+                    });
+                }
+                if (document.getElementById('nextStepBtn')) {
+                    document.getElementById('nextStepBtn').addEventListener('click', advanceTutorial);
+                }
+                if (document.getElementById('finishTutorialBtn')) {
+                    document.getElementById('finishTutorialBtn').addEventListener('click', endTutorial);
+                }
+            }, 100);
+        }
+        
+        // Advance to next tutorial step
+        function advanceTutorial() {
+            sounds.nextStep.play();
+            gameState.tutorial.currentStep++;
+            
+            if (gameState.tutorial.currentStep >= gameState.tutorial.totalSteps) {
+                endTutorial();
+            } else {
+                showTutorialStep();
+            }
+        }
+        
+        // End tutorial
+        function endTutorial() {
+            sounds.correct.play();
+            gameState.tutorial.active = false;
+            tutorialOverlay.style.display = 'none';
+            tutorialIndicator.style.display = 'none';
+            
+            // Reset game for normal play
+            createNewPuzzle();
+        }
+        
+        // Draw the game
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ceiling
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, 0, canvas.width, 10);
+            
+            // Draw weight
+            ctx.fillStyle = '#555';
+            ctx.fillRect(
+                gameState.weight.x - gameState.weight.width/2, 
+                gameState.weight.y - gameState.weight.height/2, 
+                gameState.weight.width, 
+                gameState.weight.height
+            );
+            
+            // Draw weight label
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${gameState.weight.mass}N`, gameState.weight.x, gameState.weight.y + 5);
+            
+            // Draw ropes
+            ctx.strokeStyle = '#D2691E';
+            ctx.lineWidth = 4;
+            for (const rope of gameState.ropes) {
+                ctx.beginPath();
+                ctx.moveTo(rope.start.x, rope.start.y);
+                ctx.lineTo(rope.end.x, rope.end.y);
+                ctx.stroke();
+            }
+            
+            // Draw dragged rope if active
+            if (gameState.draggedRopeEnd) {
+                ctx.beginPath();
+                ctx.moveTo(gameState.draggedRopeEnd.startX, gameState.draggedRopeEnd.startY);
+                ctx.lineTo(gameState.draggedRopeEnd.x, gameState.draggedRopeEnd.y);
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+            
+            // Draw pulleys
+            for (const pulley of gameState.pulleys) {
+                // Pulley wheel
+                ctx.beginPath();
+                ctx.arc(pulley.x, pulley.y, pulley.radius, 0, Math.PI * 2);
+                
+                if (pulley.isMountPoint) {
+                    ctx.fillStyle = '#8B4513';
+                } else if (pulley.type === 'fixed') {
+                    ctx.fillStyle = '#3498db';
+                } else {
+                    ctx.fillStyle = '#e74c3c';
+                }
+                
+                ctx.fill();
+                
+                // Pulley outline
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Pulley center
+                ctx.beginPath();
+                ctx.arc(pulley.x, pulley.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                
+                // Pulley type indicator
+                if (!pulley.isMountPoint) {
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(pulley.type === 'fixed' ? 'F' : 'M', pulley.x, pulley.y + 4);
+                }
+            }
+            
+            // Draw dragged pulley if active
+            if (gameState.draggedPulley && !gameState.pulleys.includes(gameState.draggedPulley)) {
+                // Draw as translucent if it's a new pulley
+                ctx.globalAlpha = 0.7;
+                ctx.beginPath();
+                ctx.arc(gameState.draggedPulley.x, gameState.draggedPulley.y, gameState.draggedPulley.radius, 0, Math.PI * 2);
+                ctx.fillStyle = gameState.draggedPulley.type === 'fixed' ? '#3498db' : '#e74c3c';
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Center
+                ctx.beginPath();
+                ctx.arc(gameState.draggedPulley.x, gameState.draggedPulley.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                
+                // Type indicator
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(gameState.draggedPulley.type === 'fixed' ? 'F' : 'M', 
+                           gameState.draggedPulley.x, gameState.draggedPulley.y + 4);
+                
+                ctx.globalAlpha = 1.0;
+            }
+            
+            // Draw tutorial demo pulleys
+            for (const pulley of gameState.tutorial.demoPulleys) {
+                if (pulley.visible) {
+                    ctx.globalAlpha = 0.8;
+                    ctx.beginPath();
+                    ctx.arc(pulley.x, pulley.y, pulley.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = pulley.color;
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+            
+            // Draw inventory area
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, canvas.height * 0.7, canvas.width, canvas.height * 0.3);
+            
+            // Draw inventory pulleys
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Available Pulleys: ${gameState.inventoryPulleys}`, canvas.width/2, canvas.height * 0.75);
+            
+            // Draw example pulleys in inventory
+            for (let i = 0; i < Math.min(3, gameState.inventoryPulleys); i++) {
+                const x = canvas.width * 0.3 + i * canvas.width * 0.2;
+                const y = canvas.height * 0.85;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 25, 0, Math.PI * 2);
+                ctx.fillStyle = '#e74c3c';
+                ctx.fill();
+                
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('M', x, y + 5);
+            }
+            
+            // Draw target force
+            ctx.fillStyle = '#26d0ce';
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText(`Target Force: ${gameState.targetForce}N`, canvas.width/2, canvas.height * 0.95);
+            
+            // Draw tutorial highlights
+            if (gameState.tutorial.active) {
+                for (const highlight of gameState.tutorial.highlights) {
+                    ctx.strokeStyle = '#ffc107';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([10, 5]);
+                    ctx.strokeRect(highlight.x, highlight.y, highlight.width, highlight.height);
+                    ctx.setLineDash([]);
+                    
+                    // Draw label
+                    if (highlight.label) {
+                        ctx.fillStyle = '#ffc107';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(highlight.label, highlight.x + highlight.width/2, highlight.y - 10);
+                    }
+                }
+                
+                // Draw tutorial arrows
+                for (const arrow of gameState.tutorial.arrows) {
+                    // Draw arrow line
+                    ctx.strokeStyle = '#ffc107';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(arrow.fromX, arrow.fromY);
+                    ctx.lineTo(arrow.toX, arrow.toY);
+                    ctx.stroke();
+                    
+                    // Draw arrowhead
+                    const angle = Math.atan2(arrow.toY - arrow.fromY, arrow.toX - arrow.fromX);
+                    const headLength = 15;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(arrow.toX, arrow.toY);
+                    ctx.lineTo(
+                        arrow.toX - headLength * Math.cos(angle - Math.PI/6),
+                        arrow.toY - headLength * Math.sin(angle - Math.PI/6)
+                    );
+                    ctx.lineTo(
+                        arrow.toX - headLength * Math.cos(angle + Math.PI/6),
+                        arrow.toY - headLength * Math.sin(angle + Math.PI/6)
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = '#ffc107';
+                    ctx.fill();
+                    
+                    // Draw label
+                    if (arrow.label) {
+                        const midX = (arrow.fromX + arrow.toX) / 2;
+                        const midY = (arrow.fromY + arrow.toY) / 2;
+                        
+                        ctx.fillStyle = '#ffc107';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(arrow.label, midX, midY - 15);
+                    }
+                }
+            }
+        }
+        
+        // Game loop
+        function gameLoop() {
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Initialize the game
+        window.onload = initGame;
+    </script>
+</body>
+</html>

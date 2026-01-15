@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower of Hanoi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 500px;
+            width: 95%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 100px;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .info {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .game-area {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px 10px;
+            position: relative;
+            height: 300px;
+        }
+        
+        .towers {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 100%;
+            position: relative;
+        }
+        
+        .tower {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            width: 30%;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .tower.drag-over {
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .tower.invalid-drop {
+            background: rgba(231, 76, 60, 0.2);
+            animation: shake 0.3s ease;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .tower::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            width: 4px;
+            height: 200px;
+            background: #333;
+        }
+        
+        .tower::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 4px;
+            background: #333;
+        }
+        
+        .disk {
+            height: 25px;
+            border-radius: 5px;
+            margin: 2px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: move;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            z-index: 1;
+            touch-action: none;
+            user-select: none;
+        }
+        
+        .disk:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .disk.dragging {
+            opacity: 0.6;
+            transform: rotate(5deg) scale(1.1);
+            z-index: 1000;
+            cursor: grabbing;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .disk[draggable="true"] {
+            cursor: grab;
+        }
+        
+        .disk[draggable="false"] {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .modal-content p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .close-btn {
+            margin-top: 20px;
+            padding: 10px 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗼 Tower of Hanoi</h1>
+        
+        <div class="controls">
+            <button onclick="newPuzzle()">New Puzzle</button>
+            <button onclick="getHint()">Hint</button>
+            <button onclick="checkSolution()">Check</button>
+            <button onclick="autoSolve()">Auto Solve</button>
+            <button onclick="showInstructions()">Help</button>
+        </div>
+        
+        <div class="info">
+            <div>Moves: <span id="moves">0</span> | Min Moves: <span id="minMoves">0</span></div>
+            <div id="message" style="margin-top: 5px; font-weight: bold; color: #667eea;"></div>
+        </div>
+        
+        <div class="game-area">
+            <div class="towers">
+                <div class="tower" id="tower0"></div>
+                <div class="tower" id="tower1"></div>
+                <div class="tower" id="tower2"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2>📖 How to Play</h2>
+            <p><strong>Goal:</strong> Move all disks from the left tower to the right tower.</p>
+            <p><strong>Rules:</strong></p>
+            <p>• Only one disk can be moved at a time</p>
+            <p>• A larger disk cannot be placed on a smaller disk</p>
+            <p>• Click a tower to select/move disks</p>
+            <p><strong>Tips:</strong> Use hints when stuck, and try to match the minimum moves!</p>
+            <button class="close-btn" onclick="closeModal()">Got it!</button>
+        </div>
+    </div>
+
+    <script>
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        
+        let towers = [[], [], []];
+        let moves = 0;
+        let numDisks = 3;
+        let solving = false;
+        let draggedDisk = null;
+        let sourceTower = null;
+        
+        const diskColors = ['#e74c3c', '#e67e22', '#f39c12', '#2ecc71', '#3498db', '#9b59b6', '#1abc9c'];
+        
+        function playSound(frequency, duration) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+        
+        function init() {
+            numDisks = Math.floor(Math.random() * 3) + 3;
+            towers = [[], [], []];
+            for (let i = numDisks; i >= 1; i--) {
+                towers[0].push(i);
+            }
+            moves = 0;
+            draggedDisk = null;
+            sourceTower = null;
+            document.getElementById('moves').textContent = moves;
+            document.getElementById('minMoves').textContent = Math.pow(2, numDisks) - 1;
+            document.getElementById('message').textContent = '';
+            render();
+        }
+        
+        function render() {
+            for (let i = 0; i < 3; i++) {
+                const towerEl = document.getElementById('tower' + i);
+                towerEl.innerHTML = '';
+                
+                towers[i].forEach((diskSize, index) => {
+                    const disk = document.createElement('div');
+                    disk.className = 'disk';
+                    const width = 40 + (diskSize * 20);
+                    disk.style.width = width + 'px';
+                    disk.style.background = diskColors[diskSize - 1];
+                    disk.textContent = diskSize;
+                    disk.draggable = index === towers[i].length - 1 && !solving;
+                    disk.dataset.tower = i;
+                    disk.dataset.size = diskSize;
+                    
+                    disk.addEventListener('dragstart', handleDragStart);
+                    disk.addEventListener('dragend', handleDragEnd);
+                    
+                    towerEl.appendChild(disk);
+                });
+                
+                towerEl.addEventListener('dragover', handleDragOver);
+                towerEl.addEventListener('drop', handleDrop);
+                towerEl.addEventListener('dragleave', handleDragLeave);
+            }
+        }
+        
+        function handleDragStart(e) {
+            if (solving) {
+                e.preventDefault();
+                return;
+            }
+            draggedDisk = parseInt(e.target.dataset.size);
+            sourceTower = parseInt(e.target.dataset.tower);
+            e.target.classList.add('dragging');
+            playSound(440, 0.1);
+        }
+        
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedDisk = null;
+            sourceTower = null;
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            const targetTower = parseInt(e.currentTarget.id.replace('tower', ''));
+            
+            if (sourceTower !== null && draggedDisk !== null) {
+                moveDisk(sourceTower, targetTower);
+            }
+        }
+        
+        function selectTower(towerIndex) {
+            // Keep for auto-solve compatibility
+        }
+        
+        function moveDisk(from, to) {
+            if (towers[from].length === 0) return;
+            
+            const disk = towers[from][towers[from].length - 1];
+            
+            if (towers[to].length === 0 || disk < towers[to][towers[to].length - 1]) {
+                towers[to].push(towers[from].pop());
+                moves++;
+                document.getElementById('moves').textContent = moves;
+                playSound(523 + (disk * 50), 0.15);
+                render();
+                
+                if (checkWin()) {
+                    setTimeout(() => {
+                        const minMoves = Math.pow(2, numDisks) - 1;
+                        if (moves === minMoves) {
+                            document.getElementById('message').textContent = '🎉 Perfect! Optimal solution!';
+                            playSound(880, 0.3);
+                        } else {
+                            document.getElementById('message').textContent = '✅ Solved! Try for fewer moves!';
+                            playSound(660, 0.3);
+                        }
+                    }, 300);
+                }
+            } else {
+                playSound(200, 0.2);
+                document.getElementById('message').textContent = '❌ Invalid move!';
+                setTimeout(() => {
+                    document.getElementById('message').textContent = '';
+                }, 2000);
+                render();
+            }
+        }
+        
+        function checkWin() {
+            return towers[2].length === numDisks;
+        }
+        
+        function newPuzzle() {
+            init();
+            playSound(440, 0.1);
+        }
+        
+        function getHint() {
+            if (solving) return;
+            const solution = solveHanoi(numDisks, 0, 2, 1);
+            
+            for (let move of solution) {
+                let currentState = [towers[0].slice(), towers[1].slice(), towers[2].slice()];
+                if (arraysEqual(currentState[move.from], getCurrentTowerState(move.from)) &&
+                    arraysEqual(currentState[move.to], getCurrentTowerState(move.to))) {
+                    document.getElementById('message').textContent = `💡 Move disk from tower ${move.from + 1} to tower ${move.to + 1}`;
+                    playSound(550, 0.15);
+                    setTimeout(() => {
+                        document.getElementById('message').textContent = '';
+                    }, 3000);
+                    return;
+                }
+            }
+            
+            document.getElementById('message').textContent = '💡 Start by moving the smallest disk';
+            playSound(550, 0.15);
+            setTimeout(() => {
+                document.getElementById('message').textContent = '';
+            }, 3000);
+        }
+        
+        function getCurrentTowerState(towerIndex) {
+            return towers[towerIndex].slice();
+        }
+        
+        function arraysEqual(a, b) {
+            return JSON.stringify(a) === JSON.stringify(b);
+        }
+        
+        function checkSolution() {
+            if (checkWin()) {
+                document.getElementById('message').textContent = '✅ Already solved!';
+                playSound(660, 0.2);
+            } else {
+                document.getElementById('message').textContent = '⏳ Keep going!';
+                playSound(440, 0.2);
+            }
+            setTimeout(() => {
+                document.getElementById('message').textContent = '';
+            }, 2000);
+        }
+        
+        async function autoSolve() {
+            if (solving) return;
+            solving = true;
+            draggedDisk = null;
+            sourceTower = null;
+            document.getElementById('message').textContent = '🤖 Auto-solving...';
+            
+            const initialState = [towers[0].slice(), towers[1].slice(), towers[2].slice()];
+            const solution = solveHanoi(numDisks, 0, 2, 1);
+            
+            towers = [initialState[0].slice(), initialState[1].slice(), initialState[2].slice()];
+            render();
+            
+            for (let move of solution) {
+                await sleep(600);
+                if (towers[move.from].length > 0) {
+                    const disk = towers[move.from].pop();
+                    towers[move.to].push(disk);
+                    moves++;
+                    document.getElementById('moves').textContent = moves;
+                    playSound(523 + (disk * 50), 0.15);
+                    render();
+                }
+            }
+            
+            solving = false;
+            document.getElementById('message').textContent = '✅ Auto-solved!';
+            setTimeout(() => {
+                document.getElementById('message').textContent = '';
+            }, 2000);
+        }
+        
+        function solveHanoi(n, from, to, aux, moves = []) {
+            if (n === 1) {
+                moves.push({from, to});
+                return moves;
+            }
+            solveHanoi(n - 1, from, aux, to, moves);
+            moves.push({from, to});
+            solveHanoi(n - 1, aux, to, from, moves);
+            return moves;
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        function showInstructions() {
+            document.getElementById('modal').classList.add('active');
+            playSound(440, 0.1);
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            playSound(330, 0.1);
+        }
+        
+        init();
+    </script>
+</body>
+</html>

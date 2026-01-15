@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Hashi — Bridges (Mobile UI)</title>
+  <style>
+    /* Mobile-first responsive styling */
+    :root{
+      --purple-1: #6a11cb; /* gradient start and secondary */
+      --white: #ffffff;
+      --blue-primary: #3498db;
+      --card-radius: 14px;
+      --gap: 8px;
+      --shadow: 0 6px 18px rgba(106,17,203,0.12);
+      --font-sans: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial;
+      --success: #27ae60;
+      --warning: #f39c12;
+      --error: #e74c3c;
+      --gray-light: #f8f9fa;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family:var(--font-sans);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      background: linear-gradient(180deg, var(--purple-1) 0%, var(--white) 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom);
+      color:#222;
+    }
+    /* App container that takes full mobile screen (portrait) */
+    .app{
+      width:100%;
+      max-width:520px;
+      height:calc(100vh - 24px);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      gap:var(--gap);
+    }
+    /* Top header card */
+    .top-card{
+      width:100%;
+      background:var(--white);
+      border-radius:var(--card-radius);
+      box-shadow:var(--shadow);
+      padding:12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .title-wrap{display:flex;align-items:center;gap:10px}
+    .logo-circle{
+      width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue-primary),var(--purple-1));
+      display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px
+    }
+    .game-title{font-size:1.05rem;font-weight:700}
+    .sub{font-size:0.78rem;color:#666}
+    /* Game board card (responsive) */
+    .board-card{
+      width:100%;
+      flex:1 1 auto;
+      background:var(--white);
+      border-radius:var(--card-radius);
+      box-shadow:var(--shadow);
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      position: relative;
+    }
+    /* Board wrapper ensures the board takes full available area but keeps aspect ratio */
+    .board-wrap{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:6px;
+      box-sizing:border-box;
+    }
+    /* The actual board grid — dynamic size; we use CSS grid for island layout */
+    .board{
+      width:100%;
+      max-width:480px;
+      height:100%;
+      max-height:calc(100% - 90px);
+      background:transparent;
+      display:grid;
+      grid-template-columns:repeat(7,1fr); /* default; can be changed by script */
+      grid-auto-rows:1fr;
+      gap:6px;
+      align-items:center;
+      justify-items:center;
+      touch-action:manipulation;
+      position: relative;
+    }
+    /* Island style */
+    .island{
+      width:calc(100% - 12px);
+      aspect-ratio:1/1;
+      max-width:64px;
+      max-height:64px;
+      min-width:36px;
+      min-height:36px;
+      background:linear-gradient(180deg,#fff,#f6f8ff);
+      border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      flex-direction:column;
+      box-shadow:0 6px 12px rgba(0,0,0,0.06);
+      cursor:pointer;
+      user-select:none;
+      position:relative;
+      font-weight:700;
+      color:#222;
+      transition: all 0.2s ease;
+    }
+    .island:hover, .island:focus {
+      transform: scale(1.05);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .island.selected {
+      box-shadow: 0 0 0 4px rgba(52,152,219,0.3);
+      transform: scale(1.1);
+    }
+    .island.solved {
+      background: linear-gradient(180deg, var(--success), #e8f5e9);
+      color: white;
+      box-shadow: 0 6px 12px rgba(39, 174, 96, 0.2);
+    }
+    .island .count{font-size:0.9rem}
+    .island.small{max-width:50px;max-height:50px}
+    /* Bridge element (visual only) */
+    .bridge{
+      position:absolute;pointer-events:none;background:linear-gradient(90deg,var(--blue-primary),var(--purple-1));
+      height:6px;border-radius:6px;transform-origin:left center;box-shadow:0 4px 10px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+    }
+    .bridge.double {
+      height: 10px;
+      background: linear-gradient(90deg, var(--purple-1), #7b3cf0);
+    }
+    /* Hint arrow */
+    .hint-arrow {
+      position: absolute;
+      pointer-events: none;
+      z-index: 10;
+      animation: pulse 1.5s infinite;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    @keyframes pulse {
+      0% { opacity: 0.7; }
+      50% { opacity: 1; }
+      100% { opacity: 0.7; }
+    }
+    /* Controls row */
+    .controls{
+      display:flex;gap:8px;width:100%;justify-content:space-between;align-items:center;
+    }
+    .btn{
+      min-height:40px;
+      padding:8px 12px;border-radius:10px;border:none;outline:none;font-weight:600;
+      display:inline-flex;align-items:center;gap:8px;justify-content:center;cursor:pointer;
+      box-shadow:0 6px 12px rgba(0,0,0,0.06);
+      flex:1 1 auto;white-space:nowrap;
+      transition: all 0.2s ease;
+    }
+    .btn:hover, .btn:focus {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .btn:active {
+      transform: translateY(0);
+    }
+    .btn.primary{background:var(--blue-primary);color:#fff}
+    .btn.secondary{background:linear-gradient(90deg,var(--purple-1),#7b3cf0);color:#fff}
+    .btn.ghost{background:transparent;border:1px solid rgba(0,0,0,0.06);color:#222}
+    .btn.success{background:var(--success);color:#fff}
+    .btn.warning{background:var(--warning);color:#fff}
+    .compact{padding:6px 8px;min-width:40px;border-radius:8px;font-size:0.95rem}
+    /* Small powerup icons row */
+    .powerups{display:flex;gap:6px;align-items:center}
+    .power{
+      background:#fff;border-radius:10px;padding:6px;display:inline-flex;align-items:center;justify-content:center;min-width:34px;min-height:34px;box-shadow:var(--shadow);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .power:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    }
+    /* Footer legend */
+    .legend{font-size:0.8rem;color:#666;width:100%;display:flex;justify-content:space-between}
+    /* Loader overlay */
+    .loader-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:9999}
+    .loader{width:60px;height:60px;border-radius:12px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+    .spinner{width:36px;height:36px;border-radius:50%;border:4px solid rgba(255,255,255,0.15);border-top-color:#fff;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* Modal */
+    .modal{
+      position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--white);padding:18px;border-radius:12px;box-shadow:var(--shadow);z-index:10001;max-width:360px;width:90%;display:none;
+      animation: modalIn 0.3s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translate(-50%, -60%); }
+      to { opacity: 1; transform: translate(-50%, -50%); }
+    }
+    /* Difficulty selector */
+    .difficulty-selector {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .difficulty-btn {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+    }
+    .difficulty-btn.active {
+      background: var(--blue-primary);
+      color: white;
+      border-color: var(--blue-primary);
+    }
+    /* Responsive typography */
+    h1{font-size:clamp(16px,3.6vw,20px);margin:0}
+    p{margin:0;font-size:clamp(12px,3vw,14px)}
+    /* Tiny screens tweaks */
+    @media (max-width:360px){
+      .island{min-width:34px;min-height:34px}
+      .logo-circle{width:38px;height:38px}
+    }
+    /* Game status indicators */
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+    .status-indicator.success { background-color: var(--success); }
+    .status-indicator.warning { background-color: var(--warning); }
+    .status-indicator.error { background-color: var(--error); }
+  </style>
+</head>
+<body>
+  <div class="app" role="application">
+    <div class="top-card">
+      <div class="title-wrap">
+        <div class="logo-circle">HB</div>
+        <div>
+          <div class="game-title">Hashi — Bridges</div>
+          <div class="sub">Connect islands with the right number of bridges</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="hintBtn" class="btn ghost compact" title="Hint">
+          <!-- icon: lightbulb -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a6 6 0 0 0-4 10c0 1.2.4 2.1 1.1 2.9L12 20l2.9-4.1c.7-.8 1.1-1.7 1.1-2.9A6 6 0 0 0 12 2z"/></svg>
+        </button>
+        <button id="resetBtn" class="btn secondary compact">Reset</button>
+      </div>
+    </div>
+    <div class="board-card">
+      <div class="board-wrap">
+        <div id="board" class="board" aria-label="Hashi board">
+          <!-- Islands will be injected here by JS -->
+        </div>
+      </div>
+      <div style="width:100%;display:flex;flex-direction:column;gap:8px;padding-top:6px">
+        <div class="controls">
+          <button id="undoBtn" class="btn ghost compact">Undo</button>
+          <button id="autoSolveBtn" class="btn primary compact">Auto-solve</button>
+          <div class="powerups">
+            <div id="shrinkBtn" class="power" title="Shrink board"><svg width="18"height="18"viewBox="0 0 24 24"fill="none"stroke="currentColor"stroke-width="1.6"><path d="M4 4h6v6"/><path d="M20 20h-6v-6"/></svg></div>
+            <div id="hintPowerBtn" class="power" title="Hint"><svg width="18"height="18"viewBox="0 0 24 24"fill="none"stroke="currentColor"stroke-width="1.6"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a6 6 0 0 0-4 10c0 1.2.4 2.1 1.1 2.9L12 20l2.9-4.1c.7-.8 1.1-1.7 1.1-2.9A6 6 0 0 0 12 2z"/></svg></div>
+          </div>
+        </div>
+        <div class="legend">
+          <span id="status">Tap two islands to create a bridge</span>
+          <span id="moves">Moves: 0</span>
+        </div>
+        <div class="difficulty-selector">
+          <button class="difficulty-btn active" data-difficulty="easy">Easy</button>
+          <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+          <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- loader and modal -->
+  <div id="loader" class="loader-overlay"><div class="loader"><div class="spinner"></div></div></div>
+  <div id="modal" class="modal" role="dialog" aria-modal="true"></div>
+  <script>
+    /* Enhanced interactive UI for Hashi board — focuses on styling, mobile fit, audio, drag/tap interactions.
+       This file provides a sophisticated UI with new game feature, improved auto-solve with hints, and better logic.
+    */
+    // --- Utilities: sound (WebAudio beep) ---
+    const AudioEngine = (() => {
+      let ctx;
+      try {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+        console.warn("Web Audio API not available");
+      }
+      function click(freq=880,dur=0.06){
+        if (!ctx) return;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); o.stop(ctx.currentTime + dur + 0.02);
+      }
+      function success() { click(1200, 0.1); }
+      function error() { click(400, 0.1); }
+      function hint() { click(980, 0.05); }
+      function move() { click(1100, 0.06); }
+      function select() { click(900, 0.05); }
+      function deselect() { click(600, 0.03); }
+      function reset() { click(520, 0.06); }
+      return {click, success, error, hint, move, select, deselect, reset};
+    })();
+    // --- Game State Management ---
+    class HashiGame {
+      constructor() {
+        this.gridRows = 7;
+        this.gridCols = 7;
+        this.islands = [];
+        this.bridges = new Map();
+        this.moves = 0;
+        this.selectedIsland = null;
+        this.hintArrow = null;
+        this.gameHistory = [];
+        this.currentDifficulty = 'easy';
+        this.boardEl = document.getElementById('board');
+        this.statusEl = document.getElementById('status');
+        this.movesEl = document.getElementById('moves');
+        // Initialize board
+        this.setupEventListeners();
+        this.newGame();
+      }
+      setupEventListeners() {
+        // Button event listeners
+        document.getElementById('undoBtn').addEventListener('click', () => this.undoMove());
+        document.getElementById('resetBtn').addEventListener('click', () => this.resetGame());
+        document.getElementById('autoSolveBtn').addEventListener('click', () => this.autoSolve());
+        document.getElementById('hintBtn').addEventListener('click', () => this.showHint());
+        document.getElementById('hintPowerBtn').addEventListener('click', () => this.showHint());
+        document.getElementById('shrinkBtn').addEventListener('click', () => this.toggleBoardSize());
+        // Difficulty selectors
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            this.currentDifficulty = e.target.dataset.difficulty;
+            this.newGame();
+          });
+        });
+        // Window resize
+        window.addEventListener('resize', () => this.redrawAll());
+        // Accessibility: keyboard navigation
+        document.addEventListener('keydown', (ev) => {
+          if(ev.key === 'Escape' && this.selectedIsland) { 
+            this.clearSelection(); 
+          }
+        });
+      }
+      // Generate a new game based on difficulty
+      newGame() {
+        // Clear previous game
+        this.boardEl.innerHTML = '';
+        this.bridges.clear();
+        this.moves = 0;
+        this.selectedIsland = null;
+        this.gameHistory = [];
+        this.movesEl.textContent = 'Moves: 0';
+        this.statusEl.textContent = 'Tap two islands to create a bridge';
+        // Generate board based on difficulty
+        switch(this.currentDifficulty) {
+          case 'easy':
+            this.gridRows = 5;
+            this.gridCols = 5;
+            this.generateSolvableBoard(4, 5); // 4 islands, max 5 bridges total
+            break;
+          case 'medium':
+            this.gridRows = 7;
+            this.gridCols = 7;
+            this.generateSolvableBoard(6, 10); // 6 islands, max 10 bridges total
+            break;
+          case 'hard':
+            this.gridRows = 9;
+            this.gridCols = 9;
+            this.generateSolvableBoard(8, 15); // 8 islands, max 15 bridges total
+            break;
+        }
+        // Update CSS grid
+        this.boardEl.style.gridTemplateColumns = `repeat(${this.gridCols},1fr)`;
+        // Create islands
+        this.islands.forEach(is => {
+          const el = document.createElement('button');
+          el.className = 'island';
+          el.dataset.id = is.id;
+          el.dataset.r = is.r; 
+          el.dataset.c = is.c; 
+          el.dataset.n = is.n; 
+          el.ariaLabel = `Island ${is.id} needs ${is.n} bridges`;
+          el.innerHTML = `<div class="count">${is.n}</div>`;
+          el.style.gridColumnStart = is.c + 1;
+          el.style.gridRowStart = is.r + 1;
+          el.addEventListener('pointerdown', (e) => this.onIslandPointerDown(e));
+          this.boardEl.appendChild(el);
+        });
+        // Save initial state for reset
+        this.saveGameState();
+        AudioEngine.reset();
+        this.redrawAll();
+      }
+      
+      // Generate a guaranteed solvable board
+      generateSolvableBoard(islandCount, maxTotalBridges) {
+        // Step 1: Create an empty grid
+        const grid = Array(this.gridRows).fill().map(() => Array(this.gridCols).fill(0));
+        
+        // Step 2: Randomly place islands on the grid
+        this.islands = [];
+        const usedPositions = new Set();
+        
+        for (let i = 0; i < islandCount; i++) {
+          // Find a random empty position
+          let attempts = 0;
+          let r, c;
+          do {
+            r = Math.floor(Math.random() * (this.gridRows - 2)) + 1; // Avoid edges
+            c = Math.floor(Math.random() * (this.gridCols - 2)) + 1;
+            attempts++;
+            if (attempts > 100) {
+              // Fallback: use any position
+              r = Math.floor(Math.random() * this.gridRows);
+              c = Math.floor(Math.random() * this.gridCols);
+              break;
+            }
+          } while (usedPositions.has(`${r},${c}`));
+          
+          usedPositions.add(`${r},${c}`);
+          this.islands.push({
+            id: String.fromCharCode(97 + i), // 'a', 'b', 'c', etc.
+            r: r,
+            c: c,
+            n: 0 // Will be calculated later
+          });
+        }
+        
+        // Step 3: Create a valid solution by connecting islands
+        // We'll use a simple approach: connect islands in a chain or network
+        const connections = []; // Array of {from, to, count}
+        let totalBridges = 0;
+        
+        // Shuffle islands for random connection order
+        const shuffledIslands = [...this.islands].sort(() => Math.random() - 0.5);
+        
+        // Connect each island to at least one other island
+        for (let i = 0; i < shuffledIslands.length - 1; i++) {
+          const island1 = shuffledIslands[i];
+          const island2 = shuffledIslands[i + 1];
+          
+          // Check if they can be connected (same row or column, no islands in between)
+          if (this.canConnectInSolution(island1, island2, this.islands)) {
+            // Add a connection with 1 or 2 bridges
+            const bridgeCount = Math.random() > 0.7 ? 2 : 1;
+            if (totalBridges + bridgeCount <= maxTotalBridges) {
+              connections.push({
+                from: island1.id,
+                to: island2.id,
+                count: bridgeCount
+              });
+              totalBridges += bridgeCount;
+            }
+          }
+        }
+        
+        // Add some extra connections to make it more interesting
+        if (totalBridges < maxTotalBridges) {
+          for (let i = 0; i < this.islands.length && totalBridges < maxTotalBridges; i++) {
+            for (let j = i + 1; j < this.islands.length; j++) {
+              if (Math.random() > 0.5) continue; // Only try some pairs
+              
+              const island1 = this.islands[i];
+              const island2 = this.islands[j];
+              
+              if (this.canConnectInSolution(island1, island2, this.islands)) {
+                // Check if this connection already exists
+                const existing = connections.find(conn => 
+                  (conn.from === island1.id && conn.to === island2.id) || 
+                  (conn.from === island2.id && conn.to === island1.id)
+                );
+                
+                if (!existing) {
+                  const bridgeCount = Math.random() > 0.8 ? 2 : 1;
+                  if (totalBridges + bridgeCount <= maxTotalBridges) {
+                    connections.push({
+                      from: island1.id,
+                      to: island2.id,
+                      count: bridgeCount
+                    });
+                    totalBridges += bridgeCount;
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // Step 4: Calculate the required bridge count for each island based on the solution
+        this.islands.forEach(island => {
+          let totalConnections = 0;
+          connections.forEach(conn => {
+            if (conn.from === island.id || conn.to === island.id) {
+              totalConnections += conn.count;
+            }
+          });
+          island.n = totalConnections;
+          
+          // Ensure no island has 0 bridges (shouldn't happen with our logic, but just in case)
+          if (island.n === 0 && connections.length > 0) {
+            island.n = 1;
+          }
+          
+          // Ensure no island has more than 8 bridges (Hashi rule)
+          if (island.n > 8) {
+            island.n = 8;
+          }
+        });
+        
+        // Step 5: Store the solution for auto-solve
+        this.solutionSteps = connections.map(conn => [conn.from, conn.to, conn.count]);
+        
+        console.log("Generated solvable puzzle with solution:", this.solutionSteps);
+      }
+      
+      // Helper method to check if two islands can be connected in the solution
+      canConnectInSolution(island1, island2, allIslands) {
+        // Must be in same row or column
+        if (island1.r !== island2.r && island1.c !== island2.c) {
+          return false;
+        }
+        
+        // Check if there are islands between them
+        if (island1.r === island2.r) {
+          // Same row
+          const startCol = Math.min(island1.c, island2.c);
+          const endCol = Math.max(island1.c, island2.c);
+          for (let col = startCol + 1; col < endCol; col++) {
+            if (allIslands.some(island => island.r === island1.r && island.c === col)) {
+              return false;
+            }
+          }
+        } else {
+          // Same column
+          const startRow = Math.min(island1.r, island2.r);
+          const endRow = Math.max(island1.r, island2.r);
+          for (let row = startRow + 1; row < endRow; row++) {
+            if (allIslands.some(island => island.r === row && island.c === island1.c)) {
+              return false;
+            }
+          }
+        }
+        
+        return true;
+      }
+      
+      // Island selection handler
+      onIslandPointerDown(e) {
+        e.preventDefault();
+        const el = e.currentTarget;
+        if(!this.selectedIsland) {
+          // First selection
+          this.selectedIsland = el;
+          el.classList.add('selected');
+          AudioEngine.select();
+          this.statusEl.textContent = 'Tap a second island to connect';
+        } else if(this.selectedIsland === el) {
+          // Deselect
+          this.clearSelection();
+          AudioEngine.deselect();
+        } else {
+          // Connect islands
+          this.connectIslands(this.selectedIsland, el);
+        }
+      }
+      clearSelection() {
+        if (this.selectedIsland) {
+          this.selectedIsland.classList.remove('selected');
+          this.selectedIsland = null;
+          this.statusEl.textContent = 'Tap two islands to create a bridge';
+        }
+      }
+      // Connect two islands with a bridge
+      connectIslands(fromEl, toEl) {
+        const idA = fromEl.dataset.id;
+        const idB = toEl.dataset.id;
+        const r1 = parseInt(fromEl.dataset.r);
+        const c1 = parseInt(fromEl.dataset.c);
+        const r2 = parseInt(toEl.dataset.r);
+        const c2 = parseInt(toEl.dataset.c);
+        // Validate connection (must be in same row or column)
+        if (r1 !== r2 && c1 !== c2) {
+          this.flashToast('Bridges can only be horizontal or vertical!', 1500);
+          AudioEngine.error();
+          this.clearSelection();
+          return;
+        }
+        // Check if islands are too far apart with islands in between
+        if (!this.isValidConnection(r1, c1, r2, c2)) {
+          this.flashToast('Cannot jump over islands!', 1500);
+          AudioEngine.error();
+          this.clearSelection();
+          return;
+        }
+        // Create key for bridge map
+        const key = [idA, idB].sort().join('|');
+        const cur = this.bridges.get(key) || 0;
+        const newCount = cur + 1;
+        // Max 2 bridges allowed
+        if(newCount > 2) {
+          this.flashToast('Maximum 2 bridges between islands!');
+          AudioEngine.error();
+          this.clearSelection();
+          return;
+        }
+        // Save current state for undo
+        this.saveGameState();
+        // Add bridge
+        this.bridges.set(key, newCount);
+        this.moves++;
+        this.movesEl.textContent = `Moves: ${this.moves}`;
+        AudioEngine.move();
+        // Clear selection
+        this.clearSelection();
+        // Redraw bridges
+        this.redrawAll();
+        // Check if puzzle is solved
+        this.checkWinCondition();
+      }
+      // Check if connection is valid (no islands in between)
+      isValidConnection(r1, c1, r2, c2) {
+        // Horizontal connection
+        if (r1 === r2) {
+          const start = Math.min(c1, c2);
+          const end = Math.max(c1, c2);
+          for (let c = start + 1; c < end; c++) {
+            if (this.islands.some(island => island.r === r1 && island.c === c)) {
+              return false;
+            }
+          }
+        }
+        // Vertical connection
+        else if (c1 === c2) {
+          const start = Math.min(r1, r2);
+          const end = Math.max(r1, r2);
+          for (let r = start + 1; r < end; r++) {
+            if (this.islands.some(island => island.r === r && island.c === c1)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      // Save current game state for undo
+      saveGameState() {
+        const state = {
+          bridges: new Map(this.bridges),
+          moves: this.moves
+        };
+        this.gameHistory.push(state);
+      }
+      // Undo last move
+      undoMove() {
+        if (this.gameHistory.length <= 1) {
+          this.flashToast('Nothing to undo');
+          return;
+        }
+        // Remove current state
+        this.gameHistory.pop();
+        // Restore previous state
+        const prevState = this.gameHistory[this.gameHistory.length - 1];
+        this.bridges = new Map(prevState.bridges);
+        this.moves = prevState.moves;
+        this.movesEl.textContent = `Moves: ${this.moves}`;
+        this.redrawAll();
+        AudioEngine.click(720, 0.05);
+      }
+      // Reset game to initial state
+      resetGame() {
+        if (this.gameHistory.length > 0) {
+          const initialState = this.gameHistory[0];
+          this.bridges = new Map(initialState.bridges);
+          this.moves = initialState.moves;
+          this.movesEl.textContent = `Moves: ${this.moves}`;
+          this.clearSelection();
+          this.redrawAll();
+          this.flashToast('Board reset');
+          AudioEngine.reset();
+        }
+      }
+      // Draw bridge between two islands
+      drawBridge(fromEl, toEl, count) {
+        // Remove previous bridge between these two
+        const key = [fromEl.dataset.id, toEl.dataset.id].sort().join('|');
+        const existing = this.boardEl.querySelectorAll(`.bridge[data-key='${key}']`);
+        existing.forEach(x => x.remove());
+        // Get positions
+        const rectBoard = this.boardEl.getBoundingClientRect();
+        const a = fromEl.getBoundingClientRect();
+        const b = toEl.getBoundingClientRect();
+        const ax = a.left + a.width/2 - rectBoard.left;
+        const ay = a.top + a.height/2 - rectBoard.top;
+        const bx = b.left + b.width/2 - rectBoard.left;
+        const by = b.top + b.height/2 - rectBoard.top;
+        const dx = bx - ax; 
+        const dy = by - ay; 
+        const len = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx) * 180/Math.PI;
+        // Create bridge bars (1 or 2)
+        const bars = Math.min(2, count);
+        for(let i = 0; i < bars; i++) {
+          const bar = document.createElement('div');
+          bar.className = 'bridge' + (bars === 2 ? ' double' : '');
+          bar.dataset.key = key;
+          // Offset bars if two bridges
+          const offset = bars === 2 ? (i === 0 ? -6 : 6) : 0;
+          const midY = (ay + by) / 2 + offset;
+          bar.style.width = len + 'px';
+          bar.style.left = ax + 'px';
+          bar.style.top = midY + 'px';
+          bar.style.transform = `translateY(-50%) rotate(${angle}deg)`;
+          this.boardEl.appendChild(bar);
+        }
+      }
+      // Redraw all bridges
+      redrawAll() {
+        // Clear previous bridges
+        this.boardEl.querySelectorAll('.bridge').forEach(x => x.remove());
+        // Redraw all bridges
+        for(const [k, v] of this.bridges.entries()) {
+          const [id1, id2] = k.split('|');
+          const e1 = this.islandEl(id1); 
+          const e2 = this.islandEl(id2);
+          if(e1 && e2) { 
+            this.drawBridge(e1, e2, v); 
+          }
+        }
+        // Update island states (solved or not)
+        this.updateIslandStates();
+      }
+      // Find island element by ID
+      islandEl(id) {
+        return this.boardEl.querySelector(`.island[data-id='${id}']`);
+      }
+      // Update island appearance based on current bridge connections
+      updateIslandStates() {
+        this.islands.forEach(island => {
+          const el = this.islandEl(island.id);
+          if (!el) return;
+          // Count total bridges connected to this island
+          let totalBridges = 0;
+          for(const [key, count] of this.bridges.entries()) {
+            const [id1, id2] = key.split('|');
+            if (id1 === island.id || id2 === island.id) {
+              totalBridges += count;
+            }
+          }
+          // Update appearance based on completion
+          if (totalBridges === island.n) {
+            el.classList.add('solved');
+          } else {
+            el.classList.remove('solved');
+          }
+          // Update displayed number (show remaining bridges needed)
+          const remaining = island.n - totalBridges;
+          el.querySelector('.count').textContent = remaining > 0 ? remaining : '✓';
+        });
+      }
+      // Check if puzzle is solved
+      checkWinCondition() {
+        let allSolved = true;
+        for (const island of this.islands) {
+          let totalBridges = 0;
+          for(const [key, count] of this.bridges.entries()) {
+            const [id1, id2] = key.split('|');
+            if (id1 === island.id || id2 === island.id) {
+              totalBridges += count;
+            }
+          }
+          if (totalBridges !== island.n) {
+            allSolved = false;
+            break;
+          }
+        }
+        if (allSolved) {
+          this.showWinModal();
+        }
+      }
+      // Show winning modal
+      showWinModal() {
+        const modal = document.getElementById('modal');
+        modal.innerHTML = `
+          <h3 style="text-align: center; color: var(--success);">🎉 Puzzle Solved!</h3>
+          <p style="text-align: center; margin: 16px 0;">You completed the puzzle in ${this.moves} moves!</p>
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button id="playAgainBtn" class="btn success" style="flex: 1;">Play Again</button>
+            <button id="newGameBtn" class="btn primary" style="flex: 1;">New Game</button>
+          </div>
+        `;
+        modal.style.display = 'block';
+        document.getElementById('playAgainBtn').addEventListener('click', () => {
+          modal.style.display = 'none';
+          this.resetGame();
+        });
+        document.getElementById('newGameBtn').addEventListener('click', () => {
+          modal.style.display = 'none';
+          this.newGame();
+        });
+        AudioEngine.success();
+      }
+      // Show hint for next possible move
+      showHint() {
+        // Remove any existing hint arrow
+        if (this.hintArrow) {
+          this.hintArrow.remove();
+          this.hintArrow = null;
+        }
+        // Find islands that still need bridges
+        const incompleteIslands = this.islands.filter(island => {
+          let totalBridges = 0;
+          for(const [key, count] of this.bridges.entries()) {
+            const [id1, id2] = key.split('|');
+            if (id1 === island.id || id2 === island.id) {
+              totalBridges += count;
+            }
+          }
+          return totalBridges < island.n;
+        });
+        if (incompleteIslands.length === 0) {
+          this.flashToast('Puzzle is already solved!');
+          return;
+        }
+        // Pick a random incomplete island
+        const sourceIsland = incompleteIslands[Math.floor(Math.random() * incompleteIslands.length)];
+        const sourceEl = this.islandEl(sourceIsland.id);
+        // Find potential target islands (in same row/col, no islands in between)
+        const potentialTargets = [];
+        for (const targetIsland of this.islands) {
+          if (targetIsland.id === sourceIsland.id) continue;
+          // Check if in same row or column
+          if (sourceIsland.r !== targetIsland.r && sourceIsland.c !== targetIsland.c) continue;
+          // Check if no islands in between
+          if (!this.isValidConnection(sourceIsland.r, sourceIsland.c, targetIsland.r, targetIsland.c)) continue;
+          // Check if already have 2 bridges
+          const key = [sourceIsland.id, targetIsland.id].sort().join('|');
+          const bridgeCount = this.bridges.get(key) || 0;
+          if (bridgeCount >= 2) continue;
+          // Calculate distance
+          const distance = Math.abs(sourceIsland.r - targetIsland.r) + Math.abs(sourceIsland.c - targetIsland.c);
+          potentialTargets.push({island: targetIsland, distance});
+        }
+        if (potentialTargets.length === 0) {
+          this.flashToast('No valid moves found. Try removing some bridges.');
+          return;
+        }
+        // Sort by distance (prefer closer islands)
+        potentialTargets.sort((a, b) => a.distance - b.distance);
+        const targetIsland = potentialTargets[0].island;
+        const targetEl = this.islandEl(targetIsland.id);
+        // Create hint arrow
+        this.hintArrow = document.createElement('div');
+        this.hintArrow.className = 'hint-arrow';
+        // Get positions
+        const rectBoard = this.boardEl.getBoundingClientRect();
+        const sourceRect = sourceEl.getBoundingClientRect();
+        const targetRect = targetEl.getBoundingClientRect();
+        const sourceX = sourceRect.left + sourceRect.width/2 - rectBoard.left;
+        const sourceY = sourceRect.top + sourceRect.height/2 - rectBoard.top;
+        const targetX = targetRect.left + targetRect.width/2 - rectBoard.left;
+        const targetY = targetRect.top + targetRect.height/2 - rectBoard.top;
+        // Calculate arrow size and position
+        const dx = targetX - sourceX;
+        const dy = targetY - sourceY;
+        const angle = Math.atan2(dy, dx) * 180/Math.PI;
+        const distance = Math.hypot(dx, dy);
+        // Create SVG arrow
+        const arrowSvg = `
+          <svg width="30" height="30" viewBox="0 0 30 30">
+            <defs>
+              <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                refX="10" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="var(--warning)" />
+              </marker>
+            </defs>
+            <line x1="5" y1="15" x2="25" y2="15" 
+              stroke="var(--warning)" stroke-width="3" 
+              marker-end="url(#arrowhead)" />
+          </svg>
+        `;
+        this.hintArrow.innerHTML = arrowSvg;
+        this.hintArrow.style.left = `${sourceX}px`;
+        this.hintArrow.style.top = `${sourceY}px`;
+        this.hintArrow.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+        this.hintArrow.style.width = `${Math.max(distance - 30, 30)}px`;
+        this.hintArrow.style.height = '30px';
+        this.hintArrow.style.position = 'absolute';
+        this.boardEl.appendChild(this.hintArrow);
+        // Remove hint after 3 seconds
+        setTimeout(() => {
+          if (this.hintArrow && this.hintArrow.parentNode) {
+            this.hintArrow.remove();
+            this.hintArrow = null;
+          }
+        }, 3000);
+        this.flashToast('Hint: Connect these islands');
+        AudioEngine.hint();
+      }
+      // Auto-solve with visual hints
+      async autoSolve() {
+        const loader = document.getElementById('loader');
+        loader.style.display = 'flex';
+        // Reset board first
+        this.bridges.clear();
+        this.moves = 0;
+        this.movesEl.textContent = 'Moves: 0';
+        this.redrawAll();
+        await new Promise(r => setTimeout(r, 500));
+        // Use the pre-generated solution steps
+        const solutionSteps = this.solutionSteps || [];
+        for (const step of solutionSteps) {
+          const [id1, id2, count] = step;
+          const key = [id1, id2].sort().join('|');
+          // Show hint arrow for this step
+          this.showAutoSolveHint(id1, id2);
+          await new Promise(r => setTimeout(r, 800));
+          // Remove hint arrow
+          if (this.hintArrow) {
+            this.hintArrow.remove();
+            this.hintArrow = null;
+          }
+          // Add bridge
+          this.bridges.set(key, count);
+          this.moves++;
+          this.movesEl.textContent = `Moves: ${this.moves}`;
+          this.redrawAll();
+          AudioEngine.move();
+          await new Promise(r => setTimeout(r, 300));
+        }
+        loader.style.display = 'none';
+        this.flashToast('Auto-solved with hints!');
+        this.checkWinCondition();
+      }
+      // Show hint during auto-solve
+      showAutoSolveHint(id1, id2) {
+        // Remove any existing hint arrow
+        if (this.hintArrow) {
+          this.hintArrow.remove();
+          this.hintArrow = null;
+        }
+        const el1 = this.islandEl(id1);
+        const el2 = this.islandEl(id2);
+        if (!el1 || !el2) return;
+        // Create hint arrow
+        this.hintArrow = document.createElement('div');
+        this.hintArrow.className = 'hint-arrow';
+        // Get positions
+        const rectBoard = this.boardEl.getBoundingClientRect();
+        const rect1 = el1.getBoundingClientRect();
+        const rect2 = el2.getBoundingClientRect();
+        const x1 = rect1.left + rect1.width/2 - rectBoard.left;
+        const y1 = rect1.top + rect1.height/2 - rectBoard.top;
+        const x2 = rect2.left + rect2.width/2 - rectBoard.left;
+        const y2 = rect2.top + rect2.height/2 - rectBoard.top;
+        // Calculate angle and distance
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const angle = Math.atan2(dy, dx) * 180/Math.PI;
+        const distance = Math.hypot(dx, dy);
+        // Create SVG arrow with pulsing effect
+        const arrowSvg = `
+          <svg width="40" height="40" viewBox="0 0 40 40">
+            <defs>
+              <marker id="autosolve-arrow" markerWidth="12" markerHeight="8" 
+                refX="12" refY="4" orient="auto">
+                <polygon points="0 0, 12 4, 0 8" fill="var(--success)" />
+              </marker>
+            </defs>
+            <line x1="5" y1="20" x2="35" y2="20" 
+              stroke="var(--success)" stroke-width="4" 
+              marker-end="url(#autosolve-arrow)" />
+          </svg>
+        `;
+        this.hintArrow.innerHTML = arrowSvg;
+        this.hintArrow.style.left = `${x1}px`;
+        this.hintArrow.style.top = `${y1}px`;
+        this.hintArrow.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+        this.hintArrow.style.width = `${Math.max(distance - 40, 40)}px`;
+        this.hintArrow.style.height = '40px';
+        this.hintArrow.style.position = 'absolute';
+        this.hintArrow.style.zIndex = '100';
+        this.boardEl.appendChild(this.hintArrow);
+      }
+      // Toggle board size (zoom in/out)
+      toggleBoardSize() {
+        const boardWrap = this.boardEl.parentElement;
+        const currentTransform = boardWrap.style.transform || '';
+        if (currentTransform.includes('scale(0.8)')) {
+          boardWrap.style.transform = 'scale(1)';
+          boardWrap.style.transition = 'transform 0.3s ease';
+        } else {
+          boardWrap.style.transform = 'scale(0.8)';
+          boardWrap.style.transition = 'transform 0.3s ease';
+        }
+        this.flashToast('Board size toggled');
+      }
+      // Show toast message
+      flashToast(txt, ms = 1100) {
+        const modal = document.getElementById('modal');
+        modal.textContent = txt;
+        modal.style.display = 'block';
+        modal.style.padding = '12px';
+        modal.style.textAlign = 'center';
+        setTimeout(() => {
+          modal.style.display = 'none';
+        }, ms);
+      }
+    }
+    // Initialize game when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      window.game = new HashiGame();
+    });
+  </script>
+</body>
+</html>

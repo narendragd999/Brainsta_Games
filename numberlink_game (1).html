@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Number Link</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.container {
+  width: 100%;
+  max-width: 500px;
+  padding: 10px;
+}
+
+.header {
+  text-align: center;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.header h1 {
+  font-size: 24px;
+  margin-bottom: 5px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(255,255,255,0.2);
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.stat {
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.game-board {
+  background: white;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  margin-bottom: 10px;
+}
+
+.grid {
+  display: grid;
+  gap: 2px;
+  background: #ddd;
+  border: 2px solid #999;
+  aspect-ratio: 1;
+  touch-action: none;
+}
+
+.cell {
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  touch-action: none;
+}
+
+.cell.endpoint {
+  font-size: 20px;
+  color: white;
+  border-radius: 50%;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.btn {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.btn-info {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  max-width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.modal-content h2 {
+  color: #667eea;
+  margin-bottom: 15px;
+}
+
+.modal-content p {
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.close-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+.message {
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-weight: bold;
+  display: none;
+}
+
+.message.success {
+  background: #43e97b;
+  color: white;
+}
+
+.message.error {
+  background: #f5576c;
+  color: white;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔢 Number Link</h1>
+  </div>
+
+  <div class="stats">
+    <div class="stat">Size: <span id="gridSize">5x5</span></div>
+    <div class="stat">Pairs: <span id="pairCount">0</span></div>
+    <div class="stat">Moves: <span id="moveCount">0</span></div>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <div class="game-board">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-primary" onclick="game.newPuzzle()">New Puzzle</button>
+    <button class="btn btn-secondary" onclick="game.checkSolution()">Check</button>
+    <button class="btn btn-success" onclick="game.getHint()">Hint</button>
+    <button class="btn btn-info" onclick="game.showInstructions()">Help</button>
+    <button class="btn btn-primary" onclick="game.clearPaths()">Clear</button>
+    <button class="btn btn-secondary" onclick="game.autoSolve()">Auto-Solve</button>
+  </div>
+</div>
+
+<div class="modal" id="instructionsModal">
+  <div class="modal-content">
+    <h2>How to Play Number Link</h2>
+    <p><strong>Objective:</strong> Connect matching numbers with paths that fill the entire grid.</p>
+    <p><strong>Rules:</strong></p>
+    <p>• Draw paths between matching numbers</p>
+    <p>• Paths cannot cross or overlap</p>
+    <p>• Every cell must be filled</p>
+    <p>• Paths can only move horizontally or vertically</p>
+    <p><strong>Controls:</strong></p>
+    <p>• Tap/click and drag to draw paths</p>
+    <p>• Tap a filled cell to clear its path</p>
+    <p>• Use Hint for help finding the next move</p>
+    <p>• Use Auto-Solve to see the solution</p>
+    <button class="close-btn" onclick="game.hideInstructions()">Got it!</button>
+  </div>
+</div>
+
+<script>
+const game = {
+  size: 5,
+  grid: [],
+  paths: [],
+  endpoints: [],
+  solution: [],
+  drawing: false,
+  currentPath: [],
+  currentNumber: null,
+  moveCount: 0,
+  
+  colors: [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+    '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
+  ],
+
+  init() {
+    this.newPuzzle();
+    this.setupEventListeners();
+  },
+
+  setupEventListeners() {
+    const grid = document.getElementById('grid');
+    
+    grid.addEventListener('mousedown', (e) => this.handleStart(e));
+    grid.addEventListener('mousemove', (e) => this.handleMove(e));
+    grid.addEventListener('mouseup', () => this.handleEnd());
+    grid.addEventListener('mouseleave', () => this.handleEnd());
+    
+    grid.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this.handleStart(e.touches[0]);
+    }, { passive: false });
+    
+    grid.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      this.handleMove(e.touches[0]);
+    }, { passive: false });
+    
+    grid.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.handleEnd();
+    }, { passive: false });
+  },
+
+  handleStart(e) {
+    const cell = e.target.closest('.cell');
+    if (!cell) return;
+    
+    const idx = parseInt(cell.dataset.index);
+    const num = this.grid[idx];
+    
+    if (num > 0) {
+      this.playSound('click');
+      this.drawing = true;
+      this.currentNumber = num;
+      this.currentPath = [idx];
+      this.clearPathForNumber(num);
+      this.render();
+    } else if (this.paths[idx] !== undefined) {
+      this.playSound('clear');
+      const pathNum = this.paths[idx];
+      this.clearPathForNumber(pathNum);
+      this.moveCount++;
+      this.render();
+    }
+  },
+
+  handleMove(e) {
+    if (!this.drawing) return;
+    
+    const grid = document.getElementById('grid');
+    const rect = grid.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const cellSize = rect.width / this.size;
+    const col = Math.floor(x / cellSize);
+    const row = Math.floor(y / cellSize);
+    
+    if (row < 0 || row >= this.size || col < 0 || col >= this.size) return;
+    
+    const idx = row * this.size + col;
+    const lastIdx = this.currentPath[this.currentPath.length - 1];
+    
+    if (idx === lastIdx) return;
+    
+    if (this.isAdjacent(idx, lastIdx)) {
+      if (this.currentPath.length > 1 && idx === this.currentPath[this.currentPath.length - 2]) {
+        this.currentPath.pop();
+        this.render();
+      } else if (!this.currentPath.includes(idx)) {
+        const cellValue = this.grid[idx];
+        const isOwnEndpoint = cellValue === this.currentNumber;
+        const isOtherEndpoint = cellValue > 0 && cellValue !== this.currentNumber;
+        const isOccupied = this.paths[idx] !== undefined && this.paths[idx] !== this.currentNumber;
+        
+        if (!isOtherEndpoint && !isOccupied) {
+          this.currentPath.push(idx);
+          this.playSound('draw');
+          this.render();
+        }
+      }
+    }
+  },
+
+  handleEnd() {
+    if (!this.drawing) return;
+    
+    this.drawing = false;
+    
+    if (this.currentPath.length > 1) {
+      const lastIdx = this.currentPath[this.currentPath.length - 1];
+      const firstIdx = this.currentPath[0];
+      
+      const isComplete = this.grid[lastIdx] === this.currentNumber && lastIdx !== firstIdx;
+      
+      if (isComplete) {
+        this.currentPath.forEach(idx => {
+          this.paths[idx] = this.currentNumber;
+        });
+        this.moveCount++;
+        this.playSound('complete');
+        
+        if (this.checkWin()) {
+          setTimeout(() => this.showWinMessage(), 300);
+        }
+      } else {
+        this.clearPathForNumber(this.currentNumber);
+      }
+    }
+    
+    this.currentPath = [];
+    this.currentNumber = null;
+    this.render();
+  },
+
+  isAdjacent(idx1, idx2) {
+    const row1 = Math.floor(idx1 / this.size);
+    const col1 = idx1 % this.size;
+    const row2 = Math.floor(idx2 / this.size);
+    const col2 = idx2 % this.size;
+    
+    return (Math.abs(row1 - row2) === 1 && col1 === col2) ||
+           (Math.abs(col1 - col2) === 1 && row1 === row2);
+  },
+
+  clearPathForNumber(num) {
+    for (let i = 0; i < this.paths.length; i++) {
+      if (this.paths[i] === num) {
+        this.paths[i] = undefined;
+      }
+    }
+  },
+
+  clearPaths() {
+    this.paths = new Array(this.size * this.size);
+    this.moveCount = 0;
+    this.playSound('clear');
+    this.render();
+  },
+
+  newPuzzle() {
+    this.moveCount = 0;
+    this.generatePuzzle();
+    this.playSound('start');
+  },
+
+  generatePuzzle() {
+    this.grid = new Array(this.size * this.size).fill(0);
+    this.paths = new Array(this.size * this.size);
+    this.endpoints = [];
+    this.solution = new Array(this.size * this.size);
+    
+    const numPairs = Math.floor(this.size * 1.2);
+    const solution = this.generateSolution(numPairs);
+    
+    if (solution) {
+      this.solution = [...solution];
+      for (let num = 1; num <= numPairs; num++) {
+        const indices = [];
+        for (let i = 0; i < this.grid.length; i++) {
+          if (solution[i] === num) indices.push(i);
+        }
+        if (indices.length >= 2) {
+          this.grid[indices[0]] = num;
+          this.grid[indices[indices.length - 1]] = num;
+          this.endpoints.push({ num, start: indices[0], end: indices[indices.length - 1] });
+        }
+      }
+    }
+    
+    this.render();
+  },
+
+  generateSolution(numPairs) {
+    const solution = new Array(this.size * this.size).fill(0);
+    const available = new Set([...Array(this.size * this.size).keys()]);
+    
+    for (let num = 1; num <= numPairs; num++) {
+      const availableArray = Array.from(available);
+      if (availableArray.length < 2) break;
+      
+      const startIdx = availableArray[Math.floor(Math.random() * availableArray.length)];
+      available.delete(startIdx);
+      
+      const path = this.findRandomPath(startIdx, available, solution);
+      
+      if (path && path.length >= 2) {
+        path.forEach(idx => {
+          solution[idx] = num;
+          available.delete(idx);
+        });
+      } else {
+        available.add(startIdx);
+      }
+    }
+    
+    return solution;
+  },
+
+  findRandomPath(start, available, solution) {
+    const minLength = 2;
+    const maxLength = Math.min(15, this.size * this.size / 3);
+    const targetLength = Math.floor(Math.random() * (maxLength - minLength + 1)) + minLength;
+    
+    const path = [start];
+    let current = start;
+    
+    for (let i = 1; i < targetLength; i++) {
+      const neighbors = this.getNeighbors(current).filter(n => available.has(n));
+      if (neighbors.length === 0) break;
+      
+      const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+      path.push(next);
+      current = next;
+    }
+    
+    return path.length >= 2 ? path : null;
+  },
+
+  getNeighbors(idx) {
+    const row = Math.floor(idx / this.size);
+    const col = idx % this.size;
+    const neighbors = [];
+    
+    if (row > 0) neighbors.push((row - 1) * this.size + col);
+    if (row < this.size - 1) neighbors.push((row + 1) * this.size + col);
+    if (col > 0) neighbors.push(row * this.size + (col - 1));
+    if (col < this.size - 1) neighbors.push(row * this.size + (col + 1));
+    
+    return neighbors;
+  },
+
+  checkSolution() {
+    const allFilled = this.paths.every(p => p !== undefined);
+    
+    if (!allFilled) {
+      this.showMessage('Not all cells are filled!', 'error');
+      this.playSound('error');
+      return;
+    }
+    
+    const allConnected = this.endpoints.every(ep => {
+      return this.paths[ep.start] === ep.num && this.paths[ep.end] === ep.num;
+    });
+    
+    if (!allConnected) {
+      this.showMessage('Some pairs are not properly connected!', 'error');
+      this.playSound('error');
+      return;
+    }
+    
+    this.showMessage('Perfect! Puzzle solved! 🎉', 'success');
+    this.playSound('win');
+  },
+
+  checkWin() {
+    const allFilled = this.paths.every(p => p !== undefined);
+    if (!allFilled) return false;
+    
+    return this.endpoints.every(ep => {
+      return this.paths[ep.start] === ep.num && this.paths[ep.end] === ep.num;
+    });
+  },
+
+  showWinMessage() {
+    this.showMessage(`🎉 Puzzle Complete in ${this.moveCount} moves! 🎉`, 'success');
+    this.playSound('win');
+    setTimeout(() => this.newPuzzle(), 2000);
+  },
+
+  getHint() {
+    const incompletePairs = this.endpoints.filter(ep => {
+      return this.paths[ep.start] !== ep.num || this.paths[ep.end] !== ep.num;
+    });
+    
+    if (incompletePairs.length === 0) {
+      this.showMessage('All pairs are connected!', 'success');
+      return;
+    }
+    
+    const hintPair = incompletePairs[0];
+    this.showMessage(`Try connecting pair ${hintPair.num} (colored cells)`, 'success');
+    this.playSound('hint');
+    
+    const cells = document.querySelectorAll('.cell');
+    cells[hintPair.start].style.animation = 'pulse 0.5s ease-in-out 3';
+    cells[hintPair.end].style.animation = 'pulse 0.5s ease-in-out 3';
+    
+    setTimeout(() => {
+      cells[hintPair.start].style.animation = '';
+      cells[hintPair.end].style.animation = '';
+    }, 1500);
+  },
+
+  autoSolve() {
+    this.paths = [...this.solution];
+    this.moveCount = 0;
+    this.playSound('complete');
+    this.showMessage('Puzzle auto-solved!', 'success');
+    this.render();
+  },
+
+  showMessage(text, type) {
+    const msg = document.getElementById('message');
+    msg.textContent = text;
+    msg.className = `message ${type}`;
+    msg.style.display = 'block';
+    setTimeout(() => {
+      msg.style.display = 'none';
+    }, 3000);
+  },
+
+  showInstructions() {
+    document.getElementById('instructionsModal').classList.add('active');
+    this.playSound('click');
+  },
+
+  hideInstructions() {
+    document.getElementById('instructionsModal').classList.remove('active');
+    this.playSound('click');
+  },
+
+  render() {
+    const gridEl = document.getElementById('grid');
+    gridEl.style.gridTemplateColumns = `repeat(${this.size}, 1fr)`;
+    gridEl.innerHTML = '';
+    
+    for (let i = 0; i < this.size * this.size; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.index = i;
+      
+      const num = this.grid[i];
+      const pathNum = this.paths[i];
+      const isInCurrentPath = this.currentPath.includes(i);
+      
+      if (num > 0) {
+        cell.classList.add('endpoint');
+        cell.textContent = num;
+        cell.style.backgroundColor = this.colors[(num - 1) % this.colors.length];
+      } else if (isInCurrentPath) {
+        cell.style.backgroundColor = this.colors[(this.currentNumber - 1) % this.colors.length];
+        cell.style.opacity = '0.7';
+      } else if (pathNum) {
+        cell.style.backgroundColor = this.colors[(pathNum - 1) % this.colors.length];
+        cell.style.opacity = '0.5';
+      }
+      
+      gridEl.appendChild(cell);
+    }
+    
+    document.getElementById('gridSize').textContent = `${this.size}x${this.size}`;
+    document.getElementById('pairCount').textContent = this.endpoints.length;
+    document.getElementById('moveCount').textContent = this.moveCount;
+  },
+
+  playSound(type) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    const sounds = {
+      click: { freq: 800, duration: 0.05 },
+      draw: { freq: 600, duration: 0.03 },
+      complete: { freq: 1000, duration: 0.1 },
+      clear: { freq: 400, duration: 0.08 },
+      error: { freq: 200, duration: 0.15 },
+      hint: { freq: 900, duration: 0.1 },
+      start: { freq: 700, duration: 0.1 },
+      win: { freq: 1200, duration: 0.2 }
+    };
+    
+    const sound = sounds[type] || sounds.click;
+    
+    osc.frequency.value = sound.freq;
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + sound.duration);
+    
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + sound.duration);
+  }
+};
+
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+`;
+document.head.appendChild(style);
+
+game.init();
+</script>
+</body>
+</html>

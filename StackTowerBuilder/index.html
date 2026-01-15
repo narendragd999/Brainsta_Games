@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stack Tower Builder - Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .game-header {
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #ff6a00, #ff9d00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        canvas {
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: block;
+            margin: 0 auto;
+            touch-action: manipulation;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        button {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(to right, #ff6a00, #ff9d00);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(255, 106, 0, 0.3);
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 106, 0, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            text-align: left;
+            backdrop-filter: blur(5px);
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            width: 80%;
+            max-width: 300px;
+            display: none;
+            z-index: 10;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-over h2 {
+            color: #ff6a00;
+            margin-bottom: 15px;
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        @media (max-width: 500px) {
+            .game-container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .stats {
+                font-size: 1rem;
+            }
+            
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>Stack Tower Builder</h1>
+            <div class="stats">
+                <div id="score">Score: 0</div>
+                <div id="highscore">Highscore: 0</div>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        
+        <div class="controls">
+            <button id="startBtn">Start Game</button>
+            <button id="pauseBtn">Pause</button>
+        </div>
+        
+        <div class="instructions">
+            <p><strong>How to play:</strong> Click or tap to place the moving block on top of the stack. Align it perfectly to build higher!</p>
+        </div>
+        
+        <div class="game-over" id="gameOverScreen">
+            <h2>Game Over!</h2>
+            <p>Your Score: <span id="finalScore">0</span></p>
+            <p>Highscore: <span id="finalHighscore">0</span></p>
+            <button id="restartBtn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const scoreDiv = document.getElementById('score');
+        const highscoreDiv = document.getElementById('highscore');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScore = document.getElementById('finalScore');
+        const finalHighscore = document.getElementById('finalHighscore');
+
+        // Game variables
+        let blocks = [];
+        let currentBlock = null;
+        let fallingBlocks = [];
+        let particles = [];
+        let gameOver = false;
+        let gamePaused = false;
+        let score = 0;
+        let speed = 2;
+        let animationId;
+        let lastTimestamp = 0;
+        let deltaTime = 0;
+
+        // Audio variables
+        let audioCtx = null;
+
+        // Load highscore from localStorage
+        let highscore = localStorage.getItem('stackHighscore') || 0;
+        highscoreDiv.textContent = `Highscore: ${highscore}`;
+
+        const blockHeight = 20;
+
+        // Initialize AudioContext
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Play a simple tone
+        function playTone(frequency, duration, type = 'sine', volume = 0.3) {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration / 1000);
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + duration / 1000);
+        }
+
+        // Play a short success jingle
+        function playSuccessJingle() {
+            playTone(523.25, 100, 'sine'); // C5
+            setTimeout(() => playTone(659.25, 100, 'sine'), 100); // E5
+            setTimeout(() => playTone(783.99, 150, 'sine'), 200); // G5
+        }
+
+        // Play game over sound
+        function playGameOverSound() {
+            playTone(392, 200, 'sawtooth', 0.2); // G4 descending feel
+            setTimeout(() => playTone(349.23, 200, 'sawtooth', 0.2), 200); // F4
+            setTimeout(() => playTone(329.63, 300, 'sawtooth', 0.2), 400); // E4
+        }
+
+        // Play start sound
+        function playStartSound() {
+            playTone(659.25, 300, 'triangle', 0.4); // E5
+        }
+
+        // Resume audio context on user interaction
+        function resumeAudio() {
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Improved color palette
+        function getRandomColor() {
+            const colors = [
+                '#FF6B6B', '#6BCB77', '#4D96FF', '#FFD93D', '#FF6EC7',
+                '#A3E4D7', '#F8B500', '#9B5DE5', '#00BBF9', '#FF6B6B'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Create particle effects
+        function createParticles(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x + Math.random() * 20 - 10,
+                    y: y + Math.random() * 20 - 10,
+                    size: Math.random() * 3 + 1,
+                    speedX: Math.random() * 6 - 3,
+                    speedY: Math.random() * 6 - 3,
+                    color: color,
+                    life: 30 + Math.random() * 30
+                });
+            }
+        }
+
+        // Update particles
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.speedX;
+                p.y += p.speedY;
+                p.life--;
+                
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        // Draw particles
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life / 60;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // Draw block with gradient and shadow
+        function drawBlock(x, y, width, color, isCurrent = false) {
+            // Add shadow for depth
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            // Create gradient
+            const gradient = ctx.createLinearGradient(x, y, x, y + blockHeight);
+            gradient.addColorStop(0, lightenColor(color, 30));
+            gradient.addColorStop(1, darkenColor(color, 20));
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, y, width, blockHeight);
+            
+            // Add highlight for current block
+            if (isCurrent) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillRect(x, y, width, 5);
+            }
+            
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
+
+        // Utility functions to lighten/darken colors
+        function lightenColor(color, percent) {
+            const num = parseInt(color.slice(1), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return `#${(0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1)}`;
+        }
+
+        function darkenColor(color, percent) {
+            const num = parseInt(color.slice(1), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) - amt;
+            const G = (num >> 8 & 0x00FF) - amt;
+            const B = (num & 0x0000FF) - amt;
+            return `#${(0x1000000 + (R > 0 ? R : 0) * 0x10000 +
+                (G > 0 ? G : 0) * 0x100 +
+                (B > 0 ? B : 0)).toString(16).slice(1)}`;
+        }
+
+        // Start game function
+        function startGame() {
+            initAudio();
+            playStartSound();
+            blocks = [{x: 150, y: 550, width: 100, color: getRandomColor()}];
+            currentBlock = {x: 0, y: 530, width: 100, color: getRandomColor(), dir: 1};
+            fallingBlocks = [];
+            particles = [];
+            gameOver = false;
+            gamePaused = false;
+            score = 0;
+            speed = 2;
+            
+            startBtn.textContent = "Restart Game";
+            gameOverScreen.style.display = "none";
+            scoreDiv.textContent = 'Score: 0';
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            lastTimestamp = performance.now();
+            animationId = requestAnimationFrame(update);
+        }
+
+        // Pause/resume game
+        function togglePause() {
+            gamePaused = !gamePaused;
+            pauseBtn.textContent = gamePaused ? "Resume" : "Pause";
+            
+            if (!gamePaused && !gameOver) {
+                lastTimestamp = performance.now();
+                animationId = requestAnimationFrame(update);
+            }
+        }
+
+        // Place block function
+        function placeBlock() {
+            resumeAudio(); // Resume audio on interaction
+            if (gameOver || gamePaused) return;
+            
+            const lastBlock = blocks[blocks.length - 1];
+            const overlap = Math.min(lastBlock.x + lastBlock.width, currentBlock.x + currentBlock.width) - 
+                           Math.max(lastBlock.x, currentBlock.x);
+
+            if (overlap > 0) {
+                // Play success sound
+                playSuccessJingle();
+                
+                // Create particles for successful placement
+                createParticles(currentBlock.x + currentBlock.width/2, currentBlock.y, currentBlock.color, 15);
+                
+                // Cut block and create falling part
+                if (overlap < currentBlock.width) {
+                    const fallingWidth = currentBlock.width - overlap;
+                    const fallingX = currentBlock.x < lastBlock.x ? currentBlock.x : currentBlock.x + overlap;
+                    fallingBlocks.push({
+                        x: fallingX, 
+                        y: currentBlock.y, 
+                        width: fallingWidth, 
+                        color: currentBlock.color, 
+                        vy: 0
+                    });
+                    // Play falling sound
+                    playTone(220, 300, 'square', 0.2); // A3 low tone for falling
+                }
+                
+                currentBlock.width = overlap;
+                currentBlock.x = Math.max(currentBlock.x, lastBlock.x);
+                blocks.push({...currentBlock});
+                score++;
+                scoreDiv.textContent = 'Score: ' + score;
+
+                // Increase speed every 5 points
+                if (score % 5 === 0) speed += 0.5;
+
+                // Prepare next block
+                const nextY = currentBlock.y - blockHeight;
+                currentBlock = {
+                    x: 0, 
+                    y: nextY, 
+                    width: Math.min(currentBlock.width * 0.95, 100), // Gradually decrease width
+                    color: getRandomColor(), 
+                    dir: 1
+                };
+                
+                // Check if game is won (tower reaches top)
+                if (nextY < 50) {
+                    endGame(true);
+                }
+            } else {
+                endGame(false);
+            }
+        }
+
+        // End game function
+        function endGame(isWin = false) {
+            gameOver = true;
+            playGameOverSound();
+            
+            // Create explosion particles
+            createParticles(currentBlock.x + currentBlock.width/2, currentBlock.y, currentBlock.color, 30);
+            
+            // Update highscore if needed
+            if (score > highscore) {
+                highscore = score;
+                localStorage.setItem('stackHighscore', highscore);
+                highscoreDiv.textContent = `Highscore: ${highscore}`;
+            }
+            
+            // Show game over screen after a short delay
+            setTimeout(() => {
+                finalScore.textContent = score;
+                finalHighscore.textContent = highscore;
+                gameOverScreen.style.display = "block";
+                gameOverScreen.querySelector('h2').textContent = isWin ? "You Win!" : "Game Over!";
+            }, 800);
+        }
+
+        // Update falling blocks
+        function updateFallingBlocks() {
+            for (let i = fallingBlocks.length - 1; i >= 0; i--) {
+                const b = fallingBlocks[i];
+                b.vy += 0.5; // gravity
+                b.y += b.vy;
+                
+                // Remove blocks that fall out of canvas and create particles
+                if (b.y > canvas.height) {
+                    createParticles(b.x + b.width/2, canvas.height, b.color, 10);
+                    // Play impact sound
+                    playTone(130.81, 150, 'sawtooth', 0.15); // C3 impact
+                    fallingBlocks.splice(i, 1);
+                }
+            }
+        }
+
+        // Main game update function
+        function update(timestamp) {
+            if (gamePaused || gameOver) return;
+            
+            deltaTime = timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
+            
+            // Clear canvas with a subtle gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#f0f8ff');
+            gradient.addColorStop(1, '#e6f7ff');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw stacked blocks
+            blocks.forEach(block => {
+                drawBlock(block.x, block.y, block.width, block.color);
+            });
+            
+            // Draw current moving block with a shadow preview
+            if (currentBlock) {
+                // Draw shadow preview
+                ctx.globalAlpha = 0.3;
+                drawBlock(currentBlock.x, blocks[blocks.length-1].y - blockHeight, currentBlock.width, currentBlock.color);
+                ctx.globalAlpha = 1;
+                
+                // Draw actual moving block
+                drawBlock(currentBlock.x, currentBlock.y, currentBlock.width, currentBlock.color, true);
+                
+                // Update position based on time for consistent speed
+                currentBlock.x += currentBlock.dir * speed * (deltaTime / 16);
+                if (currentBlock.x + currentBlock.width > canvas.width || currentBlock.x < 0) {
+                    currentBlock.dir *= -1;
+                }
+            }
+            
+            // Draw falling blocks
+            updateFallingBlocks();
+            fallingBlocks.forEach(b => {
+                drawBlock(b.x, b.y, b.width, b.color);
+            });
+            
+            // Update and draw particles
+            updateParticles();
+            drawParticles();
+            
+            // Draw score on canvas
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText(`Score: ${score}`, 20, 30);
+            
+            animationId = requestAnimationFrame(update);
+        }
+
+        // Event listeners
+        canvas.addEventListener('click', () => { resumeAudio(); placeBlock(); });
+        canvas.addEventListener('touchstart', e => { 
+            e.preventDefault(); 
+            resumeAudio();
+            placeBlock(); 
+        }, {passive: false});
+        
+        startBtn.addEventListener('click', () => { resumeAudio(); startGame(); });
+        pauseBtn.addEventListener('click', () => { resumeAudio(); togglePause(); });
+        restartBtn.addEventListener('click', () => { resumeAudio(); startGame(); });
+
+        // Initialize game
+        startBtn.textContent = "Start Game";
+        pauseBtn.textContent = "Pause";
+    </script>
+</body>
+</html>

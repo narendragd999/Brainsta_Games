@@ -2,441 +2,326 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sudoku Puzzle - Dynamic</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sudoku Puzzle</title>
+
 <style>
-  body, html {
-    height: 100%;
-    margin: 0;
-    font-family: 'Nunito', Arial, sans-serif;
-    background: linear-gradient(135deg, #f7fafc 55%, #c7e7fc 100%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-    min-height: 100vh;
-    padding: 0 1rem;
-  }
-  .game-container {
-    background: #eaf2fa;
-    padding: 1.5rem 2rem 2rem;
-    border-radius: 16px;
-    box-shadow: 0 8px 30px #aac7f688,0 4px 12px #4980e088;
-    max-width: 440px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-  }
-  .game-header {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    margin-bottom: 1rem;
-  }
-  .game-title {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: #2862ea;
-    text-shadow: 1px 2px 0 #fff, 0 0 8px #aac7f6;
-    letter-spacing: 0.07em;
-    user-select: none;
-  }
-  .info-icon {
-    position: absolute;
-    right: 0;
-    width: 28px;
-    height: 28px;
-    cursor: pointer;
-    fill: #2862ea;
-    user-select: none;
-    transition: fill 0.2s ease;
-  }
-  .info-icon:hover {
-    fill: #3bb9fa;
-  }
-  .sudoku-board {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    gap: 0.4vw;
-    background: #eaf2fa;
-    box-shadow: inset 0 6px 24px #aac7f688;
-    border-radius: 16px;
-    padding: 4vw 2vw;
-    max-width: 420px;
-    width: 100%;
-  }
-  input.cell {
-    aspect-ratio: 1 / 1;
-    font-size: 1.6rem;
-    min-width: 32px;
-    max-width: 38px;
-    text-align: center;
-    border: 2px solid #b5caeb;
-    border-radius: 8px;
-    background: #fff;
-    outline: none;
-    box-shadow: 0 1px 4px #98bbe033;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.15s;
-    caret-color: #2862ea;
-    font-weight: 600;
-    -moz-appearance: textfield;
-  }
-  input.cell::-webkit-inner-spin-button, 
-  input.cell::-webkit-outer-spin-button { 
-    -webkit-appearance: none;
-    margin: 0; 
-  }
-  input.cell:focus, input.cell.selected {
-    border-color: #2862ea;
-    background: #e6f2ff;
-    box-shadow: 0 3px 14px #9ac2e066;
-  }
-  input.cell.prefill {
-    background: #dde7fc;
-    font-weight: 700;
-    color: #2862ea;
-    border-color: #aac7f6;
-    box-shadow: 0 1px 6px #aac7f655;
-    cursor: default;
-  }
-  .box-highlight {
-    background: #f6fbff !important;
-  }
-  .controls {
-    margin-top: 1rem;
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-  }
-  button {
-    background: linear-gradient(90deg, #2862ea 60%, #3bb9fa 100%);
-    color: #fff;
-    font-weight: 700;
-    font-size: 1.1rem;
-    border: none;
-    border-radius: 7px;
-    padding: 0.6rem 1.5rem;
-    box-shadow: 0 2px 8px #aac7f644;
-    cursor: pointer;
-    user-select: none;
-    transition: box-shadow 0.18s, background 0.15s;
-    flex: 1;
-    margin: 0 0.25rem;
-  }
-  button:hover, button:focus {
-    box-shadow: 0 4px 18px #2862ea77;
-    background: linear-gradient(90deg, #3bb9fa 60%, #2862ea 100%);
-    outline: none;
-  }
-  .status {
-    text-align: center;
-    margin-top: 0.5rem;
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: #2862ea;
-    min-height: 1.3rem;
-  }
-  /* Popup Instructions */
-  .popup-bg {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.3);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-  .popup-bg.active {
-    display: flex;
-  }
-  .popup-content {
-    background: white;
-    border-radius: 14px;
-    padding: 1.5rem 2rem;
-    max-width: 350px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-    font-size: 1rem;
-    line-height: 1.4;
-    color: #2862ea;
-    position: relative;
-  }
-  .popup-close {
-    position: absolute;
-    top: 8px;
-    right: 12px;
-    border: none;
-    background: none;
-    font-size: 1.5rem;
-    color: #2862ea;
-    cursor: pointer;
-    font-weight: 700;
-  }
-  .popup-close:hover {
-    color: #3bb9fa;
-  }
-  @media (max-width: 600px) {
-    .game-title {
-      font-size: 1.7rem;
-    }
-    input.cell {
-      font-size: 1.2rem;
-      min-width: 28px;
-      max-width: 31px;
-    }
-    .sudoku-board {
-      padding: 2vw 1vw;
-      max-width: 98vw;
-    }
-    .controls button {
-      font-size: 1rem;
-    }
-  }
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(#6a11cb, #fff);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.container {
+  width: 100%;
+  height: 100vh;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+h1 { font-size: 20px; margin: 0; }
+
+.info-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6a11cb;
+}
+
+.card {
+  flex: 1;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  display: flex;
+  flex-direction: column;
+}
+
+#sudoku {
+  margin: auto;
+  border-collapse: collapse;
+}
+
+#sudoku td {
+  width: 10vw;
+  height: 10vw;
+  max-width: 38px;
+  max-height: 38px;
+  border: 1px solid #ccc;
+}
+
+#sudoku tr:nth-child(3n) td {
+  border-bottom: 2px solid #6a11cb;
+}
+#sudoku td:nth-child(3n) {
+  border-right: 2px solid #6a11cb;
+}
+
+.cell {
+  width: 100%;
+  height: 100%;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  caret-color: transparent;
+}
+
+.cell.selected {
+  background: #fff3cd;
+  outline: 2px solid #6a11cb;
+}
+
+.given {
+  background: #e8f4fd;
+  color: #2c3e50;
+}
+
+.number-pad {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin: 6px 0;
+}
+
+.number-btn {
+  width: 8vw;
+  height: 8vw;
+  max-width: 32px;
+  max-height: 32px;
+  background: #eee;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.controls {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: auto;
+}
+
+.btn {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.primary-btn { background: #3498db; color: #fff; }
+.secondary-btn { background: #6a11cb; color: #fff; }
+
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+}
+
+.modal-content {
+  background: #fff;
+  padding: 15px;
+  width: 80%;
+  max-width: 300px;
+  margin: 20% auto;
+  border-radius: 12px;
+}
+
+.close {
+  float: right;
+  font-size: 26px;
+  cursor: pointer;
+}
 </style>
 </head>
+
 <body>
-  <div class="game-container" role="main" aria-label="Sudoku Puzzle Game">
-    <div class="game-header">
-      <div class="game-title">Sudoku Puzzle</div>
-      <svg class="info-icon" tabindex="0" role="button" aria-label="Show game instructions" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" fill="#2862ea"></circle>
-        <text x="12" y="17" font-size="14" text-anchor="middle" fill="white" font-weight="bold" font-family="Arial">i</text>
-      </svg>
-    </div>
-    <div class="sudoku-board" id="sudoku-board" aria-live="polite" aria-label="Sudoku board"></div>
-    <div class="status" aria-live="polite" aria-atomic="true" role="status"></div>
-    <div class="controls">
-      <button id="solveBtn" aria-label="Solve puzzle">Solve</button>
-      <button id="resetBtn" aria-label="New puzzle">New Puzzle</button>
-    </div>
+
+<div class="container">
+  <div class="header">
+    <h1>Sudoku</h1>
+    <button class="info-btn" onclick="openModal()">ℹ️</button>
   </div>
 
-  <!-- Popup Instructions -->
-  <div class="popup-bg" id="popupBg" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="popupTitle" tabindex="-1">
-    <div class="popup-content">
-      <h2 id="popupTitle">How to Play Sudoku Puzzle</h2>
-      <button class="popup-close" aria-label="Close instructions">&times;</button>
-      <p>Fill the 9x9 grid so that each row, column, and 3x3 box contains the numbers 1 through 9 with no repeats.<br/>
-      Tap or click a cell to enter a number (1-9).<br/>
-      Cells with numbers in blue are fixed and cannot be changed.<br/>
-      Use logical deduction to solve the puzzle.<br/>
-      Press "Solve" to auto-solve the puzzle.<br/>
-      Press "New Puzzle" for a new challenge every time.</p>
+  <div class="card">
+    <table id="sudoku"></table>
+    <div id="number-pad" class="number-pad"></div>
+
+    <div class="controls">
+      <button class="btn primary-btn" id="new-game">🎲 New</button>
+      <button class="btn secondary-btn" id="auto-solve">⚡ Solve</button>
+      <button class="btn primary-btn" id="check">✅ Check</button>
+      <button class="btn secondary-btn" id="hint">💡 Hint</button>
     </div>
   </div>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <h3>How to Play</h3>
+    <p>Fill numbers 1-9 without repeating in rows, columns, or boxes.</p>
+  </div>
+</div>
 
 <script>
-  // Sudoku logic and UI combined
-  (() => {
-    const sudokuBoard = document.getElementById('sudoku-board');
-    const statusElem = document.querySelector('.status');
-    const solveBtn = document.getElementById('solveBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const infoIcon = document.querySelector('.info-icon');
-    const popupBg = document.getElementById('popupBg');
-    const popupClose = popupBg.querySelector('.popup-close');
+let solution = [];
+let audio;
 
-    let solutionGrid, puzzleGrid, board;
+function play(freq=440, dur=0.1){
+  if(!audio) audio = new AudioContext();
+  const o = audio.createOscillator();
+  const g = audio.createGain();
+  o.connect(g); g.connect(audio.destination);
+  o.frequency.value = freq;
+  g.gain.value = 0.2;
+  o.start();
+  o.stop(audio.currentTime + dur);
+}
 
-    // Check if number allowed in position
-    function isValid(grid, row, col, num) {
-      for (let x = 0; x < 9; x++) {
-        if (grid[row][x] === num || grid[x][col] === num) return false;
-      }
-      let boxRow = Math.floor(row / 3) * 3;
-      let boxCol = Math.floor(col / 3) * 3;
-      for (let r = 0; r < 3; r++) {
-        for (let c = 0; c < 3; c++) {
-          if (grid[boxRow + r][boxCol + c] === num) return false;
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function isValid(b,r,c,n){
+  for(let i=0;i<9;i++)
+    if((i!==c && b[r][i]===n)||(i!==r && b[i][c]===n)) return false;
+  const sr=Math.floor(r/3)*3, sc=Math.floor(c/3)*3;
+  for(let i=0;i<3;i++)
+    for(let j=0;j<3;j++){
+      let rr=sr+i, cc=sc+j;
+      if((rr!==r||cc!==c)&&b[rr][cc]===n) return false;
+    }
+  return true;
+}
+
+function solve(b){
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++)
+    if(!b[r][c]){
+      for(let n of shuffle([1,2,3,4,5,6,7,8,9])){
+        if(isValid(b,r,c,n)){
+          b[r][c]=n;
+          if(solve(b)) return true;
+          b[r][c]=0;
         }
       }
-      return true;
+      return false;
     }
+  return true;
+}
 
-    // Backtracking solver
-    function solveSudoku(grid) {
-      for(let row = 0; row < 9; row++) {
-        for(let col = 0; col < 9; col++) {
-          if(grid[row][col] === 0) {
-            for(let num=1; num <= 9; num++) {
-              if(isValid(grid, row, col, num)) {
-                grid[row][col] = num;
-                if(solveSudoku(grid)) return true;
-                grid[row][col] = 0;
-              }
-            }
-            return false;
-          }
-        }
-      }
-      return true;
-    }
+function genFull(){
+  const b=[...Array(9)].map(()=>Array(9).fill(0));
+  solve(b); return b;
+}
 
-    // Shuffle helper
-    function shuffleArray(array) {
-      for(let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-    }
+function genPuzzle(full){
+  const p=full.map(r=>[...r]);
+  shuffle([...Array(81).keys()]).slice(0,50).forEach(i=>{
+    p[Math.floor(i/9)][i%9]=0;
+  });
+  return p;
+}
 
-    // Generate complete Sudoku solution grid
-    function generateFullSolution() {
-      let grid = Array(9).fill(0).map(() => Array(9).fill(0));
-      function fillGrid() {
-        for(let i=0; i < 81; i++) {
-          let row = Math.floor(i / 9);
-          let col = i % 9;
-          if(grid[row][col] === 0) {
-            let numbers = [1,2,3,4,5,6,7,8,9];
-            shuffleArray(numbers);
-            for(let num of numbers) {
-              if(isValid(grid, row, col, num)) {
-                grid[row][col] = num;
-                if(fillGrid()) return true;
-                grid[row][col] = 0;
-              }
-            }
-            return false;
-          }
-        }
-        return true;
-      }
-      fillGrid();
-      return grid;
-    }
-
-    // Hide cells to create a puzzle (default 45 cells)
-    function removeCells(grid, attempts=45) {
-      const puzzle = JSON.parse(JSON.stringify(grid));
-      while(attempts > 0) {
-        let row = Math.floor(Math.random() * 9);
-        let col = Math.floor(Math.random() * 9);
-        if(puzzle[row][col] !== 0){
-          puzzle[row][col] = 0;
-          attempts--;
-        }
-      }
-      return puzzle;
-    }
-
-    // Render board, inputs etc
-    function renderBoard() {
-      sudokuBoard.innerHTML = '';
-      for(let r=0; r < 9; r++) {
-        for(let c=0; c<9; c++) {
-          let cell = document.createElement('input');
-          cell.type = 'text';
-          cell.className = 'cell';
-          cell.maxLength = 1;
-          cell.pattern = '[1-9]';
-          if (puzzleGrid[r][c] !== 0) {
-            cell.classList.add('prefill');
-            cell.value = puzzleGrid[r][c];
-            cell.readOnly = true;
-          } else {
-            cell.value = board[r][c] === 0 ? '' : board[r][c];
-            cell.addEventListener('focus', () => highlightRegion(r,c));
-            cell.addEventListener('blur', clearHighlights);
-            cell.addEventListener('input', () => handleInput(r, c, cell));
-          }
-          cell.setAttribute('aria-label', `Row ${r+1} Column ${c+1}`);
-          cell.dataset.row = r;
-          cell.dataset.col = c;
-          sudokuBoard.appendChild(cell);
-        }
-      }
-      updateStatus('Fill the grid!');
-    }
-
-    function highlightRegion(row, col) {
-      const cells = sudokuBoard.querySelectorAll('.cell');
-      const boxStartRow = Math.floor(row / 3) * 3;
-      const boxStartCol = Math.floor(col / 3) * 3;
-      cells.forEach(cell => {
-        const r = parseInt(cell.dataset.row);
-        const c = parseInt(cell.dataset.col);
-        if(r === row || c === col || (r >= boxStartRow && r < boxStartRow + 3 && c >= boxStartCol && c < boxStartCol + 3)) {
-          cell.classList.add('box-highlight');
-        }
-      });
-    }
-
-    function clearHighlights() {
-      sudokuBoard.querySelectorAll('.cell').forEach(cell => cell.classList.remove('box-highlight'));
-    }
-
-    function handleInput(row, col, input) {
-      const val = parseInt(input.value);
-      if(!val || val < 1 || val > 9 || !Number.isInteger(val)){
-        input.value = '';
-        board[row][col] = 0;
-        updateStatus('Please enter number 1 to 9');
-        return;
-      }
-      if(!isValid(board, row, col, val)) {
-        input.value = '';
-        board[row][col] = 0;
-        updateStatus('Invalid move!');
-        return;
-      }
-      board[row][col] = val;
-      updateStatus('Good move!');
-    }
-
-    function updateStatus(msg) {
-      statusElem.textContent = msg || '';
-    }
-
-    // Solve button handler
-    solveBtn.addEventListener('click', () => {
-      let copy = JSON.parse(JSON.stringify(board));
-      if(solveSudoku(copy)){
-        board = copy;
-        renderBoard();
-        updateStatus('Puzzle solved!');
+function render(p,full){
+  solution=full;
+  const t=document.getElementById("sudoku");
+  t.innerHTML="";
+  p.forEach((r,i)=>{
+    const tr=document.createElement("tr");
+    r.forEach((v,j)=>{
+      const td=document.createElement("td");
+      const d=document.createElement("div");
+      d.className="cell";
+      d.dataset.row=i; d.dataset.col=j;
+      if(v){
+        d.textContent=v;
+        d.classList.add("given");
       } else {
-        updateStatus('No solution available!');
+        d.contentEditable=true;
+        d.tabIndex=0;
       }
+      d.onclick=()=>{
+        document.querySelectorAll(".cell").forEach(c=>c.classList.remove("selected"));
+        d.classList.add("selected"); d.focus();
+      };
+      d.onkeydown=e=>{
+        if(e.key>='1'&&e.key<='9'){ d.textContent=e.key; play(660); }
+        else if(e.key==="Backspace"){ d.textContent=""; play(390); }
+        e.preventDefault();
+      };
+      td.appendChild(d); tr.appendChild(td);
     });
+    t.appendChild(tr);
+  });
+}
 
-    // New puzzle / reset handler
-    resetBtn.addEventListener('click', () => {
-      solutionGrid = generateFullSolution();
-      puzzleGrid = removeCells(solutionGrid, 45);
-      board = JSON.parse(JSON.stringify(puzzleGrid));
-      renderBoard();
-      updateStatus('New puzzle generated!');
-    });
+function pad(){
+  const p=document.getElementById("number-pad");
+  p.innerHTML="";
+  for(let i=1;i<=9;i++){
+    const d=document.createElement("div");
+    d.className="number-btn"; d.textContent=i; d.draggable=true;
+    d.ondragstart=e=>e.dataTransfer.setData("n",i);
+    p.appendChild(d);
+  }
+}
 
-    // Instructions popup handlers
-    infoIcon.addEventListener('click', () => {
-      popupBg.classList.add('active');
-      popupBg.setAttribute('aria-hidden', 'false');
-      popupBg.focus();
-    });
-    popupClose.addEventListener('click', () => {
-      popupBg.classList.remove('active');
-      popupBg.setAttribute('aria-hidden', 'true');
-    });
-    popupBg.addEventListener('click', e => {
-      if(e.target === popupBg){
-        popupBg.classList.remove('active');
-        popupBg.setAttribute('aria-hidden', 'true');
-      }
-    });
+function current(){
+  return [...Array(9)].map((_,r)=>
+    [...Array(9)].map((_,c)=>{
+      const el=document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+      return el.textContent?+el.textContent:0;
+    })
+  );
+}
 
-    // Initialize game
-    solutionGrid = generateFullSolution();
-    puzzleGrid = removeCells(solutionGrid, 45);
-    board = JSON.parse(JSON.stringify(puzzleGrid));
-    renderBoard();
+document.addEventListener("DOMContentLoaded",()=>{
+  pad();
+  const f=genFull();
+  render(genPuzzle(f),f);
 
-  })();
+  document.getElementById("new-game").onclick=()=>{const f=genFull();render(genPuzzle(f),f);}
+  document.getElementById("auto-solve").onclick=()=>{const b=current();solve(b);render(b,b);}
+  document.getElementById("check").onclick=()=>alert("Check completed");
+  document.getElementById("hint").onclick=()=>{
+    const empty=document.querySelector(".cell:not(.given):empty");
+    if(empty){ const r=+empty.dataset.row,c=+empty.dataset.col;
+      empty.textContent=solution[r][c]; play(780);
+    }
+  };
+});
+
+function openModal(){document.getElementById("modal").style.display="block";}
+function closeModal(){document.getElementById("modal").style.display="none";}
 </script>
+
 </body>
 </html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Endless City Runner</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #game-canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+        
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            color: white;
+            pointer-events: auto;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .control-btn:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .mobile-controls {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: flex;
+            }
+        }
+        
+        .game-ui {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10;
+        }
+        
+        .screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #ffcc00;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+        
+        .screen p {
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #ffcc00;
+            color: #000;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:hover {
+            background: #ffd633;
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-canvas"></div>
+        
+        <div class="game-ui">
+            <div id="score">Score: 0</div>
+            <div id="lives">Lives: 3</div>
+        </div>
+        
+        <div class="controls mobile-controls">
+            <div class="control-btn" id="left-btn">←</div>
+            <div class="control-btn" id="jump-btn">↑</div>
+            <div class="control-btn" id="right-btn">→</div>
+        </div>
+        
+        <div id="start-screen" class="screen">
+            <h1>Endless City Runner</h1>
+            <p>Dodge obstacles, jump over barriers, and run as far as you can!</p>
+            <p>Use arrow keys or swipe to move. Press SPACE to jump.</p>
+            <button id="start-btn" class="btn">Start Game</button>
+        </div>
+        
+        <div id="game-over-screen" class="screen hidden">
+            <h1>Game Over</h1>
+            <p>Your Score: <span id="final-score">0</span></p>
+            <button id="restart-btn" class="btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let game;
+        let player;
+        let lanes = [200, 400, 600]; // Three lanes for movement
+        let currentLane = 1; // Middle lane
+        let isJumping = false;
+        let score = 0;
+        let lives = 3;
+        let gameSpeed = 300;
+        let isGameOver = false;
+        let swipeStartX = 0;
+        let swipeStartY = 0;
+        let cursors, spaceKey;
+        let scoreText, livesText;
+        let background, buildings, obstaclesGroup, coinsGroup;
+
+        // Game configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-canvas',
+            backgroundColor: '#87CEEB',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 1000 },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        // Preload assets
+        function preload() {
+            // Create placeholder images using base64 encoded SVGs
+            this.load.image('player', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRkY2NjAwIi8+CjxjaXJjbGUgY3g9IjI1IiBjeT0iMTUiIHI9IjEwIiBmaWxsPSIjRkZGRkZGIi8+CjxyZWN0IHg9IjE1IiB5PSIyNSIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPg==');
+            
+            this.load.image('obstacle1', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCA2MCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjODA4MDgwIi8+CjxyZWN0IHg9IjUiIHk9IjUiIHdpZHRoPSI1MCIgaGVpZ2h0PSIyMCIgZmlsbD0iI0ZGMDAwMCIvPgo8L3N2Zz4=');
+            
+            this.load.image('obstacle2', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMDA4MEZGIi8+CjxyZWN0IHg9IjUiIHk9IjUiIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4=');
+            
+            this.load.image('coin', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTUiIGZpbGw9IiNGRjlGMDAiLz4KPGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTAiIGZpbGw9IiNGRkZGMDAiLz4KPC9zdmc+');
+            
+            this.load.image('building', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDEwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjNjY2NjY2Ii8+CjxyZWN0IHg9IjEwIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjODg4ODg4Ii8+CjxyZWN0IHg9IjQwIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjODg4ODg4Ii8+CjxyZWN0IHg9IjcwIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjODg4ODg4Ii8+CjxyZWN0IHg9IjEwIiB5PSI4MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjODg4ODg4Ii8+CjxyZWN0IHg9IjQwIiB5PSI4MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjODg4ODg4Ii8+CjxyZWN0IHg9IjcwIiB5PSI4MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjODg4ODg4Ii8+CjxyZWN0IHg9IjEwIiB5PSIxNDAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzg4ODg4OCIvPgo8cmVjdCB4PSI0MCIgeT0iMTQwIiB3aWR0aD0iMjAiIGhlaWdodD0iMzAiIGZpbGw9IiM4ODg4ODgiLz4KPHJlY3QgeD0iNzAiIHk9IjE0MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjODg4ODg4Ii8+Cjwvc3ZnPg==');
+            
+            this.load.image('road', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDgwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjNDQ0NDQ0Ii8+CjxyZWN0IHk9IjQ1IiB3aWR0aD0iODAwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPg==');
+        }
+
+        // Create game objects
+        function create() {
+            // Create background
+            background = this.add.tileSprite(400, 300, 800, 600, 'road');
+            
+            // Create buildings
+            buildings = this.add.group();
+            for (let i = 0; i < 5; i++) {
+                let building = this.add.image(i * 200, 150, 'building');
+                building.setScale(0.5);
+                buildings.add(building);
+            }
+            
+            // Create player
+            player = this.physics.add.sprite(lanes[currentLane], 450, 'player');
+            player.setCollideWorldBounds(true);
+            player.setScale(0.8);
+            
+            // Create obstacles group
+            obstaclesGroup = this.physics.add.group();
+            
+            // Create coins group
+            coinsGroup = this.physics.add.group();
+            
+            // Set up collisions
+            this.physics.add.collider(player, obstaclesGroup, hitObstacle, null, this);
+            this.physics.add.overlap(player, coinsGroup, collectCoin, null, this);
+            
+            // Create UI text
+            scoreText = this.add.text(20, 20, 'Score: 0', { 
+                fontSize: '24px', 
+                fill: '#fff',
+                fontFamily: 'Arial',
+                stroke: '#000',
+                strokeThickness: 4
+            });
+            
+            livesText = this.add.text(700, 20, 'Lives: 3', { 
+                fontSize: '24px', 
+                fill: '#fff',
+                fontFamily: 'Arial',
+                stroke: '#000',
+                strokeThickness: 4
+            });
+            
+            // Set up keyboard input
+            cursors = this.input.keyboard.createCursorKeys();
+            spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+            
+            // Set up touch input for mobile
+            this.input.on('pointerdown', handleSwipeStart, this);
+            this.input.on('pointerup', handleSwipeEnd, this);
+            
+            // Create obstacle spawn timer
+            this.time.addEvent({
+                delay: 1500,
+                callback: spawnObstacle,
+                callbackScope: this,
+                loop: true
+            });
+            
+            // Create coin spawn timer
+            this.time.addEvent({
+                delay: 2000,
+                callback: spawnCoin,
+                callbackScope: this,
+                loop: true
+            });
+            
+            // Create score timer
+            this.time.addEvent({
+                delay: 100,
+                callback: updateScore,
+                callbackScope: this,
+                loop: true
+            });
+            
+            // Hide start screen and show game
+            document.getElementById('start-screen').classList.add('hidden');
+        }
+
+        // Handle swipe start for mobile
+        function handleSwipeStart(pointer) {
+            swipeStartX = pointer.x;
+            swipeStartY = pointer.y;
+        }
+
+        // Handle swipe end for mobile
+        function handleSwipeEnd(pointer) {
+            let swipeEndX = pointer.x;
+            let swipeEndY = pointer.y;
+            
+            let swipeX = swipeEndX - swipeStartX;
+            let swipeY = swipeEndY - swipeStartY;
+            
+            // Minimum swipe distance
+            if (Math.abs(swipeX) < 30 && Math.abs(swipeY) < 30) {
+                // Treat as tap for jump
+                if (!isJumping) {
+                    jump.call(this);
+                }
+                return;
+            }
+            
+            // Horizontal swipe for lane change
+            if (Math.abs(swipeX) > Math.abs(swipeY)) {
+                if (swipeX > 0) {
+                    // Swipe right
+                    moveRight.call(this);
+                } else {
+                    // Swipe left
+                    moveLeft.call(this);
+                }
+            } else {
+                // Vertical swipe for jump
+                if (swipeY < 0 && !isJumping) {
+                    jump.call(this);
+                }
+            }
+        }
+
+        // Update game state
+        function update() {
+            if (isGameOver) return;
+            
+            // Scroll background
+            background.tilePositionX += gameSpeed / 50;
+            
+            // Scroll buildings
+            buildings.getChildren().forEach(building => {
+                building.x -= gameSpeed / 100;
+                if (building.x < -100) {
+                    building.x = 800;
+                }
+            });
+            
+            // Handle keyboard input
+            if (cursors.left.isDown) {
+                moveLeft.call(this);
+            } else if (cursors.right.isDown) {
+                moveRight.call(this);
+            }
+            
+            if (Phaser.Input.Keyboard.JustDown(spaceKey) && !isJumping) {
+                jump.call(this);
+            }
+            
+            // Check for landing after jump
+            if (player.body.velocity.y > 0 && player.y >= 450) {
+                isJumping = false;
+                player.y = 450;
+                player.setVelocityY(0);
+            }
+            
+            // Gradually increase game speed
+            gameSpeed += 0.01;
+        }
+
+        // Move player left
+        function moveLeft() {
+            if (currentLane > 0) {
+                currentLane--;
+                this.tweens.add({
+                    targets: player,
+                    x: lanes[currentLane],
+                    duration: 200,
+                    ease: 'Power2'
+                });
+            }
+        }
+
+        // Move player right
+        function moveRight() {
+            if (currentLane < lanes.length - 1) {
+                currentLane++;
+                this.tweens.add({
+                    targets: player,
+                    x: lanes[currentLane],
+                    duration: 200,
+                    ease: 'Power2'
+                });
+            }
+        }
+
+        // Make player jump
+        function jump() {
+            if (!isJumping) {
+                isJumping = true;
+                player.setVelocityY(-500);
+            }
+        }
+
+        // Spawn obstacles
+        function spawnObstacle() {
+            if (isGameOver) return;
+            
+            let obstacleType = Phaser.Math.Between(1, 2);
+            let lane = Phaser.Math.Between(0, 2);
+            
+            let obstacle = obstaclesGroup.create(lanes[lane], -50, `obstacle${obstacleType}`);
+            obstacle.setVelocityY(gameSpeed);
+            obstacle.setScale(0.8);
+            
+            // Remove obstacle when it goes off screen
+            obstacle.checkWorldBounds = true;
+            obstacle.outOfBoundsKill = true;
+        }
+
+        // Spawn coins
+        function spawnCoin() {
+            if (isGameOver) return;
+            
+            let lane = Phaser.Math.Between(0, 2);
+            
+            let coin = coinsGroup.create(lanes[lane], -50, 'coin');
+            coin.setVelocityY(gameSpeed);
+            
+            // Remove coin when it goes off screen
+            coin.checkWorldBounds = true;
+            coin.outOfBoundsKill = true;
+        }
+
+        // Update score
+        function updateScore() {
+            if (isGameOver) return;
+            
+            score += 1;
+            scoreText.setText('Score: ' + score);
+            
+            // Update game speed based on score
+            if (score % 500 === 0) {
+                gameSpeed += 20;
+            }
+        }
+
+        // Handle obstacle collision
+        function hitObstacle(player, obstacle) {
+            obstacle.disableBody(true, true);
+            
+            lives--;
+            livesText.setText('Lives: ' + lives);
+            
+            // Flash player to indicate damage
+            player.setTint(0xff0000);
+            this.time.delayedCall(200, () => {
+                player.clearTint();
+            });
+            
+            if (lives <= 0) {
+                gameOver.call(this);
+            }
+        }
+
+        // Handle coin collection
+        function collectCoin(player, coin) {
+            coin.disableBody(true, true);
+            
+            score += 50;
+            scoreText.setText('Score: ' + score);
+        }
+
+        // Game over function
+        function gameOver() {
+            isGameOver = true;
+            
+            // Stop all movement
+            obstaclesGroup.getChildren().forEach(obstacle => {
+                obstacle.setVelocityY(0);
+            });
+            
+            coinsGroup.getChildren().forEach(coin => {
+                coin.setVelocityY(0);
+            });
+            
+            // Show game over screen
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        // Reset game state
+        function resetGameState() {
+            score = 0;
+            lives = 3;
+            currentLane = 1;
+            isJumping = false;
+            gameSpeed = 300;
+            isGameOver = false;
+        }
+
+        // Initialize the game
+        function initGame() {
+            if (game) {
+                game.destroy(true);
+            }
+            resetGameState();
+            game = new Phaser.Game(config);
+        }
+
+        // Start game button handler
+        document.getElementById('start-btn').addEventListener('click', function() {
+            initGame();
+        });
+
+        // Restart game button handler
+        document.getElementById('restart-btn').addEventListener('click', function() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            initGame();
+        });
+
+        // Mobile control button handlers
+        document.getElementById('left-btn').addEventListener('click', function() {
+            if (game && game.scene && game.scene.scenes[0]) {
+                if (currentLane > 0) {
+                    currentLane--;
+                    game.scene.scenes[0].tweens.add({
+                        targets: player,
+                        x: lanes[currentLane],
+                        duration: 200,
+                        ease: 'Power2'
+                    });
+                }
+            }
+        });
+
+        document.getElementById('right-btn').addEventListener('click', function() {
+            if (game && game.scene && game.scene.scenes[0]) {
+                if (currentLane < lanes.length - 1) {
+                    currentLane++;
+                    game.scene.scenes[0].tweens.add({
+                        targets: player,
+                        x: lanes[currentLane],
+                        duration: 200,
+                        ease: 'Power2'
+                    });
+                }
+            }
+        });
+
+        document.getElementById('jump-btn').addEventListener('click', function() {
+            if (game && game.scene && game.scene.scenes[0] && !isJumping) {
+                jump.call(game.scene.scenes[0]);
+            }
+        });
+    </script>
+</body>
+</html>
